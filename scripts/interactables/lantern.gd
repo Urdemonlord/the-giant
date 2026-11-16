@@ -25,8 +25,10 @@ func _build_visual() -> void:
 	# Kotak gelap di versi lama yang bikin lentera kelihatan kotak hitam.
 	var shape := CollisionShape3D.new()
 	var col := BoxShape3D.new()
-	col.size = Vector3(0.45, 0.6, 0.45)
+	# v11: hitbox ikut sprite yang diangkat: 0,6 -> 0,65, tengah +0,03.
+	col.size = Vector3(0.45, 0.65, 0.45)
 	shape.shape = col
+	shape.position = Vector3(0, 0.03, 0)
 	add_child(shape)
 	_light = OmniLight3D.new()
 	_light.position = Vector3(0, 0.25, 0)
@@ -36,7 +38,9 @@ func _build_visual() -> void:
 	add_child(_light)
 	var spr := SpriteRegistry.billboard("lantern", 0.0016)
 	if spr != null:
-		spr.position = Vector3(0, 0.05, -0.18)
+		# v11: alas sprite di permukaan meja (1,11), bukan terkubur
+		# 0,039 m: tengah 1,359 -> lokal y 0,089 (margin bawah 1 px).
+		spr.position = Vector3(0, 0.089, -0.18)
 		add_child(spr)
 
 func get_prompt() -> String:

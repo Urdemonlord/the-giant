@@ -505,6 +505,67 @@ kabut gamenya sendiri, bukan salah letak. Sprite buku jaga
 (billboard) masih condong seperti disandarkan, bukan tergeletak
 datar — begitu sejak v7, bukan regresi v10.
 
+## v11 (2026-11-16): buku jaga tergeletak datar, tidak tumpang lagi
+
+Arya: "itu masih tumpang tindih" (setelah melihat screenshot meja v10).
+
+**Yang tumpang (dicek di screenshot v15c_desk_close + kode).**
+Sampul buku jaga adalah billboard tegak 0,49 m yang selalu menghadap
+kamera, ditempel di atas kotak buku yang datar: dari samping ia
+berdiri seperti tenda dan menutupi radio + surat di belakangnya.
+Kotaknya sendiri miring -14 derajat, tidak searah grid meja. Itu
+bukan salah letak v10 — billboard-nya memang tidak pernah datar,
+sejak v7. Hitbox-nya sendiri tidak tumpang (sudah dihitung di v10),
+yang tumpang itu visualnya.
+
+**Perbaikan meja.**
+- Buku jaga: sampul jadi Sprite3D datar (`SpriteRegistry.flat`,
+  baru) di atas kotak 0,36 x 0,40, rotasi 0, tepi atas sampul ke
+  +z supaya terbaca benar dari kursi. Kotak tidak miring lagi.
+  Hitbox diperkecil 0,55 x 0,5 -> 0,42 x 0,46, pas jejak buku.
+- Diukur dulu pakai alpha bbox, bukan kira-kira: semua tekstur meja
+  penuh tanpa margin bawah, jadi alas sprite radio/lentera/meter
+  yang terkubur di papan meja itu nyata, bukan ilusi: radio
+  terkubur 0,087 m, lentera 0,039 m, meter 0,045 m. Ketiganya
+  diangkat supaya alasnya TEPAT di permukaan meja (1,11) dan
+  hitbox-nya ikut digeser (radio 0,42 -> 0,6, tengah +0,13;
+  lentera 0,6 -> 0,65, tengah +0,03).
+- Audit hitbox meja sekarang dihitung di rig (mode verify), bukan
+  cuma di komentar: 5 AABB, tumpang = 0.
+
+**Bug sekelas yang ketemu di luar meja (diperbaiki, bukan dibangun ulang).**
+- Jejak kaki + jerat adalah billboard tegak di tanah: jejak kaki
+  berdiri seperti kartu di tengah jalan. Keduanya pindah jadi decal
+  datar seperti darah (jejak ~0,5 m, jerat ~0,9 m, y 0,05). Tint
+  merah darah tidak lagi ikut ke decal lain.
+- Papan tanda di pagar: sprite-nya di sisi jauh papan (z -0,12),
+  ketutup papan dari arah jalan. Pindah ke sisi jalan (+0,05):
+  "TAMAN NASIONAL MALAYUNESIA" sekarang kebaca dari jalan.
+- Tiang papan tanda tanpa material (putih default): itu dua garis
+  putih di shot v15c_gate_signs. Sekarang pakai material kayu yang
+  sama dengan papannya.
+
+**Verifikasi v11 (mode `shots16`, prefix v16):** `v16_desk_top`
+(buku datar di tengah, sampul kebaca, prompt Buku Jaga muncul),
+`v16_desk_close` (dari samping, buku tipis tergeletak, radio +
+surat tidak ketutup), `v16_desk_spawn` (dari spawn), `v16_desk_side`
+(dari ujung timur meja), `v16_sign_park` (papan kebaca dari jalan,
+tiang kayu bukan putih), `v16_footprint` (jejak sepatu datar di
+jalan), `v16_yard_close` (jerat datar + darah, zoom crop).
+Regression: mode verify exit 0 (registry 42 nama, 0 missing, 186
+Sprite3D, audit hitbox tumpang=0), mode playtest PASS fails=0
+(5 tugas, log lewat E), mode story PASS fails=0, headless 300 frame
+tanpa script error.
+
+**Batas jujur yang tersisa:** dari sudut samping murni (ujung
+meja), tiga benda baris belakang (lentera-meter-radio) menumpuk
+dalam proyeksi — itu paralaks baris yang dilihat dari ujungnya,
+bukan benda menempati zona yang sama; dari spawn/atas/dekat
+masing-masing tetap terbaca terpisah. Jerat + darah tetap samar
+di malam hari (kawat tipis + decal gelap di tanah gelap); jejak
+kaki kebaca jelas dari dekat, samar dari jauh. Video gameplay v8
+masih pakai layout lama; tidak di-re-record di tugas ini.
+
 ## Yang masih placeholder / belum ada
 
 - Model masih berupa kotak + sprite billboard; ini prototipe gameplay, bukan build visual final.

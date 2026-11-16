@@ -46,7 +46,7 @@ const GENERATOR_ROT_Y_DEG := 0.0 # v10: -23 -> 0, generator sejajar dinding timu
 const RADIO_POS := Vector3(-1.98, 1.27, 1.64)
 const LOGBOOK_POS := Vector3(-1.30, 1.14, 1.20) # z 1,20: buku tidak menjulur keluar tepi depan meja (dulu 1,14, menjulur 7 cm)
 const LANTERN_POS := Vector3(-0.55, 1.27, 1.64)
-const METER_POS := Vector3(-1.30, 1.29, 1.64) # meter getar, visual saja
+const METER_POS := Vector3(-1.30, 1.335, 1.64) # meter getar, visual saja; v11: y 1,29 -> 1,335 supaya alas sprite (0,45 m) tepat di permukaan meja (1,11), bukan terkubur 0,045 m
 const NEWSPAPER_POS := Vector3(-1.98, 1.12, 1.14) # y 1,12: di ATAS permukaan meja (1,11), bukan terkubur
 const PERMIT_POS := Vector3(-0.55, 1.12, 1.14)
 
@@ -83,8 +83,6 @@ const SCATTER_PROPS: Array = [
 	["stump", Vector3(7.5, 0.28, -7.0), 0.0035],
 	["stump", Vector3(-4.5, 0.28, -6.5), 0.0035],
 	["tusks", Vector3(-4.5, 0.2, -12.0), 0.003],
-	["snare", Vector3(-4.5, 0.25, -9.0), 0.003],
-	["footprint", Vector3(1.2, 0.06, -9.0), 0.003],
 	["chainsaw", Vector3(4.4, 0.35, -2.5), 0.0035],
 	["log", Vector3(7.5, 0.21, -5.5), 0.004],
 	["rocks", Vector3(7.5, 0.22, -8.5), 0.005],
@@ -101,6 +99,12 @@ const SCATTER_PROPS: Array = [
 ## Decal di tanah: [nama sprite, posisi, pixel_size].
 const GROUND_DECALS: Array = [
 	["blood", Vector3(-4.5, 0.04, -10.5), 0.009],
+	# v11: jejak kaki + jerat BUKAN billboard tegak lagi — keduanya
+	# benda yang tergeletak di tanah, jadi decal datar seperti darah.
+	# y 0,05 supaya menempel tanah (bukan 0,06/0,25 dari tabel
+	# billboard); ukuran jejak ~0,5 m, jerat ~0,9 m.
+	["footprint", Vector3(1.2, 0.05, -9.0), 0.0015],
+	["snare", Vector3(-4.5, 0.05, -9.0), 0.003],
 ]
 
 ## Billboard statis: [nama sprite, posisi, pixel_size, tint].

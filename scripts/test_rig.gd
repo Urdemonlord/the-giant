@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | verify | win | lose | audio | touch | pause | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | verify | win | lose | audio | touch | pause | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -104,6 +104,8 @@ func _run() -> void:
 			await _mode_shots14()
 		"shots15":
 			await _mode_shots15()
+		"shots16":
+			await _mode_shots16()
 		"story":
 			await _mode_story()
 		"verify":
@@ -463,6 +465,39 @@ func _mode_shots15() -> void:
 	await _set_view(Vector3(0, 0.45, -11.0), 0, 0)
 	await _shot("gate_signs")
 
+func _mode_shots16() -> void:
+	# v16 (v11): buku jaga tergeletak datar, tidak tumpang lagi.
+	# Tiap shot dicek: tiap benda di meja punya zona sendiri dari
+	# EMPAT sudut (spawn, dekat, atas, samping timur); papan tanda
+	# kebaca dari arah jalan; jejak + jerat datar di tanah.
+	GameState.set_generator(true)
+	# 1. Meja dari sudut spawn.
+	await _set_view(Vector3(0, 0.45, 1.3), 95, -6)
+	await _shot("desk_spawn")
+	# 2. Meja dari dekat, sudut lama shots12/shots15.
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	await _shot("desk_close")
+	# 3. Meja dari atas, menunduk: grid 3x2 + buku datar.
+	await _set_view(Vector3(-1.3, 0.45, -0.1), 178, -42)
+	await _shot("desk_top")
+	# 4. Meja dari samping timur (ujung kanan meja, menghadap barat):
+	# buku + kertas harus kelihatan tipis tergeletak, bukan berdiri.
+	await _set_view(Vector3(0.5, 0.45, 1.35), 90, -8)
+	await _shot("desk_side")
+	# 5. Papan Taman Nasional dari arah jalan, senter.
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(3.2, 0.45, -13.2), 0, -2)
+	await _shot("sign_park")
+	# 6. Jejak kaki datar di jalan, dari dekat.
+	await _set_view(Vector3(1.2, 0.45, -6.5), 0, -18)
+	await _shot("footprint")
+	# 7. Jerat datar + darah, baris bukti barat dari dekat.
+	await _set_view(Vector3(-1.5, 0.45, -5.5), 40, -14)
+	await _shot("yard_close")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.
 	# Rig menjalankan main.tscn dengan argumen mode=, jadi intro
@@ -563,6 +598,37 @@ func _mode_verify() -> void:
 		_log("verify: " + k + " count=" + str(names.get(k, 0)))
 	# Sprite yang TIDAK boleh ada lagi (dihapus di v5).
 	_log("verify: giant_eye_socket.png count=" + str(names.get("giant_eye_socket.png", 0)) + " (harus 0)")
+	# v11: audit hitbox meja — 5 benda interaktif di meja TIDAK boleh
+	# saling tumpang (AABB). Dulu cuma dihitung di komentar LevelData.
+	var desk_overlaps := _audit_desk_hitboxes()
+	_log("verify: audit hitbox meja tumpang=" + str(desk_overlaps) + " (harus 0)")
+
+func _audit_desk_hitboxes() -> int:
+	var names := ["Radio", "Logbook", "Lantern", "Newspaper", "Permit"]
+	var boxes := {}
+	for n in names:
+		var node := get_node_or_null("Main/" + n) as Node3D
+		if node == null:
+			_log("verify: hitbox node hilang: " + n)
+			continue
+		for c in node.get_children():
+			var cs := c as CollisionShape3D
+			if cs != null and cs.shape is BoxShape3D:
+				var bs := cs.shape as BoxShape3D
+				var center: Vector3 = node.global_position + cs.position
+				var half: Vector3 = bs.size * 0.5
+				boxes[n] = AABB(center - half, bs.size)
+				_log("verify: hitbox " + n + " AABB=" + str(boxes[n]))
+	var overlaps := 0
+	var keys := boxes.keys()
+	for i in range(keys.size()):
+		for j in range(i + 1, keys.size()):
+			var a: AABB = boxes[keys[i]]
+			var b: AABB = boxes[keys[j]]
+			if a.intersects(b):
+				overlaps += 1
+				_log("verify: hitbox TUMPANG " + str(keys[i]) + " vs " + str(keys[j]))
+	return overlaps
 
 func _walk_sprites(n: Node, names: Dictionary) -> void:
 	if n is Sprite3D:

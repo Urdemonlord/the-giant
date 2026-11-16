@@ -52,6 +52,25 @@ static func billboard(sprite_name: String, pixel_size: float, tint: Color = Colo
 	spr.modulate = tint
 	return spr
 
+## Buat Sprite3D DATAR (bukan billboard) dari nama terdaftar: dibaringkan
+## menghadap atas, tepi atas tekstur ke arah +z (terbaca benar dari sisi
+## -z, mis. kursi di depan meja). Untuk benda yang tergeletak: buku,
+## kertas, jejak. Null kalau sprite bermasalah.
+static func flat(sprite_name: String, pixel_size: float, tint: Color = Color(1, 1, 1, 1)) -> Sprite3D:
+	var tex := texture(sprite_name)
+	if tex == null:
+		return null
+	var spr := Sprite3D.new()
+	spr.texture = tex
+	spr.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	spr.pixel_size = pixel_size
+	spr.modulate = tint
+	# Datar menghadap atas + tepi atas ke +z: putar -90 derajat di X,
+	# lalu 180 derajat di Z (balik dalam bidang) supaya tidak terbalik
+	# dari sisi pembaca. Urutan Euler Godot (YXZ) = Rz dulu, baru Rx.
+	spr.rotation = Vector3(-PI * 0.5, 0, PI)
+	return spr
+
 ## Audit semua nama terdaftar. Kembalikan daftar nama yang filenya hilang.
 static func validate() -> Array[String]:
 	var missing: Array[String] = []

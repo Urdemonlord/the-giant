@@ -211,25 +211,32 @@ func _make_sign(parent: Node, pos: Vector3, sprite_name: String, color: Color) -
 	var root := Node3D.new()
 	root.position = pos
 	parent.add_child(root)
+	# v11: tiang + papan pakai material kayu yang sama. Dulu tiang
+	# tanpa material (putih default) dan kelihatan seperti tiang lampu
+	# di kabut — itu dua garis putih di shot v15c_gate_signs.
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.95
 	var pole := MeshInstance3D.new()
 	var pb := BoxMesh.new()
 	pb.size = Vector3(0.12, 1.5, 0.12)
 	pole.mesh = pb
 	pole.position.y = 0.75
+	pole.material_override = mat
 	root.add_child(pole)
 	var board := MeshInstance3D.new()
 	var bb := BoxMesh.new()
 	bb.size = Vector3(0.7, 0.5, 0.06)
 	board.mesh = bb
 	board.position.y = 1.55
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
 	board.material_override = mat
 	root.add_child(board)
 	if sprite_name != "":
 		var spr := SpriteRegistry.billboard(sprite_name, 0.004)
 		if spr != null:
-			spr.position = Vector3(0, 1.55, -0.12)
+			# v11: papan menghadap jalan (sisi +z, dari arah pos): dulu
+			# -0,12 di sisi jauh, ketutup papan dari arah jalan.
+			spr.position = Vector3(0, 1.55, 0.05)
 			root.add_child(spr)
 
 # --- Hutan ---------------------------------------------------------------
@@ -348,5 +355,7 @@ func _ground_decal(parent: Node, sprite_name: String, pos: Vector3, pixel_size: 
 	spr.pixel_size = pixel_size
 	spr.rotation = Vector3(-PI * 0.5, 0, 0)
 	spr.position = pos
-	spr.modulate = Color(1.6, 1.0, 1.0, 1.0) # darah didongkrak supaya kebaca di tanah gelap (v10: 1,3 -> 1,6, ukuran 0,007 -> 0,009)
+	# v11: darah didongkrak merah supaya kebaca di tanah gelap;
+	# decal lain (jejak, jerat) netral, jangan ikut merah.
+	spr.modulate = Color(1.6, 1.0, 1.0, 1.0) if sprite_name == "blood" else Color(0.85, 0.85, 0.85, 0.95)
 	parent.add_child(spr)
