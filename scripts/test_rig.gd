@@ -69,6 +69,9 @@ func _set_view(pos: Vector3, yaw_deg: float, pitch_deg: float) -> void:
 	_player.pitch = deg_to_rad(pitch_deg)
 	_player.head.rotation.x = deg_to_rad(pitch_deg)
 	await _frames(2)
+	# v20: posisi akhir pemain (fisika bisa mendorongnya keluar dari
+	# batang pohon kalau _set_view mendarat di dalam tabrakan).
+	_log("cam pos=" + str(_player.global_position) + " yaw=" + str(yaw_deg) + " pitch=" + str(pitch_deg))
 
 func _wait_until(cond: Callable, timeout_s: float) -> bool:
 	var t := 0.0
@@ -110,6 +113,8 @@ func _run() -> void:
 			await _mode_shots18()
 		"shots19":
 			await _mode_shots19()
+		"shots20":
+			await _mode_shots20()
 		"story":
 			await _mode_story()
 		"verify":
@@ -687,6 +692,76 @@ func _mode_story() -> void:
 	await _shot("ending_lose")
 	_log("story: HASIL fails=" + str(fails) + " -> " + ("PASS" if fails == 0 else "FAIL"))
 
+func _mode_shots20() -> void:
+	# v20 (v16 sprites): 12 sprite baru dari sheet dunia, satu mode.
+	# Generator nyala, jam 00:00. Senter dipakai untuk baris properti
+	# dekat; shot jauh (menara, gajah) tanpa senter supaya siluet
+	# unshaded di kabut yang dinilai, bukan sorotan senter.
+	GameState.set_generator(true)
+	GameState.shift_minutes = 120.0
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	# 1. Baris timur: baterai + walkie dekat generator. Kamera di
+	# LUAR pos (dulu di dalam, yang kelihatan cuma dinding timur).
+	await _set_view(Vector3(0, 0.45, -3.0), -90, -6)
+	await _shot("east_row")
+	# 2. Baris barat: sekop + tunggul + jerat + darah + gading.
+	await _set_view(Vector3(-1.5, 0.45, -7.0), 90, -10)
+	await _shot("west_row")
+	# 2b. Sekop dari 2,5 m, menunduk 15 derajat: ronde 1 terlalu
+	# dekat + terlalu datar, sekop keluar bawah frame.
+	await _set_view(Vector3(-2.0, 0.45, -7.8), 90, -15)
+	await _shot("shovel_close")
+	# 2c. Baterai + walkie dari timur (dari barat generator
+	# menutupi mereka): 2,2 m, menunduk 25 derajat.
+	await _set_view(Vector3(6.5, 0.45, -1.25), 90, -25)
+	await _shot("east_props_close")
+	# 3. Baris timur jauh: kapak + kayu + batu, dari 2 m.
+	await _set_view(Vector3(5.5, 0.45, -9.8), -90, -6)
+	await _shot("axe_row")
+	# 4. Pagar kayu sisi barat halaman, dari 3 m menunduk 20 derajat
+	# (ronde 1-2: pagar 1,2 m selalu di bawah kerucut senter kalau
+	# kamera datar, jadi tidak kena cahaya).
+	await _set_view(Vector3(-11.0, 0.45, -8.0), 90, -20)
+	await _shot("fence_wood")
+	# 5. Pagar kawat berduri sisi timur halaman, sama.
+	await _set_view(Vector3(11.0, 0.45, -10.0), -90, -20)
+	await _shot("fence_barbed")
+	# 5b. Semak varian di garis pagar (belum pernah di-shot).
+	# bush1 difoto dari utara (ronde lalu dari timur: kamera mendarat
+	# di dalam pisang di (-9, -14.5) yang menutupi semak).
+	await _set_view(Vector3(-12.0, 0.45, -11.0), 180, -5)
+	await _shot("bush1")
+	await _set_view(Vector3(8.0, 0.45, -14.5), -90, -5)
+	await _shot("bush3")
+	# 6. Ranger kedua membelakangi dekat pondok, difoto dari utara
+	# menghadap SELATAN (yaw 180; ronde lalu yaw 0 malah membelakangi
+	# rangernya). Senter menyala: pondok (shaded) ikut terang,
+	# ranger (unshaded) tetap gelap — ia kebaca sebagai siluet.
+	await _set_view(Vector3(12.5, 0.45, -22.5), 180, -2)
+	await _shot("guard_back")
+	# 6b. Gajah belakang: dari barat, 6 m (ronde lalu dari utara
+	# terhalang palem cincin hutan di antara kamera dan gajah).
+	# Senter tetap nyala: ia menerangi tanah/pohon di sekitar gajah.
+	await _set_view(Vector3(8.0, 0.45, -34.0), -90, 0)
+	await _shot("elephant_back")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 7. Menara radio: dari 12 m (dulu 30 m, tertelan kabut).
+	await _set_view(Vector3(-15.0, 0.45, -24.0), 60, 15)
+	await _shot("radio_tower")
+	# 9-10. Hutan: bidik tree_big yang posisinya diketahui dari log
+	# verify (bukan arah acak). Utara: tree_big di (-10.8, -9.6),
+	# dari (0, -9.6) menghadap barat. Selatan: tree_big di
+	# (-0.7, 19.7), dari (0, 8) menghadap selatan.
+	await _set_view(Vector3(0, 0.45, -9.6), 90, 6)
+	await _shot("forest_north")
+	# Selatan: dari timur menghadap barat (ronde 1-2 dari (0/2, 8)
+	# ketemu gumpalan kabut tanah tepat di depan lensa; kamera di
+	# (8, 19.7) di luar zona kabut tanah, 8,7 m dari tree_big).
+	await _set_view(Vector3(8.0, 0.45, 19.7), 90, 6)
+	await _shot("forest_south")
+
 func _mode_verify() -> void:
 	# Audit registry sprite + daftar semua Sprite3D di scene.
 	var missing := SpriteRegistry.validate()
@@ -698,7 +773,7 @@ func _mode_verify() -> void:
 	for k in names:
 		total += int(names[k])
 	_log("verify: total Sprite3D=" + str(total) + " unique=" + str(names.size()))
-	for k in ["chainsaw.png", "meter.png", "guard_front.png", "elephant_front.png", "hunter.png", "poacher_mask.png", "poacher_ghost.png", "rocks.png", "banana.png", "gate.png", "barrels.png", "sacks.png", "crate_tall.png", "crate_low.png", "log.png", "blood.png", "giant_eye.png", "giant_foot.png"]:
+	for k in ["chainsaw.png", "meter.png", "guard_front.png", "elephant_front.png", "hunter.png", "poacher_mask.png", "poacher_ghost.png", "rocks.png", "banana.png", "gate.png", "barrels.png", "sacks.png", "crate_tall.png", "crate_low.png", "log.png", "blood.png", "giant_eye.png", "giant_foot.png", "axe.png", "battery.png", "bush1.png", "bush3.png", "elephant_back.png", "fence_barbed.png", "fence_wood.png", "guard_back.png", "radio_tower.png", "shovel.png", "tree_big.png", "walkie_talkie.png"]:
 		_log("verify: " + k + " count=" + str(names.get(k, 0)))
 	# Sprite yang TIDAK boleh ada lagi (dihapus di v5).
 	_log("verify: giant_eye_socket.png count=" + str(names.get("giant_eye_socket.png", 0)) + " (harus 0)")

@@ -8,19 +8,22 @@ class_name SpriteRegistry
 ## Audit: jalankan test rig mode=verify, ia memanggil validate() dan
 ## mencatat sprite yang hilang; game tetap jalan (fallback kotak).
 
-## Semua sprite yang dipakai game (42). Satu nama = satu file
+## Semua sprite yang dipakai game (54). Satu nama = satu file
 ## res://assets/sprites/<nama>.png. Jangan tambah sprite baru tanpa
 ## mendaftarkannya di sini.
 const ALL_NAMES: Array[String] = [
-	"banana", "barrels", "blood", "bush2", "chainsaw", "crate_low",
-	"crate_tall", "door", "elephant_front", "elephant_shadow",
-	"elephant_side", "fog_puff", "footprint", "gate", "generator",
-	"giant_eye", "giant_foot", "guard_front", "guard_hut", "hunter",
+	"axe", "banana", "barrels", "battery", "blood", "bush1", "bush2",
+	"bush3", "chainsaw", "crate_low", "crate_tall", "door",
+	"elephant_back", "elephant_front", "elephant_shadow",
+	"elephant_side", "fence_barbed", "fence_wood", "fog_puff",
+	"footprint", "gate", "generator", "giant_eye", "giant_foot",
+	"guard_back", "guard_front", "guard_hut", "hunter",
 	"hunter_rifle", "lantern", "log", "logbook", "meter",
-	"poacher_ghost", "poacher_mask", "radio", "rocks", "sacks",
-	"sign_no_elephant", "sign_no_elephant2", "sign_no_logging",
-	"sign_park", "snare", "stump", "tower_tall", "tree_dead",
-	"tree_palm", "tree_tall", "tusks", "watchtower",
+	"poacher_ghost", "poacher_mask", "radio", "radio_tower", "rocks",
+	"sacks", "shovel", "sign_no_elephant", "sign_no_elephant2",
+	"sign_no_logging", "sign_park", "snare", "stump", "tower_tall",
+	"tree_big", "tree_dead", "tree_palm", "tree_tall", "tusks",
+	"walkie_talkie", "watchtower",
 ]
 
 static func path_for(sprite_name: String) -> String:

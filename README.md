@@ -270,6 +270,53 @@ sekarang dipasang, total sprite 43 (dari 32):
   menghadap kamera akan terlihat melayang dan salah arah saat pemain
   bergerak. Pemain sudah punya senter sendiri (tombol F).
 
+## Semua elemen sheet dipakai, ronde 2 (2026-11-17, v16)
+
+Audit 2026-11-17 menemukan 10 elemen sheet dunia yang belum pernah
+dipotong (plus cuma 1 varian semak). Semuanya sekarang dipotong dengan
+metode yang sama (ambang luminansi + feather 1px + autocrop,
+`tools/make_v16_sprites.py`) dan dipasang; total sprite 54 (dari 42):
+
+- **Gajah tampak belakang** (`elephant_back.png`): siluet gajah biasa
+  di kabut utara-timur, 3,6 m, unshaded + tint 0,6. BUKAN Giant —
+  Giant tidak pernah tampil utuh.
+- **Ranger tampak belakang** (`guard_back.png`): ranger kedua di dekat
+  pondok, membelakangi. Unshaded (ronde 1 shaded hilang menempel
+  dinding pondok yang gelap), tint 0,65.
+- **Pohon besar berdaun lebat** (`tree_big.png`): masuk rotasi
+  `_make_tree` (1 dari 5 pohon), 22 batang di hutan. Potongannya butuh
+  mask: daun pisang menyentuh batang pohon di sheet.
+- **Pagar kayu + pagar kawat berduri** (`fence_wood`, `fence_barbed`):
+  sisa perimeter di sisi barat/timur halaman (pagar mesh prosedural
+  cuma ada di depan, z -16).
+- **Menara radio** (`radio_tower.png`): siluet 14 m di barat-utara,
+  unshaded supaya lampu merahnya tetap nyala di kabut.
+- **Baterai, walkie-talkie, sekop, kapak** (`battery`,
+  `walkie_talkie`, `shovel`, `axe`): perkakas di baris timur dekat
+  generator + baris bukti penebangan. Potongan kapak butuh 2 mask
+  (kotak amunisi + ujung mata gergaji di kotak sebelah).
+- **Semak varian** (`bush1`, `bush3`): di garis pagar seperti bush2.
+
+Terverifikasi lewat screenshot Godot 4.3 Xvfb 1280x720, seri v20
+(`~/workspace/godot/shots/v20_*.png`, dilihat satu-satu, 6 ronde ulang
+untuk sudut yang ketutup pohon/dinding/gelap/kabut): `v20_axe_row`
+(kapak), `v20_shovel_close` (sekop, samar — benda gelap di malam hari),
+`v20_east_row` + `v20_east_props_close` (baterai + walkie),
+`v20_fence_wood` (rel pagar, baru kebaca setelah dicerahkan 4x —
+  pagar kayu 1,2 m di malam hari memang nyaris tidak kebaca),
+`v20_guard_back` (ranger, samar menempel pondok),
+`v20_elephant_back` (badan + kaki gajah, zoom 2x),
+`v20_radio_tower` (dua titik lampu merah di atas),
+`v20_forest_north` (kanopi bulat tree_big),
+`v20_bush3` (semak di garis pagar). Registry validate 54/54, verify
+total Sprite3D 202; mouselook/playtest/story PASS fails=0, 0 script/
+shader error. Batas jujur: `fence_barbed` + `bush1` di foto ketutup
+pohon (posisi + jumlah di verify sudah benar); `walkie_talkie` tidak
+berhasil diidentifikasi dengan yakin di foto (kecil + gelap, posisi +
+jumlah di verify sudah benar). Elemen sheet yang masih belum dipotong:
+gajah samping merumput, pohon kecil, kotak amunisi, balok subtitle
+(Sanity/Stability — itu UI, bukan sprite).
+
 Terverifikasi lewat screenshot Godot 4.3 Xvfb 1280x720, seri v9
 (`~/workspace/godot/shots/v9_*.png`, dilihat satu-satu, 4 ronde ulang
 untuk sudut yang ketutup pohon/dinding/gelap): `v9_desk_meter` (meter di
