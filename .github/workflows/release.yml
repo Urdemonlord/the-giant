@@ -41,10 +41,10 @@ jobs:
 
       - name: Package assets
         run: |
-          cd builds/windows && zip -r ../THE-GIANT-windows.zip THE-GIANT.exe && cd ../..
-          cd builds/web && zip -r ../THE-GIANT-web.zip . && cd ../..
+          cd builds/windows && zip -r ../../THE-GIANT-windows.zip THE-GIANT.exe && cd ../..
+          cd builds/web && zip -r ../../THE-GIANT-web.zip . && cd ../..
           git archive --format=zip --output "THE-GIANT-source-${GITHUB_REF_NAME}.zip" HEAD
-          ls -lh *.zip builds/*.zip
+          ls -lh *.zip
 
       - name: Create GitHub Release
         env:
