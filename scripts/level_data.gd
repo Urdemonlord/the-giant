@@ -94,6 +94,17 @@ const SCATTER_PROPS: Array = [
 	["bush2", Vector3(-5.0, 0.4, -14.5), 0.006],
 	["bush2", Vector3(5.0, 0.4, -14.5), 0.006],
 	["bush2", Vector3(-8.0, 0.4, -14.5), 0.006],
+	# v16: 4 perkakas + 2 semak varian baru dari sheet dunia.
+	# Baterai + walkie di baris timur dekat generator (peralatan
+	# penjaga yang tertinggal); sekop di baris barat + kapak di baris
+	# timur (jejak penebangan, sejajar tunggul/jerat/gading); semak
+	# varian di garis pagar seperti bush2.
+	["battery", Vector3(4.4, 0.13, -1.9), 0.0042],
+	["walkie_talkie", Vector3(4.4, 0.15, -0.6), 0.0019],
+	["shovel", Vector3(-4.5, 0.6, -7.8), 0.0075],
+	["axe", Vector3(7.5, 0.5, -9.8), 0.0064],
+	["bush1", Vector3(-12.0, 0.4, -14.5), 0.0082],
+	["bush3", Vector3(12.0, 0.4, -14.5), 0.0071],
 ]
 
 ## Decal di tanah: [nama sprite, posisi, pixel_size].
@@ -123,6 +134,17 @@ const BILLBOARDS: Array = [
 	["elephant_front", Vector3(-10.0, 0.0, -30.0), 0.0176, Color(0.5, 0.5, 0.55, 0.8)],
 	["poacher_mask", Vector3(0, 0, -15.5), 0.0071, Color(0.65, 0.6, 0.6, 0.95)],
 	["poacher_ghost", Vector3(-13.0, 0, -22.0), 0.0079, Color(0.85, 0.85, 0.9, 0.75)],
+	# v16: 5 billboard baru dari sheet dunia. Gajah belakang di kabut
+	# utara (gajah biasa dari jauh, BUKAN Giant — Giant tidak pernah
+	# tampil utuh); ranger kedua membelakangi dekat pondok; menara
+	# radio di barat-utara mengimbangi tower_tall di timur; dua pagar
+	# sprite sebagai sisa perimeter di sisi barat/timur halaman
+	# (pagar mesh prosedural cuma ada di depan, z -16).
+	["elephant_back", Vector3(14.0, 0.0, -34.0), 0.02, Color(0.6, 0.6, 0.65, 0.85)],
+	["guard_back", Vector3(12.5, 0.0, -17.5), 0.0073, Color(0.65, 0.65, 0.65, 1.0)],
+	["radio_tower", Vector3(-25.0, 0.0, -30.0), 0.056, Color(0.6, 0.6, 0.6, 1.0)],
+	["fence_wood", Vector3(-14.0, 0.0, -8.0), 0.0132, Color(0.85, 0.85, 0.85, 1.0)],
+	["fence_barbed", Vector3(14.0, 0.0, -10.0), 0.0113, Color(0.85, 0.85, 0.85, 1.0)],
 ]
 
 ## --- Event: posisi spawn ------------------------------------------------------

@@ -439,6 +439,14 @@ func _build_forest() -> void:
 const UNSHADED_BILLBOARDS: Array[String] = [
 	"gate", "poacher_mask", "poacher_ghost",
 	"elephant_front", "elephant_shadow", "elephant_side",
+	# v16: gajah belakang + menara radio jauh juga unshaded supaya
+	# kebaca sebagai siluet di kabut (lampu merah menara tetap nyala).
+	"elephant_back", "radio_tower",
+	# v16 ronde 2: ranger kedua juga unshaded — versi shaded-nya
+	# hilang total menempel dinding pondok yang gelap (shot v20
+	# guard_back ronde 1). Guard_front tetap shaded: latarnya kabut,
+	# bukan dinding gelap, jadi ia kebaca.
+	"guard_back",
 ]
 
 # Billboard statis dari sprite sheet: posisi y = 0 (alas di tanah),
@@ -459,7 +467,7 @@ func _billboard(parent: Node, sprite_name: String, pos: Vector3, pixel_size: flo
 func _make_tree(parent: Node, pos: Vector3, _trunk_mat: Material, _leaf_mat: Material) -> void:
 	# Pohon BUKAN bola di atas silinder lagi: sprite pohon dari sheet
 	# (tinggi, palem, atau mati), dipilih bergiliran supaya hutan tidak seragam.
-	var kinds := ["tree_tall", "tree_tall", "tree_palm", "tree_dead"]
+	var kinds := ["tree_tall", "tree_tall", "tree_palm", "tree_dead", "tree_big"]
 	var kind: String = kinds[int(absf(pos.x * 7.0 + pos.z * 3.0)) % kinds.size()]
 	var tex := SpriteRegistry.texture(kind)
 	if tex == null:
