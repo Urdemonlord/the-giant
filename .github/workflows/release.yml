@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot 4.3 + export templates
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          unzip -q Godot_v4.3-stable_linux.x86_64.zip
+          mkdir -p ~/.local/share/godot/export_templates/4.3.stable
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          unzip -q Godot_v4.3-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.3.stable/
+          ls ~/.local/share/godot/export_templates/4.3.stable/ | head -20
+
+      - name: Import project
+        run: ./Godot_v4.3-stable_linux.x86_64 --headless --import --path .
+
+      - name: Export Windows
+        run: |
+          mkdir -p builds/windows
+          ./Godot_v4.3-stable_linux.x86_64 --headless --export-release "Windows Desktop" builds/windows/THE-GIANT.exe
+          ls -lh builds/windows/
+
+      - name: Export Web
+        run: |
+          mkdir -p builds/web
+          ./Godot_v4.3-stable_linux.x86_64 --headless --export-release "Web" builds/web/index.html
+          ls -lh builds/web/
+
+      - name: Package assets
+        run: |
+          cd builds/windows && zip -r ../THE-GIANT-windows.zip THE-GIANT.exe && cd ../..
+          cd builds/web && zip -r ../THE-GIANT-web.zip . && cd ../..
+          git archive --format=zip --output "THE-GIANT-source-${GITHUB_REF_NAME}.zip" HEAD
+          ls -lh *.zip builds/*.zip
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "THE GIANT ${GITHUB_REF_NAME}" \
+            --notes "First-person psychological horror in Godot 4.3. Guard Pos Jaga 07 through the night, 22:00-06:00. Keep the lamp on, write the log, do not open the door for what knocks from the forest." \
+            "THE-GIANT-windows.zip" "THE-GIANT-web.zip" "THE-GIANT-source-${GITHUB_REF_NAME}.zip"

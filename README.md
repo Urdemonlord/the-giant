@@ -1,5 +1,8 @@
 # THE GIANT - Proyek Godot
 
+Repo: **https://github.com/Urdemonlord/the-giant** — rilis (Windows + Web):
+**https://github.com/Urdemonlord/the-giant/releases** (tag `v11`).
+
 Prototipe first-person psychological horror dalam **Godot 4.3+** (GDScript, renderer GL Compatibility).
 Ini versi native dari prototipe browser sebelumnya: bukan halaman web, jadi tidak kena pull-to-refresh, kunci orientasi webview, atau AudioContext yang tertidur.
 
