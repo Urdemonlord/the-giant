@@ -41,10 +41,24 @@ jobs:
 
       - name: Package assets
         run: |
-          cd builds/windows && zip -r ../../THE-GIANT-windows.zip THE-GIANT.exe && cd ../..
+          test -f builds/windows/THE-GIANT.pck || { echo "ERROR: THE-GIANT.pck missing from Windows export"; ls -lh builds/windows/; exit 1; }
+          cat > builds/windows/README.txt <<'EOF'
+          THE GIANT - Windows
+          ===================
+          1. Extract the WHOLE zip to a folder.
+          2. Keep THE-GIANT.exe and THE-GIANT.pck together in the same folder.
+          3. Double-click THE-GIANT.exe to play.
+          Do NOT move or rename the .exe away from the .pck: the game will
+          fail with "Couldn't load project data" if the .pck is missing.
+          If you rename the .exe, rename the .pck to match (same name,
+          .pck extension).
+          EOF
+          cd builds/windows && zip -r ../../THE-GIANT-windows.zip THE-GIANT.exe THE-GIANT.pck README.txt && cd ../..
           cd builds/web && zip -r ../../THE-GIANT-web.zip . && cd ../..
           git archive --format=zip --output "THE-GIANT-source-${GITHUB_REF_NAME}.zip" HEAD
           ls -lh *.zip
+          unzip -l THE-GIANT-windows.zip
+          unzip -l THE-GIANT-web.zip
 
       - name: Create GitHub Release
         env:
@@ -52,5 +66,5 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" \
             --title "THE GIANT ${GITHUB_REF_NAME}" \
-            --notes "First-person psychological horror in Godot 4.3. Guard Pos Jaga 07 through the night, 22:00-06:00. Keep the lamp on, write the log, do not open the door for what knocks from the forest." \
+            --notes "First-person psychological horror in Godot 4.3. Guard Pos Jaga 07 through the night, 22:00-06:00. Keep the lamp on, write the log, do not open the door for what knocks from the forest. Windows zip contains THE-GIANT.exe + THE-GIANT.pck (keep them together in one folder)." \
             "THE-GIANT-windows.zip" "THE-GIANT-web.zip" "THE-GIANT-source-${GITHUB_REF_NAME}.zip"

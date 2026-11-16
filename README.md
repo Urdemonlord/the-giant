@@ -1,7 +1,13 @@
 # THE GIANT - Proyek Godot
 
 Repo: **https://github.com/Urdemonlord/the-giant** — rilis (Windows + Web):
-**https://github.com/Urdemonlord/the-giant/releases** (tag `v11`).
+**https://github.com/Urdemonlord/the-giant/releases** (tag `v12`).
+
+## Cara main (Windows, dari rilis)
+
+1. Download `THE-GIANT-windows.zip` dari halaman rilis di atas.
+2. Extract SELURUH isi zip ke satu folder.
+3. Jalankan `THE-GIANT.exe`. File `THE-GIANT.pck` HARUS tetap di folder yang sama dengan .exe dan namanya harus sama dengan .exe (kalau .exe diganti nama, .pck ikut diganti). Kalau .pck hilang atau namanya beda, game gagal dengan error "Couldn't load project data". (v11 sempat rusak karena zip-nya cuma berisi .exe tanpa .pck; diperbaiki di v12.)
 
 Prototipe first-person psychological horror dalam **Godot 4.3+** (GDScript, renderer GL Compatibility).
 Ini versi native dari prototipe browser sebelumnya: bukan halaman web, jadi tidak kena pull-to-refresh, kunci orientasi webview, atau AudioContext yang tertidur.
