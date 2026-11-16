@@ -52,18 +52,35 @@ func _is_rig_run() -> bool:
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
 ## _ready tidak jalan (mis. dibuka di editor).
+## Volumetric fog (Godot 4.3) hanya aktif di renderer Forward+; di
+## Compatibility properti volumetric diabaikan dan game jatuh kembali
+## ke fog eksponensial 0.06 + billboard, jadi Web/Android tidak berubah.
+## Renderer aktif dibaca di sini supaya satu build tidak perlu cabang.
 func _apply_fog() -> void:
 	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if env_node == null or env_node.environment == null:
 		push_error("[Main] WorldEnvironment tidak ketemu, fog tidak diterapkan")
 		return
 	var env := env_node.environment
+	var volumetric := Balance.volumetric_active()
 	env.fog_enabled = true
-	env.fog_density = Balance.FOG_DENSITY
+	env.fog_density = Balance.FOG_DENSITY_VOLUMETRIC if volumetric else Balance.FOG_DENSITY
 	env.fog_light_color = Balance.FOG_LIGHT_COLOR
 	env.fog_light_energy = Balance.FOG_LIGHT_ENERGY
 	env.fog_sky_affect = Balance.FOG_SKY_AFFECT
 	env.background_color = Color(0.045, 0.06, 0.05, 1) # langit = kabut gelap
+	env.volumetric_fog_enabled = volumetric
+	if volumetric:
+		env.volumetric_fog_density = Balance.VOL_FOG_DENSITY
+		env.volumetric_fog_albedo = Balance.VOL_FOG_ALBEDO
+		env.volumetric_fog_emission = Balance.VOL_FOG_EMISSION
+		env.volumetric_fog_emission_energy = Balance.VOL_FOG_EMISSION_ENERGY
+		env.volumetric_fog_anisotropy = Balance.VOL_FOG_ANISOTROPY
+		env.volumetric_fog_sky_affect = Balance.VOL_FOG_SKY_AFFECT
+		env.volumetric_fog_length = Balance.VOL_FOG_LENGTH
+	print("[Main] fog: volumetric=" + str(volumetric)
+		+ " fog_density=" + str(env.fog_density)
+		+ " vol_density=" + str(env.volumetric_fog_density if volumetric else 0.0))
 
 func _process(delta: float) -> void:
 	if GameState.shift_over:

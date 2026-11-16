@@ -9,7 +9,7 @@ config_version=5
 config/name="THE GIANT"
 config/description="First-person psychological horror. Jaga pos jaga di Taman Nasional Malayunesia. Jangan biarkan mereka kembali."
 run/main_scene="res://scenes/menu.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -73,7 +73,7 @@ pause={
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
+renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.01, 0.012, 0.016, 1)
 textures/vram_compression/import_etc2_astc=true

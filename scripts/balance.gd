@@ -67,9 +67,48 @@ const FOG_LIGHT_COLOR := Color(0.23, 0.27, 0.22, 1) # abu kehijauan sakit, palet
 const FOG_LIGHT_ENERGY := 1.0
 const FOG_SKY_AFFECT := 0.85 # langit ikut berkabut, bukan hitam pekat polos
 const FOG_PUFF_COUNT := 36 # v5: 10
-const FOG_PUFF_ALPHA := 0.42 # v5: 0.32; 0.55 kebablasan jadi dinding
+const FOG_PUFF_ALPHA := 0.34 # v6: 0.42; diturunkan karena volumetric fog menambah haze (0.55 dulu kebablasan jadi dinding)
 const GROUND_FOG_COUNT := 18 # lapisan kabut rendah di permukaan tanah
-const GROUND_FOG_ALPHA := 0.45
+const GROUND_FOG_ALPHA := 0.38 # v6: 0.45, alasan sama seperti FOG_PUFF_ALPHA
+
+## --- Kabut volumetrik (Forward+ saja) ---------------------------------------
+## Godot 4.3: volumetric fog HANYA jalan di renderer Forward+; di
+## Compatibility (Web/Android) properti ini diabaikan diam-diam dan game
+## tetap pakai fog eksponensial + billboard di atas. Desktop (Windows)
+## pakai forward_plus, mobile/web tetap gl_compatibility lewat
+## rendering_method.mobile di project.godot. main.gd mendeteksi lewat
+## Balance.volumetric_active() (setting proyek + OS.has_feature).
+## density = extinction per meter di dalam volume (beda dari fog_density):
+## v13 ronde 1 (0.045 + fog 0.04 = 0.085/m): kebablasan, hutan hilang
+## total, pos dari 19 m tinggal bayangan samar. Ronde 2: 0.030 + 0.04
+## = 0.07/m: 5 m -> 0.70, 10 m -> 0.50, 20 m -> 0.25 (pohon dekat
+## samar), 30 m -> 0.12 (cincin jauh tertelan).
+const VOL_FOG_ENABLED := true
+const VOL_FOG_DENSITY := 0.030
+const VOL_FOG_ALBEDO := Color(0.35, 0.42, 0.34, 1) # hamburan cahaya bulan, hijau sakit
+const VOL_FOG_EMISSION := Color(0.10, 0.12, 0.09, 1) # pijar kabut sendiri, redup
+const VOL_FOG_EMISSION_ENERGY := 0.10 # v13 ronde 1: 0.25, veil pijar terlalu terang
+const VOL_FOG_ANISOTROPY := -0.15 # v13 ronde 2: +0.35 (forward scatter) melemahkan beam yang dilihat dari belakang lampu; beam senter + halo lampu teras butuh BACKscatter, jadi negatif ringan. Ronde 3: -0.15.
+const VOL_FOG_SKY_AFFECT := 1.0 # langit ikut berkabut, pohon tidak lagi siluet di langit hitam
+const VOL_FOG_LENGTH := 40.0 # jangkauan froxel: cukup untuk hutan 19-34 m
+## CATATAN: Godot 4.3 TIDAK punya volumetric_fog_depth_begin/end
+## (dicek lewat ClassDB; assignment-nya melempar SCRIPT ERROR tiap run).
+## Jangkauan froxel diatur cuma lewat VOL_FOG_LENGTH.
+## Saat volumetric aktif, fog eksponensial diturunkan supaya total
+## extinction tidak kebablasan (dulu 0.06, lihat percobaan 0.085).
+const FOG_DENSITY_VOLUMETRIC := 0.04
+
+## Volumetric fog hanya bisa aktif di renderer Forward+ (desktop).
+## Godot 4.3 TIDAK punya RenderingServer.get_current_rendering_method(),
+## jadi deteksi pakai setting proyek + platform: Web/Android/iOS
+## selalu pakai renderer mobile/Compatibility (volumetric diabaikan),
+## desktop pakai rendering_method dari project.godot.
+static func volumetric_active() -> bool:
+	if not VOL_FOG_ENABLED:
+		return false
+	if OS.has_feature("web") or OS.has_feature("mobile"):
+		return false
+	return str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "gl_compatibility")) == "forward_plus"
 
 ## --- Grafik creepy (overlay analog horror, hud.gd) ---------------------------
 ## Semua angka di sini supaya intensitas bisa di-tune tanpa baca shader.

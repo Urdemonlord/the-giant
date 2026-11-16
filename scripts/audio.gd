@@ -1,7 +1,10 @@
 extends Node
-## Manajer audio: semua suara disintesis prosedural jadi file .wav
-## di assets/audio/ (lihat .src/tools di paket sumber / README).
-## Tidak ada aset audio eksternal, tidak ada lisensi pihak ketiga.
+## Manajer audio: semua SFX disintesis prosedural jadi file .wav
+## di assets/audio/ (lihat tools/synth_audio.py). Suara radio
+## (radio_voice_1..5.wav) disintesis dari teks siaran lewat gTTS
+## bahasa Indonesia, lalu diproses jadi radio tua rusak (band-pass
+## 300-3000 Hz + statis, lihat tools/make_radio_voice.py).
+## Tidak ada aset audio eksternal berlisensi pihak ketiga.
 
 var wind: AudioStreamPlayer
 var generator_hum: AudioStreamPlayer
@@ -10,6 +13,7 @@ var creak_player: AudioStreamPlayer
 var step_player: AudioStreamPlayer
 var heartbeat: AudioStreamPlayer
 var thud_player: AudioStreamPlayer
+var voice_players: Array[AudioStreamPlayer] = []
 
 func _ready() -> void:
 	add_to_group("audio")
@@ -23,6 +27,12 @@ func _ready() -> void:
 	# 75->34 Hz + gemuruh, disintesis tools/synth_audio.py). Dulu ini
 	# footstep yang sama dipelankan pitch 0.45; sekarang pitch 1.0.
 	thud_player = _make_player("giant_thud.wav", -6.0, false)
+	# Suara siaran radio (gTTS id + proses radio rusak). Urutan 1..5
+	# = urutan LINES di scripts/interactables/radio.gd.
+	for i in range(1, 6):
+		var v := _make_player("radio_voice_%d.wav" % i, -8.0, false)
+		if v != null:
+			voice_players.append(v)
 	if wind:
 		wind.play()
 	GameState.generator_changed.connect(_on_generator_changed)
@@ -66,11 +76,31 @@ func _on_sanity_changed(value: float) -> void:
 
 func _on_footstep() -> void:
 	if step_player and not step_player.playing:
+		# Tiap langkah sedikit beda nada (0.92-1.08) supaya langkah
+		# berulang tidak terdengar seperti mesin (file footstep
+		# cuma satu, v2 synth_audio.py).
+		step_player.pitch_scale = randf_range(0.92, 1.08)
 		step_player.play()
 
 func play_static() -> void:
 	if static_player:
 		static_player.play()
+
+func play_radio_voice(index: int) -> void:
+	# index 0..4 = baris siaran 1..5 di radio.gd. Matikan suara
+	# siaran lain yang masih bunyi supaya tidak tumpang tindih.
+	if index < 0 or index >= voice_players.size():
+		return
+	for v in voice_players:
+		if v.playing:
+			v.stop()
+	voice_players[index].play()
+
+func radio_voice_playing() -> bool:
+	for v in voice_players:
+		if v.playing:
+			return true
+	return false
 
 func play_creak() -> void:
 	if creak_player:

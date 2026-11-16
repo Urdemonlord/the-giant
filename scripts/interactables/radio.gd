@@ -39,5 +39,10 @@ func interact() -> void:
 	GameState.show_message("RADIO: " + LINES[_index])
 	GameState.complete_task("radio")
 	var audio := get_tree().get_first_node_in_group("audio")
-	if audio != null and audio.has_method("play_static"):
-		audio.play_static()
+	if audio != null:
+		# Suara siaran yang cocok dengan baris teks + burst statis
+		# (suara "mencari" frekuensi). Teks tetap tampil seperti dulu.
+		if audio.has_method("play_radio_voice"):
+			audio.play_radio_voice(_index)
+		if audio.has_method("play_static"):
+			audio.play_static()

@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | verify | win | lose | audio | touch | pause | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | verify | win | lose | audio | touch | pause | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -98,6 +98,8 @@ func _run() -> void:
 			await _mode_shots11()
 		"shots12":
 			await _mode_shots12()
+		"shots13":
+			await _mode_shots13()
 		"story":
 			await _mode_story()
 		"verify":
@@ -332,6 +334,51 @@ func _mode_shots12() -> void:
 	await _set_view(Vector3(-1.35, 0.45, -0.1), 178, -42)
 	await _shot("desk_docs_top")
 
+func _mode_shots13() -> void:
+	# v13: kabut volumetrik (Forward+). Tiap shot dicek: pos + jalan dekat
+	# kebaca, hutan jauh tertelan kabut, langit tidak hitam pekat, senter
+	# dan lampu teras bersinar di kabut, HUD + prompt tetap kebaca.
+	_log("shots13: volumetric_active=" + str(Balance.volumetric_active())
+		+ " rendering_method=" + str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "?")))
+	var env := get_tree().current_scene.get_node_or_null("Main/WorldEnvironment")
+	if env != null and env.environment != null:
+		_log("shots13: volumetric_fog_enabled=" + str(env.environment.volumetric_fog_enabled)
+			+ " vol_density=" + str(env.environment.volumetric_fog_density)
+			+ " fog_density=" + str(env.environment.fog_density))
+	GameState.set_generator(true)
+	# 1. Dari dalam pos, menghadap jendela belakang (hutan utara).
+	await _set_view(Vector3(0, 0.45, 1.3), 180, 0)
+	await _shot("window_vol")
+	# 2. Eksterior: dari jalan di depan pos, menghadap pos + hutan.
+	await _set_view(Vector3(0, 0.45, -8.0), 180, 2)
+	await _shot("outside_vol")
+	# 3. Dari hutan, menghadap pos dari utara (kabut di antara pohon).
+	await _set_view(Vector3(0, 0.45, -19.0), 180, 2)
+	await _shot("forest_vol")
+	# 4. Gerbang + jalan (ground fog + volumetric di permukaan tanah).
+	await _set_view(Vector3(0, 0.45, -11.0), 0, 0)
+	await _shot("gate_vol")
+	# 5. Pintu dari dalam, senter menyala (beam senter di kabut).
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(0, 0.45, 1.3), 0, 0)
+	await _shot("door_vol_flash")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 6. Senter ke arah hutan dari jalan (beam senter DI kabut: ini
+	# satu-satunya shot yang membuktikan volumetric scattering, bukan
+	# cuma extinction. Ronde 1 tidak punya shot ini, beam di dalam pos
+	# tidak kelihatan karena pintu tertutup 3 m di depan kamera).
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(0, 0.45, -8.0), 0, 0)
+	await _shot("forest_vol_flash")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 7. Meja jaga: overlay VHS dari dekat, tetap kebaca.
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	await _shot("desk_vol")
+
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.
 	# Rig menjalankan main.tscn dengan argumen mode=, jadi intro
@@ -461,9 +508,10 @@ func _mode_lose() -> void:
 
 func _mode_audio() -> void:
 	var audio := get_tree().get_first_node_in_group("audio")
-	for f in ["wind.wav", "generator_hum.wav", "radio_static.wav", "door_creak.wav", "footstep.wav", "heartbeat.wav", "giant_thud.wav"]:
+	for f in ["wind.wav", "generator_hum.wav", "radio_static.wav", "door_creak.wav", "footstep.wav", "heartbeat.wav", "giant_thud.wav", "radio_voice_1.wav", "radio_voice_2.wav", "radio_voice_3.wav", "radio_voice_4.wav", "radio_voice_5.wav"]:
 		var s := load("res://assets/audio/" + f) as AudioStreamWAV
 		_log("wav " + f + " loaded=" + str(s != null) + " len=" + (str(s.get_length()) if s else "n/a") + "s rate=" + (str(s.mix_rate) if s else "n/a"))
+	_log("audio voice_players=" + str(audio.voice_players.size()) + " (harus 5)")
 	_log("audio wind.playing=" + str(audio.wind.playing))
 	audio.play_creak()
 	await _frames(2)
@@ -483,6 +531,36 @@ func _mode_audio() -> void:
 	GameState.restore_sanity(80.0)
 	await _frames(2)
 	_log("audio heartbeat.playing(sanity100)=" + str(audio.heartbeat.playing))
+	# Suara radio: tiap baris 1..5 diputar lewat play_radio_voice,
+	# lalu lewat interact() radio beneran (teks + suara + statis).
+	for i in range(5):
+		audio.play_radio_voice(i)
+		await _frames(2)
+		_log("audio radio_voice_" + str(i + 1) + " playing=" + str(audio.voice_players[i].playing) + " stream=" + str(audio.voice_players[i].stream.resource_path))
+	audio.play_radio_voice(0)
+	await _frames(2)
+	audio.play_radio_voice(1)
+	await _frames(2)
+	_log("audio voice ganti klip: klip1 playing=" + str(audio.voice_players[0].playing) + " (harus false) klip2 playing=" + str(audio.voice_players[1].playing) + " (harus true)")
+	var radio: Node = null
+	for n in get_tree().get_nodes_in_group("interactable"):
+		if n.has_method("get_prompt") and "Radio" in str(n.get_prompt()):
+			radio = n
+	_log("audio radio node ketemu=" + str(radio != null))
+	if radio != null:
+		for i in range(5):
+			radio.interact()
+			await _frames(2)
+			_log("audio radio interact #" + str(i + 1) + " voice_playing=" + str(audio.radio_voice_playing()) + " static_playing=" + str(audio.static_player.playing))
+	# Langkah kaki: pitch harus acak tiap langkah (0.92-1.08).
+	# Tunggu klip 0,35 dtk selesai dulu, kalau tidak guard
+	# "not playing" menahan pemutaran kedua dan pitch tidak diacak.
+	audio._on_footstep()
+	var p1: float = audio.step_player.pitch_scale
+	await _wait_sec(0.5)
+	audio._on_footstep()
+	var p2: float = audio.step_player.pitch_scale
+	_log("audio footstep pitch p1=" + str(p1) + " p2=" + str(p2) + " (rentang 0.92-1.08)")
 	_log("audio: sandbox tanpa sound card, status playing di atas adalah bukti jalur kode, bukan suara yang terdengar")
 
 func _mode_touch() -> void:

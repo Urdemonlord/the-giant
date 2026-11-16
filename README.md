@@ -123,7 +123,7 @@ tidak disimpan, event akan terpicu ulang kalau jamnya belum lewat.
 - **Sistem shift** (`scripts/game_state.gd`, autoload `GameState`): Sanity, Stability, bahan bakar, jam shift 22:00 ke 06:00 (1 detik nyata = 1 menit shift, shift penuh sekitar 8 menit), daftar tugas, sinyal untuk HUD. Generator mati = Stability terkuras; menyala = pulih perlahan.
 - **Event pemburu** (`scripts/hunter_event.gd`): pukul 01:30 dua sosok diam muncul di depan pos dan menatap, persis momen *No I'm Not a Human*. Menatap mereka menguras Sanity. Tutup pintu dan tunggu di dalam 12 detik untuk melewatinya dengan aman; event juga berakhir sendiri setelah 50 detik dengan harga Sanity.
 - **HUD** (`scripts/hud.gd`): titik crosshair di tengah, prompt interaksi, bar SANITY dan STABILITY di kiri bawah, jam + daftar tugas di kanan atas, pesan naratif yang memudar. Tidak ada panel yang menutupi tengah layar. Sejak v7: panel dokumen, panel intro, dan panel ending (judul + payoff cerita + satu kalimat faktual + tombol menu / main lagi); prompt disembunyikan selama panel terbuka.
-- **Audio prosedural** (`scripts/audio.gd` + `assets/audio/*.wav`): angin (loop), dengung generator (loop), statis radio, derit pintu, langkah kaki, dan detak jantung saat Sanity di bawah 35. Semua WAV **disintesis dari kode** (noise/sine), tidak ada file audio berlisensi pihak ketiga.
+- **Audio prosedural** (`scripts/audio.gd` + `assets/audio/*.wav`): angin (loop), dengung generator (loop), statis radio, derit pintu, langkah kaki, dan detak jantung saat Sanity di bawah 35. Semua WAV **disintesis dari kode** (noise/sine), tidak ada file audio berlisensi pihak ketiga. **Suara radio (v8-suara, 2026-11-16)**: 5 siaran radio sekarang BERSUARA, bukan cuma teks + statis: `radio_voice_1..5.wav`, disintesis dari teks siaran lewat gTTS bahasa Indonesia lalu diproses jadi radio tua rusak (band-pass 300-3000 Hz, statis ringan, baris ke-5 sengaja lebih rendah + lambat karena "bukan suara manusia biasa"); tiap interaksi radio memutar klip yang cocok dengan baris teksnya (`tools/make_radio_voice.py`, bisa dijalankan ulang). **SFX diperbaiki di ronde yang sama** (`tools/synth_audio.py`): derit pintu ditulis ulang jadi derit kayu stick-slip tonal (dulu cuma noise, centroid 3561 Hz), langkah kaki dapat lapisan krek tanah + pitch acak tiap langkah, dentuman Giant dapat transient retak + gema + peak diturunkan dari 0.99 ke 0.90, detak jantung dapat harmonik + ketuk katup. Verifikasi: `tools/audio_verify.py` (format + spektrum tiap WAV) dan test rig `mode=audio` (semua klip ke-load + jalur play + ganti klip radio + interact radio 5x). Batas jujur: belum pernah didengar telinga manusia (sandbox tanpa sound card).
 - **Lingkungan** (`scripts/main.gd`): tanah, jalan tanah, pagar kayu dengan celah gerbang, papan tanda, dan +/- 100 pohon prosedural mengelilingi pos. Kabut tebal + cahaya bulan redup dari `WorldEnvironment` di scene.
 
 ## Aset sprite
@@ -331,6 +331,61 @@ diperbaiki dan diverifikasi screenshot seri v11
   tapi bukan langit berawan yang digambar.
 - Semua screenshot dari llvmpipe (software rendering); di GPU asli
   warna/cahaya bisa sedikit berbeda.
+
+## v8 (2026-11-16): kabut volumetrik + suara radio + video gameplay
+
+Tiga permintaan Arya 17:26 WIB, semua dikerjakan dan diverifikasi.
+
+### Kabut volumetrik (bukan lagi billboard saja)
+- Kabut volumetrik Godot 4.3 **beneran render** (WorldEnvironment
+  `volumetric_fog_enabled`, density 0.030, albedo hijau-abu 0.35/0.42/0.34,
+  emission 0.10, anisotropy -0.15, sky affect 1.0, length 40 m).
+  Butuh renderer **Forward+** di desktop, jadi `project.godot` sekarang
+  `rendering_method="forward_plus"` (mobile/Web tetap GL Compatibility
+  lewat `rendering_method.mobile`, dan fallback depth fog 0.06 tetap
+  jalan di sana). Angka-angka di `Balance` (`VOL_FOG_*`,
+  `FOG_DENSITY_VOLUMETRIC` 0.04).
+- Hasil: pos + jalan dekat kebaca, hutan jauh tertelan, senter jadi
+  kerucut cahaya lembut di kabut. Screenshot seri v13c
+  (`~/workspace/godot/shots/v13c_*.png`): window, outside, forest, gate,
+  desk. Jujur: lewat jendela belakang tidak ada pohon sama sekali, hanya
+  kabut hijau-abu (itu memang brief-nya, tapi tanpa depth cue); kabut
+  tidak bergerak/bertiup (tidak ada animasi angin bawaan); hanya
+  terverifikasi di software Vulkan lavapipe, belum di GPU asli.
+- Catatan sandbox: Forward+ butuh `mesa-vulkan-drivers` (lavapipe).
+  Paket ini terpasang di sandbox; kalau sandbox di-reset, Godot gagal
+  init Vulkan sampai paket itu dipasang ulang.
+
+### Suara radio + SFX (v8)
+- Radio sekarang **bersuara**: 5 klip suara Indonesia
+  (`assets/audio/radio_voice_1..5.wav`, 16-bit mono 22050 Hz), dibuat
+  dari gTTS `lang="id"` atas kalimat persis di `radio.gd`, lalu diproses
+  jadi radio rusak (band-pass 300-3000 Hz, statis, pitch/speed
+  bervariasi; baris ke-5 sengaja 0.90, lebih rendah + lambat).
+  `radio.gd` `interact()` memutar klip yang cocok + statis; teks tetap
+  tampil. Skrip pembuat: `tools/make_radio_voice.py`.
+- SFX diperbaiki (`tools/synth_audio.py`): door creak tonal baru,
+  footstep + crunch + pitch acak per langkah, giant thud 1.8 detik
+  (sub sweep 80->30 Hz, peak 0.90), heartbeat lub-dub dengan harmonik.
+  Verifikasi: `tools/audio_verify.py` PASS semua 12 WAV, test rig
+  `mode=audio` semua jalur play menyala, `mode=playtest` PASS fails=0.
+- Jujur: **belum pernah didengar telinga manusia** (sandbox tanpa
+  sound card); yang terbukti adalah bentuk gelombang/spektrum + jalur
+  play. Suara gTTS satu suara generik, bukan akting/karakter.
+
+### Video gameplay (v8)
+- `the-giant-gameplay.mp4` (di samping ZIP ini): H.264 1280x720 30 fps,
+  **2 menit 54 detik, 146 MB**. Menu -> intro -> generator -> radio ->
+  buku jaga -> pemburu 01:30 -> kaki Giant 03:30 -> mata Giant 04:45 ->
+  ending 06:00 "Fajar". Direkam dari game beneran di Godot (Xvfb)
+  dengan rig yang memakai Input sungguhan, bukan frame palsu.
+- **Tanpa suara**: sandbox tidak punya sound card / jalur capture
+  audio, Godot jalan di dummy audio driver. Tertulis di title card
+  video. Waktu in-game dipercepat (lompat antar event) dan video
+  gameplay 2x karena sandbox render ~2-3 fps di lavapipe; dua-duanya
+  tertulis di title card video.
+- Kaki Giant di video samar (sengaja: kabut + tidak pernah utuh);
+  kalau mau lebih jelas perlu perubahan di game, bukan re-record.
 
 ## Yang masih placeholder / belum ada
 

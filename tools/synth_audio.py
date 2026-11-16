@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Sintesis audio prosedural THE GIANT (numpy, 16-bit mono 22050 Hz).
 
-Regenerasi: wind.wav, footstep.wav, heartbeat.wav.
-Baru: giant_thud.wav — dentuman langkah Giant yang DEDIKASI, bukan lagi
-footstep yang dipelankan pitch-nya (pitch 0.45 di audio.gd dulu).
-Tidak disentuh: generator_hum, radio_static, door_creak (sudah cukup).
+Regenerasi: wind.wav, footstep.wav, heartbeat.wav, giant_thud.wav,
+door_creak.wav (baru di v8-suara: dulu door_creak.wav dibuat entah di
+mana, isinya didominasi noise di atas 3 kHz, centroid 3561 Hz, tanpa
+nada derit kayu sama sekali).
+Suara radio (radio_voice_1..5.wav) TIDAK dari sini, tapi dari gTTS,
+lihat tools/make_radio_voice.py.
 
 Jalankan dari root proyek:  python3 tools/synth_audio.py
 Output: assets/audio/*.wav (langsung ditimpa, lalu Godot re-import).
@@ -66,45 +68,116 @@ def wind():
     save("wind.wav", x)
 
 
+def normalize_peak(x, peak=0.85):
+    """Skala ke peak target supaya tidak clipping (thud lama peak 0.99)."""
+    m = np.abs(x).max()
+    return x / m * peak if m > 0 else x
+
+
 def footstep():
+    """v2: dulu satu debuk 0,25 dtk, centroid 2407 Hz, 29% energi di
+    atas 3 kHz (terdengar desis, bukan tanah). Sekarang 0,35 dtk:
+    hentak tumit (sine 75 Hz) + krek tanah/daun kering (noise band
+    ~0,5-2,5 kHz, puncak 0,03-0,08 dtk) + ekor geser pelan.
+    Variasi antar langkah ditangani audio.gd (pitch acak 0.92-1.08)."""
     rng = np.random.default_rng(11)
-    t = np.arange(0.25 * SR) / SR
-    # Debuk tanah: noise lowpass + sine 85 Hz, decay cepat.
+    t = np.arange(0.35 * SR) / SR
+    # Hentak tumit: noise lowpass + sine 75 Hz, decay cepat.
     noise = lowpass(rng.standard_normal(len(t)), 0.08)
-    thump = np.sin(2 * np.pi * 85 * t) * np.exp(-t * 28)
-    x = noise * np.exp(-t * 22) * 0.8 + thump * 0.7
-    save("footstep.wav", x)
+    thump = np.sin(2 * np.pi * 75 * t) * np.exp(-t * 30)
+    x = noise * np.exp(-t * 25) * 0.7 + thump * 0.8
+    # Krek tanah/daun: noise band (~0,5-2,5 kHz). Draf pertama terlalu
+    # panas (centroid 3529 Hz, 44% energi >3 kHz): band dibatasi
+    # lowpass kedua + gain diturunkan supaya hentak tetap dominan.
+    raw = rng.standard_normal(len(t))
+    crunch = lowpass(raw, 0.12) - lowpass(raw, 0.05)
+    crunch = lowpass(crunch, 0.15)
+    crunch *= np.exp(-((t - 0.05) ** 2) / (2 * 0.035 ** 2))
+    x += crunch * 0.9
+    # Ekor geser: noise sangat lowpass, decay pelan.
+    x += lowpass(rng.standard_normal(len(t)), 0.03) * np.exp(-t * 12) * 0.25
+    save("footstep.wav", normalize_peak(x))
 
 
 def heartbeat():
+    """v2: dulu dua sine 55 Hz murni. Sekarang lub-dub dengan harmonik
+    (58 + 116 Hz), ketuk katup singkat di awal tiap detak, dan badan
+    sub 38 Hz; detak pertama lebih kuat dari kedua."""
     t = np.arange(1.2 * SR) / SR
     x = np.zeros_like(t)
-    for start, amp, dur in [(0.0, 1.0, 0.14), (0.38, 0.7, 0.11)]:
-        m = (t >= start) & (t < start + dur)
+    rng = np.random.default_rng(5)
+    for start, amp in [(0.0, 1.0), (0.36, 0.65)]:
+        m = (t >= start) & (t < start + 0.45)
         tt = t[m] - start
-        x[m] += amp * np.sin(2 * np.pi * 55 * tt) * np.exp(-tt * 22)
-    save("heartbeat.wav", x)
+        # Ketuk katup: noise singkat yang mulai di tiap detak (bukan
+        # sekali di t=0 saja, itu bug draf pertama: detak kedua sunyi).
+        # Draf pertama juga terlalu berdesis (centroid 1879 Hz): klik
+        # di-lowpass + gain kecil supaya jadi ketuk tumpul, bukan desis.
+        click = lowpass(rng.standard_normal(m.sum()), 0.10) * np.exp(-tt * 200)
+        x[m] += amp * (np.sin(2 * np.pi * 58 * tt) * np.exp(-tt * 18)
+                       + 0.4 * np.sin(2 * np.pi * 116 * tt) * np.exp(-tt * 22)
+                       + 0.5 * np.sin(2 * np.pi * 38 * tt) * np.exp(-tt * 10))
+        x[m] += amp * 0.06 * click
+    save("heartbeat.wav", normalize_peak(x))
+
+
+def door_creak():
+    """BARU (v8-suara): file lama didominasi noise broadband (centroid
+    3561 Hz, 46% energi >3 kHz), tidak ada nada derit. Yang ini derit
+    kayu stick-slip beneran: nada dasar menyapu 340->540->360 Hz
+    (vibrato 6 Hz + jitter) dengan harmonik 2x/3x, modulasi amplitudo
+    7 Hz (gaya gesek kayu yang menahan-lalu-melompat), geraman kayu
+    85 Hz di bawahnya. Durasi 1,2 dtk."""
+    rng = np.random.default_rng(17)
+    dur = 1.2
+    t = np.arange(dur * SR) / SR
+    # Frekuensi dasar: naik lalu turun, + vibrato + jitter stick-slip.
+    f0 = np.where(t < 0.7, 340 + 200 * (t / 0.7), 540 - 180 * ((t - 0.7) / 0.5))
+    f0 += 12 * np.sin(2 * np.pi * 6 * t)
+    f0 += lowpass(rng.standard_normal(len(t)), 0.02) * 18
+    phase = np.zeros_like(t)
+    phase[1:] = np.cumsum(f0[1:]) / SR * 2 * np.pi
+    tone = (np.sin(phase) * 0.5 + np.sin(2 * phase) * 0.25
+            + np.sin(3 * phase) * 0.12)
+    # AM stick-slip 7 Hz + noise halus.
+    am = 0.6 + 0.4 * np.sin(2 * np.pi * 7 * t + 0.5)
+    am *= 0.8 + 0.2 * lowpass(rng.standard_normal(len(t)), 0.05)
+    # Amplop: attack 0,15 dtk, lepas 0,3 dtk.
+    env = np.minimum(t / 0.15, 1.0) * np.minimum((dur - t) / 0.3, 1.0)
+    env = np.clip(env, 0, 1)
+    # Geraman kayu rendah + sedikit noise gesek.
+    groan = np.sin(2 * np.pi * 85 * t) * np.exp(-t * 2.5) * 0.3
+    scrape = lowpass(rng.standard_normal(len(t)), 0.06) * 0.06
+    x = tone * am * env + groan * env + scrape
+    save("door_creak.wav", normalize_peak(x))
 
 
 def giant_thud():
-    """Dentuman Giant: DEDIKASI, bukan footstep dipelankan.
-    Sub sine 75->34 Hz (0.5 detik) + gemuruh noise lowpass berat +
-    dentuman kedua tertunda 0.45 detik (langkah kaki kedua). Total 1.4 dtk."""
+    """v2: dentuman Giant DEDIKASI (bukan footstep dipelankan).
+    v1 sudah benar arahnya (sub sweep + gemuruh), tapi peak 0.99
+    (nyaris clipping) dan attack-nya tumpul. v2: transient ketuk
+    tajam di awal (retak tanah), sweep 80->30 Hz, gemuruh lebih
+    panjang (total 1,8 dtk), gema samar kedua di 0,8 dtk, peak 0.9."""
     rng = np.random.default_rng(23)
-    dur = 1.4
+    dur = 1.8
     t = np.arange(dur * SR) / SR
-    # Sweep frekuensi turun: f(t) = 75 * (34/75)^(t/0.5) untuk t<0.5.
+    # Transient retak tanah: noise burst 5 ms.
+    crack = rng.standard_normal(len(t)) * np.exp(-t * 800) * 0.4
+    # Sweep frekuensi turun: f(t) = 80 * (30/80)^(t/0.6) untuk t<0.6.
     phase = np.zeros_like(t)
-    f = np.where(t < 0.5, 75.0 * (34.0 / 75.0) ** (t / 0.5), 34.0)
+    f = np.where(t < 0.6, 80.0 * (30.0 / 80.0) ** (t / 0.6), 30.0)
     phase[1:] = np.cumsum(f[1:]) / SR * 2 * np.pi
-    sub = np.sin(phase) * np.exp(-t * 3.2)
-    # Gemuruh: noise sangat lowpass, decay 0.9 dtk.
-    rumble = lowpass(rng.standard_normal(len(t)), 0.012) * np.exp(-t * 4.5) * 1.4
+    sub = np.sin(phase) * np.exp(-t * 2.8)
+    # Gemuruh: noise sangat lowpass, decay 1,2 dtk.
+    rumble = lowpass(rng.standard_normal(len(t)), 0.012) * np.exp(-t * 3.0) * 1.4
     # Dentuman kedua (kaki satunya menapak), lebih pelan.
     t2 = np.clip(t - 0.45, 0, None)
     sub2 = np.sin(2 * np.pi * 42 * t2) * np.exp(-t2 * 5.0) * (t >= 0.45) * 0.55
-    x = sub * 0.9 + rumble + sub2
-    save("giant_thud.wav", x)
+    # Gema samar: sub 36 Hz di 0,8 dtk.
+    t3 = np.clip(t - 0.8, 0, None)
+    echo = np.sin(2 * np.pi * 36 * t3) * np.exp(-t3 * 4.0) * (t >= 0.8) * 0.25
+    x = crack + sub * 0.9 + rumble + sub2 + echo
+    save("giant_thud.wav", normalize_peak(x, 0.9))
 
 
 if __name__ == "__main__":
@@ -112,4 +185,5 @@ if __name__ == "__main__":
     wind()
     footstep()
     heartbeat()
+    door_creak()
     giant_thud()
