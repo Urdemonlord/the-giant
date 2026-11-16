@@ -16,7 +16,7 @@ func _ready() -> void:
 	print("[Main] scene main siap, jam=" + GameState.clock_text())
 	_apply_fog()
 	_apply_level_positions()
-	# v16: mode backdrop menu (lihat _setup_menu_backdrop): scene yang
+	# v17: mode backdrop menu (lihat _setup_menu_backdrop): scene yang
 	# sama dipakai menu utama sebagai latar 3D hidup. Cabang ini
 	# return sebelum _apply_resume/intro/pesan supaya tidak ada state
 	# save atau shift yang bocor ke menu.
@@ -56,7 +56,7 @@ func _is_rig_run() -> bool:
 			return true
 	return false
 
-## v16: menu utama memakai scene ini sebagai latar 3D hidup (bukan
+## v17: menu utama memakai scene ini sebagai latar 3D hidup (bukan
 ## gambar). Yang dibangun: kabut + terrain + hutan + pos jaga, sama
 ## persis dengan permainan. Yang dimatikan: waktu shift (Main
 ## _process), pemain (disembunyikan + semua proses mati), HUD,

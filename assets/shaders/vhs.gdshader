@@ -1,7 +1,7 @@
 // VHS analog-horror overlay THE GIANT (dipakai HUD game + menu utama).
 // Satu file supaya kedua layar tidak bisa drift: angka intensitas
 // tinggal di Balance, shader ini cuma bentuknya. Dulu inline string
-// di hud.gd (v5-v15); dipindah ke file di v16 saat menu butuh shader
+// di hud.gd (v5-v15); dipindah ke file di v17 saat menu butuh shader
 // yang sama untuk latar 3D-nya. Isi TIDAK berubah.
 // (Komentar shader pakai //, bukan ## — ## itu komentar GDScript dan
 // bikin file shader ini gagal compile diam-diam: fx jadi putih polos.)

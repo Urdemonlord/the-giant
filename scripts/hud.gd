@@ -215,7 +215,7 @@ func _build() -> void:
 	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fx.color = Color(1, 1, 1, 1)
-	# v16: shader VHS pindah ke res://assets/shaders/vhs.gdshader
+	# v17: shader VHS pindah ke res://assets/shaders/vhs.gdshader
 	# (satu file bersama menu utama) supaya kedua layar tidak bisa
 	# drift. Isi shader TIDAK berubah — cuma tempat tinggalnya.
 	var sh := load("res://assets/shaders/vhs.gdshader") as Shader

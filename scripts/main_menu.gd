@@ -5,7 +5,7 @@ extends Control
 ## LANJUTKAN = load user://savegame.json (kalau ada), masuk main.tscn.
 ## CARA MAIN = panel kontrol + cerita singkat. Tidak ada yang berubah
 ## dari gameplay inti: satu level, satu pos jaga, Malayunesia.
-## v16 (arah unslop, sama dengan HUD): produk = menu shift malam
+## v17 (arah unslop, sama dengan HUD): produk = menu shift malam
 ## lewat kamera pos yang rusak; karakter = tenang, waspada,
 ## birokratis; dunia = pos jaga berkabut + lentera + VHS; momen =
 ## cahaya lentera teras di kanan frame; signature = "● REC   CAM 07".
@@ -20,7 +20,7 @@ var _ui_layer: CanvasLayer
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	# v16: latar 3D hidup — scene main yang sama, mode backdrop
+	# v17: latar 3D hidup — scene main yang sama, mode backdrop
 	# (main.gd: tidak ada shift/event/HUD, kamera menu sendiri).
 	# Dibuat SEBELUM _build() supaya UI tergambar di atasnya; ikut
 	# ter-free saat ganti scene, tidak ada yang bocor ke permainan.
@@ -28,7 +28,7 @@ func _ready() -> void:
 	level.name = "Backdrop"
 	level.set_meta("menu_backdrop", true)
 	add_child(level)
-	# v16: VHS + UI tinggal di CanvasLayer layer 1 (pola yang sama
+	# v17: VHS + UI tinggal di CanvasLayer layer 1 (pola yang sama
 	# dengan HUD): fx digambar PERTAMA di layer itu, jadi
 	# screen_texture-nya berisi 3D backdrop; UI ditambah setelahnya
 	# supaya tetap bersih. fx di layer 0 (Control) TIDAK bisa membaca
@@ -50,7 +50,7 @@ func _ready() -> void:
 			_on_new_game()
 
 func _build() -> void:
-	# v16: latar belakang BUKAN lagi ColorRect hitam — di belakang
+	# v17: latar belakang BUKAN lagi ColorRect hitam — di belakang
 	# kontrol ini ada scene main hidup (Backdrop). Yang pertama
 	# digambar adalah shader VHS yang sama dengan game (satu file
 	# dengan hud.gd: assets/shaders/vhs.gdshader), jadi latar menu
@@ -93,14 +93,14 @@ func _build() -> void:
 	rec.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui_layer.add_child(rec)
 
-	# v16: split asimetris (unslop §6 — bukan tumpukan terpusat):
+	# v17: split asimetris (unslop §6 — bukan tumpukan terpusat):
 	# teks di kolom kiri (88..548), pos jaga hidup di kanan frame.
 	# Judul + label rata kiri, bukan tengah.
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_CENTER_LEFT)
 	box.offset_left = 88
 	box.offset_right = 548
-	# v16: kotak 560 tinggi (bukan 420) — kolom kiri yang lebih
+	# v17: kotak 560 tinggi (bukan 420) — kolom kiri yang lebih
 	# sempit membuat sub + bantuan membungkus lebih panjang; dengan
 	# 420 paragraf sentuh + footer jatuh di luar layar saat Cara
 	# main dibuka, dengan 500 masih terpotong sebaris. 560 memberi

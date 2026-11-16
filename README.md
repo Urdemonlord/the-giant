@@ -317,6 +317,37 @@ jumlah di verify sudah benar). Elemen sheet yang masih belum dipotong:
 gajah samping merumput, pohon kecil, kotak amunisi, balok subtitle
 (Sanity/Stability — itu UI, bukan sprite).
 
+## Menu utama: latar 3D hidup (2026-11-17, v17)
+
+Menu bukan lagi ColorRect hitam + teks terpusat. `main_menu.gd` menginstans
+scene main yang sama dengan mode backdrop (`set_meta("menu_backdrop", true)`):
+kabut + terrain + hutan + pos dibangun apa adanya, malam dikunci di titik
+tergelap kurva v14 (jam 02:00, bulan 0.55, ambient 0.50, vol fog 0.036),
+generator dinyalakan supaya lampu teras menyala. Kamera menu
+(`menu_camera.gd`) menyapu pelan +-5 derajat / 26 dtk (pola intro pan v14),
+dari jalan depan-kiri (-4.5, 2.0, -8.0, yaw 209 derajat). Waktu shift,
+pemain, HUD, TouchControls, dan event Hunter/Giant dimatikan di mode ini;
+GuardPost (fade-in lampu teras) + Audio (angin + jangkrik) tetap jalan.
+Reset shift di `_on_new_game` mengembalikan generator off, jadi tidak bocor
+ke permainan. Tidak ada aset gambar baru, tidak ada light baru.
+
+Layout ikut unslop: split asimetris, teks rata kiri kolom 88..548, pos di
+kanan frame; konten + sistem v15 tidak berubah (judul, tagline, 3 tombol,
+sentence case, satu aksen kuning lentera, fokus kuning). Shader VHS
+diekstrak dari `hud.gd` ke `assets/shaders/vhs.gdshader` supaya menu dan
+game satu file. Catatan: komentar shader pakai `//`, bukan `##` — `##`
+bukan komentar shader dan bikin compile gagal diam-diam, fx jadi rect
+putih (ketahuan lewat rig, sempat merusak VHS HUD juga).
+
+Terverifikasi lewat rig v20 + screenshot 1280x720 (`v20_menu_1280_no_save`,
+`_pan`, `_with_save`, `_help`, portrait): backdrop=true, kamera menu aktif,
+fokus di Mulai shift baru, mean_lum ~0.09-0.10; Lanjutkan disabled tanpa
+save / aktif dengan save; Cara main membuka bantuan; menu_autostart=1 masuk
+scene main. mouselook/playtest/story PASS fails=0, verify_atmosphere 20/20,
+0 script/shader error. Batas jujur: footer sedikit di bawah layar saat
+Cara main terbuka (tagline saja, teks bantuan lengkap); ultrawide murni
+belum teruji.
+
 Terverifikasi lewat screenshot Godot 4.3 Xvfb 1280x720, seri v9
 (`~/workspace/godot/shots/v9_*.png`, dilihat satu-satu, 4 ronde ulang
 untuk sudut yang ketutup pohon/dinding/gelap): `v9_desk_meter` (meter di
