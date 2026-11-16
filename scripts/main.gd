@@ -16,6 +16,13 @@ func _ready() -> void:
 	print("[Main] scene main siap, jam=" + GameState.clock_text())
 	_apply_fog()
 	_apply_level_positions()
+	# v16: mode backdrop menu (lihat _setup_menu_backdrop): scene yang
+	# sama dipakai menu utama sebagai latar 3D hidup. Cabang ini
+	# return sebelum _apply_resume/intro/pesan supaya tidak ada state
+	# save atau shift yang bocor ke menu.
+	if bool(get_meta("menu_backdrop", false)):
+		_setup_menu_backdrop()
+		return
 	var resumed := not GameState.resume_data.is_empty()
 	_apply_resume()
 	if not has_node("Ground"):
@@ -48,6 +55,75 @@ func _is_rig_run() -> bool:
 		if s.begins_with("mode=") or s == "menu_autostart=1":
 			return true
 	return false
+
+## v16: menu utama memakai scene ini sebagai latar 3D hidup (bukan
+## gambar). Yang dibangun: kabut + terrain + hutan + pos jaga, sama
+## persis dengan permainan. Yang dimatikan: waktu shift (Main
+## _process), pemain (disembunyikan + semua proses mati), HUD,
+## TouchControls, dan event Hunter/Giant (event mereka gated menit
+## shift, tapi dimatikan juga supaya tidak ada yang bisa jalan).
+## Yang tetap hidup: GuardPost _process (lampu teras fade-in) dan
+## Audio (angin + jangkrik autoplay dari _ready-nya; hum generator
+## ikut menyala lewat sinyal set_generator). Lampu teras butuh
+## generator menyala; bahan bakar penuh jadi tidak berkedip.
+## Malam yang dipakai: titik tergelap kurva v14 (jam 02:00), nilai
+## final, bukan titik awal — _process mati jadi kurva tidak jalan.
+## Reset shift di _on_new_game mengembalikan generator_on=false dan
+## fuel=100, jadi setelan menu ini tidak bocor ke permainan.
+func _setup_menu_backdrop() -> void:
+	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	var moon := get_node_or_null("MoonLight") as DirectionalLight3D
+	if env_node != null and env_node.environment != null and moon != null:
+		moon.light_energy = Balance.NIGHT_MOON_DEEP
+		env_node.environment.ambient_light_energy = Balance.NIGHT_AMBIENT_DEEP
+		if Balance.volumetric_active():
+			env_node.environment.volumetric_fog_density = Balance.NIGHT_VOL_DEEP
+		else:
+			env_node.environment.fog_density = Balance.FOG_DENSITY + 0.01
+	GameState.set_generator(true)
+	GameState.fuel = Balance.MAX_FUEL
+	if not has_node("Ground"):
+		_build_terrain()
+	if not has_node("Forest"):
+		_build_forest()
+	set_process(false)
+	var player := get_node_or_null("Player") as Node3D
+	if player != null:
+		player.visible = false
+		player.set_process(false)
+		player.set_physics_process(false)
+		player.set_process_input(false)
+		player.set_process_unhandled_input(false)
+		var pc := player.get_node_or_null("Head/Camera3D") as Camera3D
+		if pc != null:
+			pc.current = false
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null:
+		(hud as CanvasLayer).visible = false
+		hud.set_process(false)
+	var touch := get_node_or_null("TouchControls") as CanvasLayer
+	if touch != null:
+		touch.visible = false
+		touch.set_process(false)
+	for g in ["hunter_event", "giant_event"]:
+		var ev := get_tree().get_first_node_in_group(g)
+		if ev != null:
+			ev.set_process(false)
+	# Kamera menu: dari jalan depan-KIRI (cermin dari percobaan
+	# pertama di kanan, yang menaruh billboard guard_front 1,8 m di
+	# depan lensa dan menelan sepertiga kanan frame). Dari kiri, pos
+	# di tengah-kanan frame, teks menu di kiri, dan guard_front
+	# (~53 derajat off-axis) tetap di luar frame selama sapuan.
+	# Sapuan pelan di menu_camera.gd.
+	var cam := Camera3D.new()
+	cam.name = "MenuCamera"
+	cam.set_script(load("res://scripts/menu_camera.gd"))
+	cam.position = Vector3(-4.5, 2.0, -8.0)
+	cam.rotation = Vector3(deg_to_rad(-2.0), deg_to_rad(209.0), 0.0)
+	cam.fov = Balance.FOV_BASE
+	add_child(cam)
+	cam.current = true
+	print("[Main] mode backdrop menu: kamera menu aktif")
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau

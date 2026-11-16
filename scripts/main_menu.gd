@@ -5,13 +5,39 @@ extends Control
 ## LANJUTKAN = load user://savegame.json (kalau ada), masuk main.tscn.
 ## CARA MAIN = panel kontrol + cerita singkat. Tidak ada yang berubah
 ## dari gameplay inti: satu level, satu pos jaga, Malayunesia.
+## v16 (arah unslop, sama dengan HUD): produk = menu shift malam
+## lewat kamera pos yang rusak; karakter = tenang, waspada,
+## birokratis; dunia = pos jaga berkabut + lentera + VHS; momen =
+## cahaya lentera teras di kanan frame; signature = "● REC   CAM 07".
+## Latar BUKAN gambar — scene main hidup di belakang teks (split
+## asimetris: teks kiri, pos kanan), bukan tumpukan terpusat di atas
+## hitam.
 
 var _help_label: Label
 var _continue_btn: Button
 var _start_btn: Button
+var _ui_layer: CanvasLayer
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# v16: latar 3D hidup — scene main yang sama, mode backdrop
+	# (main.gd: tidak ada shift/event/HUD, kamera menu sendiri).
+	# Dibuat SEBELUM _build() supaya UI tergambar di atasnya; ikut
+	# ter-free saat ganti scene, tidak ada yang bocor ke permainan.
+	var level: Node = (load("res://scenes/main.tscn") as PackedScene).instantiate()
+	level.name = "Backdrop"
+	level.set_meta("menu_backdrop", true)
+	add_child(level)
+	# v16: VHS + UI tinggal di CanvasLayer layer 1 (pola yang sama
+	# dengan HUD): fx digambar PERTAMA di layer itu, jadi
+	# screen_texture-nya berisi 3D backdrop; UI ditambah setelahnya
+	# supaya tetap bersih. fx di layer 0 (Control) TIDAK bisa membaca
+	# screen_texture — sampelnya putih kosong (terbukti di rig v20:
+	# mean_lum 0.625 dengan fx di layer 0, 0.108 tanpa fx).
+	_ui_layer = CanvasLayer.new()
+	_ui_layer.name = "MenuLayer"
+	_ui_layer.layer = 1
+	add_child(_ui_layer)
 	_build()
 	# v15: fokus ke tombol mulai (keyboard/gamepad langsung jalan).
 	_start_btn.grab_focus()
@@ -24,16 +50,34 @@ func _ready() -> void:
 			_on_new_game()
 
 func _build() -> void:
-	var bg := ColorRect.new()
-	bg.color = Color(0.02, 0.025, 0.03, 1)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	# v16: latar belakang BUKAN lagi ColorRect hitam — di belakang
+	# kontrol ini ada scene main hidup (Backdrop). Yang pertama
+	# digambar adalah shader VHS yang sama dengan game (satu file
+	# dengan hud.gd: assets/shaders/vhs.gdshader), jadi latar menu
+	# kelihatan lewat kamera pos yang rusak; teks menu ditambah
+	# SETELAH-nya supaya tetap bersih (persis pola HUD: fx dulu,
+	# teks belakangan).
+	var fx := ColorRect.new()
+	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fx.color = Color(1, 1, 1, 1)
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://assets/shaders/vhs.gdshader") as Shader
+	sm.set_shader_parameter("grain", Balance.VHS_GRAIN)
+	sm.set_shader_parameter("scanline", Balance.VHS_SCANLINE)
+	sm.set_shader_parameter("ca", Balance.VHS_CA)
+	sm.set_shader_parameter("desat", Balance.VHS_DESATURATE)
+	sm.set_shader_parameter("vignette", Balance.VHS_VIGNETTE)
+	sm.set_shader_parameter("flicker", Balance.VHS_FLICKER)
+	sm.set_shader_parameter("tear_shift", Balance.VHS_TEAR_SHIFT)
+	fx.material = sm
+	_ui_layer.add_child(fx)
 	# Vignette tipis di menu supaya tidak terasa seperti layar kosong.
 	var vig := ColorRect.new()
 	vig.color = Color(0, 0, 0, 0.35)
 	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(vig)
+	_ui_layer.add_child(vig)
 	# v15: stempel yang sama dengan HUD ("● REC   CAM 07") — satu
 	# detail signature yang mengikat menu dan game. Bukan dekorasi
 	# baru, tapi identitas yang sudah ada dipakai konsisten.
@@ -47,27 +91,35 @@ func _build() -> void:
 	rec.offset_top = 12
 	rec.offset_bottom = 40
 	rec.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(rec)
+	_ui_layer.add_child(rec)
 
+	# v16: split asimetris (unslop §6 — bukan tumpukan terpusat):
+	# teks di kolom kiri (88..548), pos jaga hidup di kanan frame.
+	# Judul + label rata kiri, bukan tengah.
 	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.offset_left = -260
-	box.offset_right = 260
-	box.offset_top = -210
-	box.offset_bottom = 210
+	box.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	box.offset_left = 88
+	box.offset_right = 548
+	# v16: kotak 560 tinggi (bukan 420) — kolom kiri yang lebih
+	# sempit membuat sub + bantuan membungkus lebih panjang; dengan
+	# 420 paragraf sentuh + footer jatuh di luar layar saat Cara
+	# main dibuka, dengan 500 masih terpotong sebaris. 560 memberi
+	# ruang untuk semuanya sampai footer.
+	box.offset_top = -280
+	box.offset_bottom = 280
 	box.add_theme_constant_override("separation", 14)
-	add_child(box)
+	_ui_layer.add_child(box)
 
 	var title := Label.new()
 	title.text = "THE GIANT"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title.add_theme_font_size_override("font_size", 64)
 	title.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
 	box.add_child(title)
 
 	var sub := Label.new()
 	sub.text = "Pos jaga, Taman Nasional Malayunesia. Shift malam 22:00 - 06:00.\nJaga pos ini. Jangan biarkan mereka kembali."
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.add_theme_font_size_override("font_size", 17)
 	sub.add_theme_color_override("font_color", Color(0.75, 0.73, 0.66))
@@ -90,7 +142,7 @@ func _build() -> void:
 
 	_help_label = Label.new()
 	_help_label.text = "WASD jalan, Shift lari, mouse melihat, E interaksi, F senter, ESC jeda.\nNyalakan generator, cek radio, tulis laporan di buku jaga.\nKalau ada yang berdiri diam di luar dan menatap pos: tutup pintu, tunggu di dalam.\nJangan lihat matanya.\n\nDi layar sentuh: joystick kiri untuk jalan, geser kanan untuk melihat,\ntombol E untuk interaksi, SENTER untuk senter."
-	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_help_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_help_label.add_theme_font_size_override("font_size", 15)
 	_help_label.add_theme_color_override("font_color", Color(0.7, 0.68, 0.6))
@@ -99,7 +151,7 @@ func _build() -> void:
 
 	var foot := Label.new()
 	foot.text = "Sebuah cerita horor psikologis. Giant tidak pernah tampil utuh."
-	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	foot.add_theme_font_size_override("font_size", 13)
 	foot.add_theme_color_override("font_color", Color(0.5, 0.48, 0.42))
 	box.add_child(foot)
