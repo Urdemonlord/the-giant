@@ -103,8 +103,8 @@ func _apply_level_positions() -> void:
 	_apply_node_pos("Radio", LevelData.RADIO_POS, 0.0)
 	_apply_node_pos("Logbook", LevelData.LOGBOOK_POS, 0.0)
 	_apply_node_pos("Lantern", LevelData.LANTERN_POS, 0.0)
-	_apply_node_pos("Newspaper", LevelData.NEWSPAPER_POS, deg_to_rad(12.0))
-	_apply_node_pos("Permit", LevelData.PERMIT_POS, deg_to_rad(-8.0))
+	_apply_node_pos("Newspaper", LevelData.NEWSPAPER_POS, 0.0) # v10: lurus (dulu 12 derajat), rapi + hitbox persis
+	_apply_node_pos("Permit", LevelData.PERMIT_POS, 0.0) # v10: lurus (dulu -8 derajat)
 
 func _apply_node_pos(node_name: String, pos: Vector3, rot_y: float) -> void:
 	var n := get_node_or_null(node_name) as Node3D
@@ -348,5 +348,5 @@ func _ground_decal(parent: Node, sprite_name: String, pos: Vector3, pixel_size: 
 	spr.pixel_size = pixel_size
 	spr.rotation = Vector3(-PI * 0.5, 0, 0)
 	spr.position = pos
-	spr.modulate = Color(1.3, 0.9, 0.9, 1.0) # darah didongkrak supaya kebaca di tanah gelap
+	spr.modulate = Color(1.6, 1.0, 1.0, 1.0) # darah didongkrak supaya kebaca di tanah gelap (v10: 1,3 -> 1,6, ukuran 0,007 -> 0,009)
 	parent.add_child(spr)

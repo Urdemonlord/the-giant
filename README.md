@@ -440,6 +440,71 @@ bukan detailnya. Kuku kaki tidak tajam (sumbernya juga tidak tajam);
 yang kebaca adalah bentuk telapak (melebar + tepi bawah membulat),
 bukan kuku satu-satu.
 
+## v10 (2026-11-16): tata letak barang-barang dirapikan
+
+Arya: "tata letak barang barang nya juga rapiin".
+
+**Yang berantakan sebelumnya (dicek di kode + screenshot v12/v9).**
+- Meja 1,7 m menampung 5 benda: radio, buku, meter, koran, surat
+  berdesakan; meter setengah ketutup buku jaga; koran menjulur keluar
+  tepi meja; hitbox surat tumpang dengan hitbox buku jaga (0,33 m).
+- Koran + surat TERKUBUR di dalam papan meja sejak v7: permukaan meja
+  sebenarnya y 1,11 (tengah papan 1,07 + setengah tebal 0,04), kertas
+  di y 1,07 — cuma kelihatan dari sisi yang menjulur keluar meja.
+  Ketahuan di screenshot `v15_desk_top` ronde 1: sudut depan meja kosong.
+- Samping generator: gergaji, tong, karung, peti tersebar di x 4,4-5,3,
+  z -3,6..1,4, tanpa garis. Halaman: tunggul, gading, jerat, darah,
+  log, batu tersebar acak. Papan larangan gajah 1,4 m di depan garis pagar.
+
+**Meja (baru: 2,2 x 0,8, grid 3 kolom x 2 baris, tiap benda punya zona).**
+- Baris belakang (z 1,64): radio kiri (-1,98), meter tengah (-1,30,
+  visual saja), lentera kanan (-0,55). Lentera PINDAH dari peti kayu
+  ke meja, y naik 1,06 -> 1,27 supaya alas sprite tidak tenggelam.
+- Baris depan (z 1,14): koran kiri (-1,98), buku jaga tengah (-1,30,
+  z 1,20 supaya tidak menjulur keluar tepi), surat kanan (-0,55).
+- Kertas lurus (rotasi 0, dulu 12/-8 derajat). Hitbox diperkecil
+  (buku 0,6 -> 0,5 dalam, kertas 0,55 -> 0,5) supaya tidak ada yang
+  saling tumpang — dicek dari angka, bukan kira-kira.
+- Koran + surat naik ke y 1,12 (di ATAS permukaan meja 1,11).
+  Peti kayu di sudut kanan sekarang kosong (tempat simpan).
+
+**Samping generator (tidak ada bangunan gudang: generator di udara
+terbuka menempel dinding timur pos).** Satu baris lurus di x 4,4,
+sejajar dinding: karung z -3,8, tong z -3,2, gergaji z -2,5,
+generator z -1,2 (rotasi -23 -> 0, sejajar dinding), peti rendah
+z 0,4, peti tinggi z 1,2. Peti rendah pindah dari sisi barat pos
+supaya peti-peti berkelompok.
+
+**Halaman (tiga baris lurus, dibuktikan posisi di log verify).**
+- Bukti penebangan, sisi barat jalan (x -4,5): tunggul z -6,5, jerat
+  z -9,0, darah z -10,5, gading z -12,0.
+- Kayu, sisi timur jalan (x 7,5): log z -5,5, tunggul z -7,0,
+  batu z -8,5. Jejak kaki tetap di tengah jalan.
+- Semak + pisang di garis pagar (z -14,5). Papan larangan gajah
+  ditarik ke garis pagar (z -15,6), sejajar dua papan lain.
+- Darah dibesarkan (0,007 -> 0,009) + diterangkan (1,3 -> 1,6).
+
+**Verifikasi v10 (mode `shots15`, prefix v15c):** `v15c_desk_top`
+(grid 3x2 lengkap: lentera-meter-radio belakang, koran-buku-surat
+depan, stempel merah surat kelihatan), `v15c_desk_close` (meja dari
+dekat, semua benda di zonanya), `v15c_desk_spawn` (dari spawn),
+`v15c_shed_row` (generator merah + gergaji oranye + peti, menyusuri
+baris dari selatan), `v15c_yard_close` (tunggul + jerat + gading),
+`v15c_yard_door` + `v15c_gate_signs` (pagar + gerbang).
+Regression: mode verify exit 0 (registry 42 nama, 0 missing, 186
+Sprite3D), mode playtest PASS fails=0 (5 tugas), mode story PASS
+fails=0 (koran + surat dibuka-tutup lewat E), headless 300 frame
+tanpa script error. Posisi baris dikonfirmasi dari log verify
+(semua x 4,4 / x -4,5 / x 7,5).
+
+**Batas jujur yang tersisa:** darah di tanah tetap samar di malam
+hari (decal gelap di tanah gelap + kabut) — posisinya benar di
+baris bukti, tapi keterbacaannya terbatas; ujung jauh baris
+generator (tong + karung) melebur ke kabut dari jarak 7 m, itu
+kabut gamenya sendiri, bukan salah letak. Sprite buku jaga
+(billboard) masih condong seperti disandarkan, bukan tergeletak
+datar — begitu sejak v7, bukan regresi v10.
+
 ## Yang masih placeholder / belum ada
 
 - Model masih berupa kotak + sprite billboard; ini prototipe gameplay, bukan build visual final.

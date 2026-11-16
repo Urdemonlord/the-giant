@@ -65,9 +65,11 @@ func _build_visual() -> void:
 		add_child(stamp)
 	# Hitbox pemurah seperti radio/buku jaga: kertas tipis susah
 	# dibidik raycast kalau collider-nya setipis kertasnya.
+	# v10: 0,55 -> 0,5, supaya koran dan surat yang bersebelahan di
+	# baris depan tidak saling menutupi hitbox.
 	var shape := CollisionShape3D.new()
 	var col := BoxShape3D.new()
-	col.size = Vector3(0.55, 0.35, 0.55)
+	col.size = Vector3(0.5, 0.35, 0.5)
 	shape.shape = col
 	shape.position = Vector3(0, 0.12, 0)
 	add_child(shape)

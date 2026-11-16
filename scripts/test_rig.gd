@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | shots13 | verify | win | lose | audio | touch | pause | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | verify | win | lose | audio | touch | pause | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -102,6 +102,8 @@ func _run() -> void:
 			await _mode_shots13()
 		"shots14":
 			await _mode_shots14()
+		"shots15":
+			await _mode_shots15()
 		"story":
 			await _mode_story()
 		"verify":
@@ -419,6 +421,48 @@ func _mode_shots14() -> void:
 	_player.flashlight_on = false
 	_player.flashlight.visible = false
 
+func _mode_shots15() -> void:
+	# v15 (v10): tata letak rapi. Tiap shot dicek: tiap benda di meja
+	# punya zona sendiri, tidak tumpang, tidak melayang, tidak
+	# ketutup benda lain; baris generator sejajar dinding timur;
+	# halaman tertata di dua sisi jalan + garis pagar.
+	GameState.set_generator(true)
+	# 1. Meja dari sudut spawn (pemain baru masuk, lihat meja utuh).
+	await _set_view(Vector3(0, 0.45, 1.3), 95, -6)
+	await _shot("desk_spawn")
+	# 2. Meja dari dekat, sudut lama shots12 (radio/meter/buku/lentera).
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	await _shot("desk_close")
+	# 3. Meja dari atas, menunduk: grid 3x2 harus kebaca dari sini.
+	await _set_view(Vector3(-1.3, 0.45, -0.1), 178, -42)
+	await _shot("desk_top")
+	# 4. Baris generator DARI SELATAN, menyusuri barisnya (peti-peti,
+	# generator, gergaji, tong, karung): sudut timur lama (8,5, -1,0)
+	# ketutup kabut volumetrik, tidak kebaca.
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(4.4, 0.45, 3.5), 0, -4)
+	await _shot("shed_row")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 5. Halaman dari pintu: gerbang + papan + dua baris bukti di sisi jalan.
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(0, 0.45, -3.0), 0, -2)
+	await _shot("yard_door")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 6. Baris bukti barat dari dekat, senter: tunggul-jerat-darah-gading.
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(-1.5, 0.45, -5.5), 40, -14)
+	await _shot("yard_close")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 7. Papan tanda di garis pagar, dari jalan.
+	await _set_view(Vector3(0, 0.45, -11.0), 0, 0)
+	await _shot("gate_signs")
+
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.
 	# Rig menjalankan main.tscn dengan argumen mode=, jadi intro
@@ -429,7 +473,7 @@ func _mode_story() -> void:
 	if hud._intro_open:
 		fails += 1
 	# 1. Koran: bidik, E, panel buka + pause, screenshot, E lagi tutup.
-	if not await _interact_at(Vector3(-2.05, 1.19, 1.05), "Koran"):
+	if not await _interact_at(Vector3(-1.98, 1.24, 1.14), "Koran"):
 		fails += 1
 		_log("story: koran FAIL bidik")
 	await _frames(5)
@@ -449,7 +493,7 @@ func _mode_story() -> void:
 		_log("story: koran FAIL tidak tertutup lewat E")
 		hud.close_document()
 	# 2. Surat izin: sama, cek angka 12.400 + catatan tangan.
-	if not await _interact_at(Vector3(-0.8, 1.19, 1.6), "Surat"):
+	if not await _interact_at(Vector3(-0.55, 1.24, 1.14), "Surat"):
 		fails += 1
 		_log("story: surat FAIL bidik")
 	await _frames(5)
@@ -787,19 +831,21 @@ func _mode_playtest() -> void:
 	if not ok:
 		fails += 1
 	# 4. Radio, lalu buku jaga, lalu lentera (tugas berurutan).
-	if not await _interact_at(Vector3(-1.55, 1.27, 1.35), "Radio"):
+	# v10: posisi baru grid meja (radio belakang-kiri, buku depan-tengah,
+	# lentera belakang-kanan).
+	if not await _interact_at(Vector3(-1.98, 1.27, 1.64), "Radio"):
 		fails += 1
 	_log("playtest: tugas radio=" + str(GameState.is_task_done("radio")))
 	if not GameState.is_task_done("radio"):
 		fails += 1
-	if not await _interact_at(Vector3(-1.02, 1.14, 1.28), "Buku"):
+	if not await _interact_at(Vector3(-1.30, 1.14, 1.20), "Buku"):
 		fails += 1
 	_log("playtest: tugas log=" + str(GameState.is_task_done("log")) + " sanity=" + str(GameState.sanity))
 	if not GameState.is_task_done("log"):
 		fails += 1
 	var lantern := get_node_or_null("Main/Lantern")
 	var lantern_before: bool = lantern.is_on if lantern != null else false
-	if not await _interact_at(Vector3(1.85, 1.06, 1.5), "Lentera"):
+	if not await _interact_at(Vector3(-0.55, 1.27, 1.64), "Lentera"):
 		fails += 1
 	var lantern_after: bool = lantern.is_on if lantern != null else false
 	_log("playtest: lentera toggle " + str(lantern_before) + " -> " + str(lantern_after) + " (harus berubah)")
@@ -807,7 +853,7 @@ func _mode_playtest() -> void:
 		fails += 1
 	# Nyalakan lagi supaya pos tidak gelap untuk sisa shift.
 	if not lantern_after:
-		await _interact_at(Vector3(1.85, 1.06, 1.5), "Lentera")
+		await _interact_at(Vector3(-0.55, 1.27, 1.64), "Lentera")
 	# 5. Tutup pintu, lalu event pemburu 01:30 (lewati dengan pintu tertutup).
 	# Jalan dulu ke dekat pintu: raycast interaksi cuma 3,4 m, dari
 	# lentera (1,85, 1,5) pintu tidak terjangkau.

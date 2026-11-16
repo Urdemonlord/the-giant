@@ -194,13 +194,13 @@ func _run() -> void:
 	if lantern == null:
 		lantern = get_tree().get_first_node_in_group("lantern")
 	var lb: bool = lantern.is_on if lantern != null else false
-	await _interact_at(Vector3(1.85, 1.06, 1.5), "Lentera")
+	await _interact_at(Vector3(-0.55, 1.27, 1.64), "Lentera")
 	_log("lentera toggle " + str(lb) + " -> " + str(lantern.is_on if lantern != null else "?"))
 	# Lentera harus tetap MENYALA untuk sisa shift (seperti playtest):
 	# kalau tadi mati, nyalakan lagi, kalau tidak interior gelap total
 	# saat pemburu/kaki/mata difilmkan.
 	if lantern != null and not lantern.is_on:
-		await _interact_at(Vector3(1.85, 1.06, 1.5), "Lentera")
+		await _interact_at(Vector3(-0.55, 1.27, 1.64), "Lentera")
 		_log("lentera dinyalakan lagi untuk sisa shift")
 	await _wait_sec(1.5)
 	# 9. Tutup pintu.

@@ -19,24 +19,36 @@ const POST_WINDOW_WIDTH := 1.4
 const POST_WINDOW_SILL_Y := 0.95 # tinggi ambang bawah jendela (dari lantai)
 const POST_WINDOW_TOP_Y := 1.85 # tinggi ambang atas jendela (dari lantai)
 const POST_PORCH_LIGHT_POS := Vector3(0, 2.4, -2.6)
-const POST_DESK_POS := Vector3(-1.35, 1.07, 1.35) # meja jaga (y sudah + lantai)
-const POST_DESK_TOP_Y := 1.07 # FLOOR_Y + 0.72, permukaan meja
+const POST_DESK_POS := Vector3(-1.30, 1.07, 1.35) # meja jaga (y sudah + lantai)
+const POST_DESK_WIDTH := 2.2 # v10: 1,7 -> 2,2, meja lama terlalu sempit
+const POST_DESK_DEPTH := 0.8 # untuk 6 benda (3 kolom x 2 baris), lihat bawah
+const POST_DESK_TOP_Y := 1.07 # tengah papan meja (FLOOR_Y + 0.72);
+# PERMUKAAN meja = 1,11 (papan tebal 0,08). Benda di atas meja harus
+# y >= 1,11: koran/surat sempat TERKUBUR di dalam papan (y 1,07) sejak
+# v7 dan cuma kelihatan dari sisi yang menjulur keluar meja — ketahuan
+# di screenshot v15_desk_top, diperbaiki di v10 (y 1,12).
 
 ## --- Spawn & benda interaktif (diterapkan main.gd di _ready) ----------------
 const PLAYER_SPAWN := Vector3(0, 0.45, 1.3)
 const PLAYER_HEAD_HEIGHT := 1.62
 const GENERATOR_POS := Vector3(3.6, 0, -1.2)
-const GENERATOR_ROT_Y_DEG := -23.0
-const RADIO_POS := Vector3(-1.55, 1.27, 1.35)
-const LOGBOOK_POS := Vector3(-1.02, 1.14, 1.28)
-const LANTERN_POS := Vector3(1.85, 1.06, 1.5)
-## Dokumen cerita di atas meja (brief v7): koran di ujung kiri DEPAN
-## meja, di luar bayangan hitbox radio dari arah spawn (raycast dari
-## spawn mengenai radio dulu kalau koran di belakangnya — dua ronde
-## perbaikan di v12 membuktikannya). Surat izin di ujung kanan meja,
-## di depan meter. Y = permukaan meja.
-const NEWSPAPER_POS := Vector3(-2.05, 1.07, 1.05)
-const PERMIT_POS := Vector3(-0.8, 1.07, 1.6)
+const GENERATOR_ROT_Y_DEG := 0.0 # v10: -23 -> 0, generator sejajar dinding timur
+## TATA LETAK MEJA v10 (Arya: "tata letak barang-barangnya juga rapiin"):
+## meja 2,2 x 0,8, grid 3 kolom x 2 baris, tiap benda punya zona sendiri,
+## hitbox TIDAK saling tumpang (dicek di bawah: radio/logbook/lentera/
+## koran/surat sudah dihitung, bukan kira-kira).
+## Baris belakang (z 1,64): radio kiri, meter tengah (visual saja), lentera kanan.
+## Baris depan (z 1,14): koran kiri, buku jaga tengah, surat kanan.
+## Kertas lurus (rotasi 0 di main.gd), bukan miring: lebih rapi + hitbox
+## persis 0,5 x 0,5. Lentera PINDAH dari peti kayu (1,85, 1,5) ke meja,
+## y naik 1,06 -> 1,27 supaya alas sprite tidak tenggelam ke permukaan meja
+## (sprite lentera 0,50 m, alas di node y - 0,20).
+const RADIO_POS := Vector3(-1.98, 1.27, 1.64)
+const LOGBOOK_POS := Vector3(-1.30, 1.14, 1.20) # z 1,20: buku tidak menjulur keluar tepi depan meja (dulu 1,14, menjulur 7 cm)
+const LANTERN_POS := Vector3(-0.55, 1.27, 1.64)
+const METER_POS := Vector3(-1.30, 1.29, 1.64) # meter getar, visual saja
+const NEWSPAPER_POS := Vector3(-1.98, 1.12, 1.14) # y 1,12: di ATAS permukaan meja (1,11), bukan terkubur
+const PERMIT_POS := Vector3(-0.55, 1.12, 1.14)
 
 ## --- Terrain / pagar ---------------------------------------------------------
 const GROUND_SIZE := 90.0
@@ -48,7 +60,7 @@ const FENCE_GATE_HALF_GAP := 2.0 # celah gerbang x -1.5..1.5 (tiang genap)
 const GATE_POS := Vector3(0, 0, -15.7)
 const SIGN_PARK_POS := Vector3(3.2, 0, -15.6)
 const SIGN_NO_LOGGING_POS := Vector3(-4.4, 0, -15.6)
-const SIGN_NO_ELEPHANT_POS := Vector3(-6.8, 0, -14.2)
+const SIGN_NO_ELEPHANT_POS := Vector3(-6.8, 0, -15.6) # v10: z -14,2 -> -15,6, sejajar pagar seperti dua papan lain
 
 ## --- Hutan -------------------------------------------------------------------
 const FOREST_RING_COUNT := 90
@@ -61,28 +73,34 @@ const FOREST_SEED := 20261116
 
 ## Properti berserakan: [nama sprite, posisi, pixel_size].
 ## Cerita tanpa kata: tunggul + gading + jerat + darah = penebangan liar.
+## v10 (Arya: rapiin tata letak): TIDAK lagi tersebar acak. Tiga baris
+## lurus: (1) bukti penebangan di sisi BARAT jalan (x -4,5, z -6,5..-12,
+## urutan tunggul-jerat-darah-gading seperti jejak), (2) kayu di sisi
+## TIMUR jalan (x 7,5, z -5,5..-8,5: log-tunggul-batu), (3) sisi timur
+## pos (x 4,4, z -3,8..1,2: karung-tong-gregaji-generator-peti, sejajar
+## dinding timur). Semak di garis pagar (z -14,5), bukan di tengah halaman.
 const SCATTER_PROPS: Array = [
-	["stump", Vector3(6.5, 0.28, -7.5), 0.0035],
-	["stump", Vector3(-8.0, 0.28, -4.0), 0.0035],
-	["tusks", Vector3(3.8, 0.2, -12.5), 0.003],
-	["snare", Vector3(-5.5, 0.25, -10.0), 0.003],
+	["stump", Vector3(7.5, 0.28, -7.0), 0.0035],
+	["stump", Vector3(-4.5, 0.28, -6.5), 0.0035],
+	["tusks", Vector3(-4.5, 0.2, -12.0), 0.003],
+	["snare", Vector3(-4.5, 0.25, -9.0), 0.003],
 	["footprint", Vector3(1.2, 0.06, -9.0), 0.003],
-	["chainsaw", Vector3(4.7, 0.35, -2.4), 0.0035],
-	["log", Vector3(7.8, 0.21, -5.5), 0.004],
-	["rocks", Vector3(8.6, 0.22, -8.6), 0.005],
-	["barrels", Vector3(5.1, 0.28, -0.4), 0.006],
-	["sacks", Vector3(5.3, 0.28, -2.8), 0.005],
-	["crate_tall", Vector3(4.4, 0.3, 1.4), 0.005],
-	["crate_low", Vector3(-3.4, 0.2, -3.6), 0.005],
-	["bush2", Vector3(4.5, 0.4, -8.0), 0.006],
-	["bush2", Vector3(-4.2, 0.4, -13.5), 0.006],
-	["bush2", Vector3(7.5, 0.4, -14.0), 0.006],
-	["bush2", Vector3(-7.0, 0.4, -6.0), 0.006],
+	["chainsaw", Vector3(4.4, 0.35, -2.5), 0.0035],
+	["log", Vector3(7.5, 0.21, -5.5), 0.004],
+	["rocks", Vector3(7.5, 0.22, -8.5), 0.005],
+	["barrels", Vector3(4.4, 0.28, -3.2), 0.006],
+	["sacks", Vector3(4.4, 0.28, -3.8), 0.005],
+	["crate_tall", Vector3(4.4, 0.3, 1.2), 0.005],
+	["crate_low", Vector3(4.4, 0.2, 0.4), 0.005],
+	["bush2", Vector3(8.0, 0.4, -14.5), 0.006],
+	["bush2", Vector3(-5.0, 0.4, -14.5), 0.006],
+	["bush2", Vector3(5.0, 0.4, -14.5), 0.006],
+	["bush2", Vector3(-8.0, 0.4, -14.5), 0.006],
 ]
 
 ## Decal di tanah: [nama sprite, posisi, pixel_size].
 const GROUND_DECALS: Array = [
-	["blood", Vector3(-4.2, 0.04, -11.2), 0.007],
+	["blood", Vector3(-4.5, 0.04, -10.5), 0.009],
 ]
 
 ## Billboard statis: [nama sprite, posisi, pixel_size, tint].
@@ -90,7 +108,7 @@ const GROUND_DECALS: Array = [
 ## (kabut dibuat acak di main.gd, bukan dari tabel ini).
 const BILLBOARDS: Array = [
 	["banana", Vector3(5.5, 0.0, -15.5), 0.0114, Color(0.8, 0.85, 0.8, 1.0)],
-	["banana", Vector3(-9.0, 0.0, -12.0), 0.0114, Color(0.75, 0.8, 0.75, 1.0)],
+	["banana", Vector3(-9.0, 0.0, -14.5), 0.0114, Color(0.75, 0.8, 0.75, 1.0)],
 	["watchtower", Vector3(-14.0, 0.0, -24.0), 0.03, Color(0.75, 0.75, 0.75, 1.0)],
 	["guard_hut", Vector3(15.0, 0.0, -19.0), 0.03, Color(0.8, 0.8, 0.8, 1.0)],
 	["tower_tall", Vector3(22.0, 0.0, -30.0), 0.035, Color(0.6, 0.6, 0.6, 1.0)],

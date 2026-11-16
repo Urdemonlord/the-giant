@@ -167,19 +167,21 @@ func _build_door() -> void:
 	door.add_child(shape)
 
 func _build_furniture() -> void:
-	# Meja jaga di sisi kiri belakang
-	_box(self, Vector3(1.7, 0.08, 0.8), Vector3(-1.35, FLOOR_Y + 0.72, 1.35), _wood_dark)
-	for sx in [-0.75, 0.75]:
+	# Meja jaga di sisi kiri belakang. v10: lebar 1,7 -> 2,2 (LevelData),
+	# 6 benda di grid 3x2, kaki di ujung (±1,0) supaya tidak goyah.
+	_box(self, Vector3(LevelData.POST_DESK_WIDTH, 0.08, LevelData.POST_DESK_DEPTH), Vector3(LevelData.POST_DESK_POS.x, FLOOR_Y + 0.72, LevelData.POST_DESK_POS.z), _wood_dark)
+	for sx in [-1.0, 1.0]:
 		for sz in [-0.3, 0.3]:
-			_box(self, Vector3(0.08, 0.72, 0.08), Vector3(-1.35 + sx, FLOOR_Y + 0.36, 1.35 + sz), _wood_dark, false)
-	# Kursi
+			_box(self, Vector3(0.08, 0.72, 0.08), Vector3(LevelData.POST_DESK_POS.x + sx, FLOOR_Y + 0.36, LevelData.POST_DESK_POS.z + sz), _wood_dark, false)
+	# Kursi (tetap di tengah meja, x -1,30 sudah pas sejak awal).
 	_box(self, Vector3(0.45, 0.06, 0.45), Vector3(-1.3, FLOOR_Y + 0.45, 0.75), _wood_dark)
 	_box(self, Vector3(0.45, 0.55, 0.06), Vector3(-1.3, FLOOR_Y + 0.75, 0.53), _wood_dark, false)
-	# Peti kayu di sudut kanan
+	# Peti kayu di sudut kanan (sekarang kosong, lentera pindah ke meja v10).
 	_box(self, Vector3(0.7, 0.5, 0.7), Vector3(1.85, FLOOR_Y + 0.25, 1.5), _wood)
 	# Meter getar di atas meja jaga (v9): sensor yang mendeteksi langkah
-	# Giant. Di ujung kanan meja, di samping buku jaga.
+	# Giant. v10: pindah ke tengah baris belakang meja, di antara radio
+	# dan lentera, tidak lagi setengah ketutup buku jaga.
 	var mspr := SpriteRegistry.billboard("meter", 0.45 / 265.0)
 	if mspr != null:
-		mspr.position = Vector3(-0.62, FLOOR_Y + 0.72 + 0.22, 1.35)
+		mspr.position = LevelData.METER_POS
 		add_child(mspr)

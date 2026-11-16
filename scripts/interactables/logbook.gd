@@ -19,7 +19,9 @@ func _build_visual() -> void:
 	add_child(mesh)
 	var shape := CollisionShape3D.new()
 	var col := BoxShape3D.new()
-	col.size = Vector3(0.55, 0.3, 0.6)
+	# v10: kedalaman 0,6 -> 0,5, supaya tidak tumpang dengan hitbox
+	# surat di baris depan (buku di baris belakang, surat di depan).
+	col.size = Vector3(0.55, 0.3, 0.5)
 	shape.shape = col
 	add_child(shape)
 	var spr := SpriteRegistry.billboard("logbook", 0.0018)
