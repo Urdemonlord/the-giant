@@ -221,7 +221,8 @@ func _build() -> void:
 	var sh := load("res://assets/shaders/vhs.gdshader") as Shader
 	var sm := ShaderMaterial.new()
 	sm.shader = sh
-	sm.set_shader_parameter("grain", Balance.VHS_GRAIN)
+	# v18: grain ikut Settings (Options menu) — mati = 0, bukan bawaan.
+	sm.set_shader_parameter("grain", Balance.VHS_GRAIN if Settings.grain_on() else 0.0)
 	sm.set_shader_parameter("scanline", Balance.VHS_SCANLINE)
 	sm.set_shader_parameter("ca", Balance.VHS_CA)
 	sm.set_shader_parameter("desat", Balance.VHS_DESATURATE)
@@ -569,7 +570,10 @@ func _process(delta: float) -> void:
 		var k := 0.0
 		if GameState.sanity < Balance.HEARTBEAT_SANITY_THRESHOLD:
 			k = clampf((Balance.HEARTBEAT_SANITY_THRESHOLD - GameState.sanity) / Balance.HEARTBEAT_SANITY_THRESHOLD, 0.0, 1.0)
-		_fx_mat.set_shader_parameter("grain", lerpf(Balance.VHS_GRAIN, Balance.VHS_GRAIN_LOW_SANITY, k))
+		# v18: grain mati (Settings) = 0 di semua Sanity, bukan cuma awal.
+		var g0 := Balance.VHS_GRAIN if Settings.grain_on() else 0.0
+		var g1 := Balance.VHS_GRAIN_LOW_SANITY if Settings.grain_on() else 0.0
+		_fx_mat.set_shader_parameter("grain", lerpf(g0, g1, k))
 		_fx_mat.set_shader_parameter("desat", lerpf(Balance.VHS_DESATURATE, Balance.VHS_DESAT_LOW_SANITY, k))
 		_fx_mat.set_shader_parameter("vignette", lerpf(Balance.VHS_VIGNETTE, Balance.VHS_VIGNETTE_LOW_SANITY, k))
 	# v14 (polish #8): slow pan selama intro — kamera menyapu pelan

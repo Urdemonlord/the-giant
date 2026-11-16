@@ -348,6 +348,43 @@ scene main. mouselook/playtest/story PASS fails=0, verify_atmosphere 20/20,
 Cara main terbuka (tagline saja, teks bantuan lengkap); ultrawide murni
 belum teruji.
 
+## Menu utama: tema buku jaga, 4 tombol (2026-11-17, v18)
+
+Keluhan Arya: menu tidak ada temanya, generik, masih ada kata slop.
+Menu sekarang ADALAH buku jaga Pos 07: kepala log ("Buku jaga, Pos 07"),
+garis aturan buku di bawah judul, catatan dinas ("Taman Nasional
+Malayunesia. Shift malam 22:00 - 06:00. Jaga pos ini. Jangan biarkan
+mereka kembali." — kalimat yang sudah ada di game, bukan karangan baru).
+Footer blurb v15/v17 ("Sebuah cerita horor psikologis. Giant tidak
+pernah tampil utuh.") DIHAPUS — itu suara toko, bukan suara penjaga.
+Empat tombol persis kata pemilik: Start, Continue, Options, Exit.
+Continue tanpa save: "Continue - no record on file" (disabled); dengan
+save: "Continue - 22:00, Sanity 100" (format lama dipertahankan).
+Exit disembunyikan di web (quit tidak menutup tab browser).
+
+Options (layar baru, "Peralatan pos", bisa di-scroll): 4 slider volume
+per bus (Suara utama/sekitar/efek/radio), slider sensitivitas mouse
+0.5-2.0x, saklar layar penuh + grain film, dan "Cara main" (keycap +
+instruksi, pindah dari menu utama — menu utama tinggal 4 tombol).
+Semua pengaturan benar-benar jalan dan tersimpan di
+`user://settings.json` (`scripts/settings.gd`, pola yang sama dengan
+SaveGame tapi file terpisah supaya Start tidak ikut menghapusnya).
+Perbaikan yang ikut kebawa: titik kembali ducking Ambience di audio.gd
+dulu hardcode 0.0 dan menimpa slider Ambience tiap siaran radio habis —
+sekarang kembali ke volume pilihan pemain.
+
+Terverifikasi lewat rig v21 + screenshot 1280x720 (`v21_menu_no_save`,
+`_pan`, `_options`, `_with_save`): 4 tombol persis, fokus di Start,
+tidak ada label slop di seluruh menu, backdrop + sapuan kamera jalan,
+Options berisi Cara main + keycap, tiap pengaturan diterapkan (Master
+50% = bus -6.02 dB, sens 1.5x, grain off = 0.0) dan bertahan di file
+maupun setelah reload; Exit terhubung ke quit (diuji run terpisah
+`menu_test_exit=1`, proses berhenti, exit 0); menu_autostart=1 masuk
+scene main. mouselook/playtest/story PASS fails=0, 0 script/shader
+error. Batas jujur: isi Options lebih panjang dari layar — tombol
+Kembali ada di bawah lipatan scroll (navigasi keyboard auto-scroll);
+tombol Exit belum diuji klik di web (disembunyikan di sana).
+
 Terverifikasi lewat screenshot Godot 4.3 Xvfb 1280x720, seri v9
 (`~/workspace/godot/shots/v9_*.png`, dilihat satu-satu, 4 ronde ulang
 untuk sudut yang ketutup pohon/dinding/gelap): `v9_desk_meter` (meter di

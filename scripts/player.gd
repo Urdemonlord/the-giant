@@ -78,7 +78,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		apply_look(-event.relative.x * MOUSE_SENS, -event.relative.y * MOUSE_SENS)
+		# v18: sensitivitas = bawaan Balance x pengali pilihan pemain
+		# (Settings, diatur di Options menu utama; default 1.0).
+		var s := MOUSE_SENS * Settings.mouse_sens()
+		apply_look(-event.relative.x * s, -event.relative.y * s)
 	if event.is_action_pressed("flashlight"):
 		toggle_flashlight()
 	if event.is_action_pressed("interact"):

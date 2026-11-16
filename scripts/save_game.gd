@@ -2,7 +2,7 @@ class_name SaveGame
 ## Save/load shift THE GIANT: satu file JSON di user://savegame.json.
 ## Disimpan: jam shift, Sanity, Stability, bahan bakar, generator,
 ## tugas yang sudah selesai, posisi pemain, dan pintu terbuka/tutup.
-## Dipakai menu utama ("Lanjutkan") dan menu pause ("Simpan Shift").
+## Dipakai menu utama ("Continue") dan menu pause ("Simpan Shift").
 ## TIDAK menyimpan: event yang sedang berjalan (pemburu/Giant) — kalau
 ## save dibuat di tengah event, load kembali ke keadaan tenang di jam
 ## yang sama; event akan terpicu ulang kalau jamnya belum lewat.
@@ -54,7 +54,7 @@ static func summary_text() -> String:
 	var d := load_data()
 	if d.is_empty():
 		return ""
-	return "Lanjutkan - %s, Sanity %d" % [GameState.clock_text_for(d.get("shift_minutes", 0.0)), int(d.get("sanity", 100.0))]
+	return "Continue - %s, Sanity %d" % [GameState.clock_text_for(d.get("shift_minutes", 0.0)), int(d.get("sanity", 100.0))]
 
 static func _tasks_done() -> Array:
 	var done: Array = []

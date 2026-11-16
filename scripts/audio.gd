@@ -72,8 +72,12 @@ func _process(delta: float) -> void:
 			if _duck_tween and _duck_tween.is_running():
 				_duck_tween.kill()
 			var from := AudioServer.get_bus_volume_db(_ambience_bus)
+			# v18: titik kembali ducking BUKAN 0.0 lagi, tapi volume
+			# Ambience pilihan pemain (Settings) — dulu hardcode 0.0
+			# menimpa slider Ambience tiap siaran radio habis.
+			var base := Settings.vol_db("Ambience")
 			_duck_tween = create_tween()
-			_duck_tween.tween_method(_set_ambience_db, from, -6.0 if _ducked else 0.0, 0.25)
+			_duck_tween.tween_method(_set_ambience_db, from, base - 6.0 if _ducked else base, 0.25)
 	_update_distant_thud(delta)
 
 func _set_ambience_db(v: float) -> void:
