@@ -100,6 +100,8 @@ func _run() -> void:
 			await _mode_shots12()
 		"shots13":
 			await _mode_shots13()
+		"shots14":
+			await _mode_shots14()
 		"story":
 			await _mode_story()
 		"verify":
@@ -378,6 +380,44 @@ func _mode_shots13() -> void:
 	# 7. Meja jaga: overlay VHS dari dekat, tetap kebaca.
 	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
 	await _shot("desk_vol")
+
+func _mode_shots14() -> void:
+	# v14 (v9): mata + kaki Giant lebih jelas. Tiap shot dicek:
+	# mata harus kebaca sebagai MATA (rongga + kilau), bukan blob
+	# gelap; kaki harus kebaca sebagai TELAPAK (tepi bawah membulat),
+	# bukan kolom kaki. Juga satu shot luar: kaki dari luar pos.
+	GameState.set_generator(true)
+	var giant := get_tree().get_first_node_in_group("giant_event")
+	# 1. Kaki 03:30 dari dalam, lewat jendela belakang.
+	GameState.sanity = 100.0
+	GameState.stability = 100.0
+	GameState.shift_minutes = 329.0
+	await _set_view(Vector3(0, 0.45, 0.2), 180, 0)
+	var ok := await _wait_until(func() -> bool: return giant.active_event == "foot", 6.0)
+	_log("shots14: foot event started: " + str(ok))
+	await _wait_sec(4.0) # kaki di tengah jendela
+	await _shot("foot")
+	# 2. Kaki dari luar: kamera di UTARA pos menghadap selatan, kaki
+	# (z=3,4) ada di antara kamera dan pos. Ronde 1 salah: kamera di
+	# selatan, kaki ketutup pos.
+	await _set_view(Vector3(0, 0.45, 8.0), 0, 2)
+	await _shot("foot_out")
+	await _wait_until(func() -> bool: return giant.active_event == "", 12.0)
+	# 3. Mata 04:45 di kaca jendela.
+	GameState.sanity = 100.0
+	GameState.shift_minutes = 404.0
+	ok = await _wait_until(func() -> bool: return giant.active_event == "eye", 6.0)
+	_log("shots14: eye event started: " + str(ok))
+	await _wait_sec(3.0)
+	await _set_view(Vector3(0, 0.45, 0.2), 180, 0)
+	await _shot("eye")
+	# 4. Mata dari dekat (senter): rongga + kilau harus kebaca.
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(0, 0.45, 1.0), 180, 0)
+	await _shot("eye_close")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
 
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.

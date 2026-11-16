@@ -387,6 +387,59 @@ Tiga permintaan Arya 17:26 WIB, semua dikerjakan dan diverifikasi.
 - Kaki Giant di video samar (sengaja: kabut + tidak pernah utuh);
   kalau mau lebih jelas perlu perubahan di game, bukan re-record.
 
+## v9 (2026-11-16): mata + kaki Giant lebih jelas
+
+Arya: "kenapa matanya atau langkahnya itu elemen gajahku" lalu
+"lebih jelas aja". Keduanya memang dari sheet gajahnya Arya, dan
+keduanya diperjelas di v9.
+
+**Mata (04:45) — dari blob gelap jadi mata yang kebaca sekilas.**
+- Crop ulang: 36x36 px di sheet, rongga TEPAT di tengah dan mengisi
+  ~50% frame (ronde 1: rongga cuma ~35% lebar tekstur, tenggelam di
+  kulit belang). Blotch gelap kedua sengaja di luar crop.
+- Kulit diterangkan (brightness 1,8 + gamma 0,6) + kontras 1,45,
+  supaya rongga gelap kontras dengan kulit di sekitarnya.
+- Catchlight kecil DI bola mata asli (sheet ~(213,97), posisi dicek
+  dengan marker di gambar): inti padat + glow blur halus, bukan
+  cincin (cincin kelihatan seperti target).
+- Di game: ukuran 1,1 -> 1,5 m, sprite unshaded, HDR modulate 2,2x,
+  lampu kilau 0,7 -> 1,5. Perlu HDR karena tonemapper FILMIC proyek
+  + kabut + shader VHS menggelapkan tekstur sampai ~39% (diukur:
+  tekstur mean 103 -> window mean 40 sebelum HDR).
+- Alat: `tools/make_giant_parts.py` (bisa di-run ulang).
+
+**Kaki (03:30) — dari kolom kaki jadi telapak yang kebaca.**
+- Akar masalah: pusat y 2,25 + tinggi 4,5 m -> telapak di y ~0, jauh
+  di bawah ambang jendela (1,30-2,20), yang kelihatan cuma tengah
+  kaki. Sekarang pusat y 2,8 + tinggi 3,4 m -> telapak di y ~1,1-1,9,
+  tepat di band jendela. Kaki terangkat mid-stride (langkah raksasa).
+- Debu baru: kepulan `fog_puff` di tanah di bawah kaki tiap dentum
+  (memudar + mengembang 1,6 dtk). Tint kaki 0,5 -> 0,85.
+- Potongan kaki BARU dari gajah samping sempat dicoba tapi GAGAL
+  (terlalu sempit 1,1 m + terang, hilang di kabut, v14f); tekstur v5
+  (kaki gajah depan, gelap + lebar 1,87 m) dikembalikan karena
+  TERBUKTI kebaca sebagai siluet. Kode potongan gagalnya
+  dinonaktifkan di `tools/make_giant_parts.py` sebagai arsip.
+
+**Pelajaran penting (jangan diulang):** run headless Godot TANPA
+`--import` TIDAK me-reimport tekstur yang filenya berubah (`.ctex`
+di `.godot/imported/` tetap dari 08:40). Ronde 1-3 mata diuji
+berjam-jam dengan tekstur LAMA tanpa sadar; baru ketahuan saat
+`.ctex` dicek dan `--import` dijalankan. Selalu `--import` dulu
+setelah ganti file tekstur sebelum screenshot.
+
+**Verifikasi v9 (mode `shots14`, prefix v14g):** `v14g_foot.png`
+(kaki + telapak di jendela), `v14g_foot_out.png` (kaki dari luar),
+`v14g_eye.png` + `v14g_eye_close.png` (rongga + kilau). Regression:
+mode verify exit 0, mode playtest PASS fails=0, headless 300 frame
+tanpa script error.
+
+**Batas jujur yang tersisa:** mata asli di sheet cuma ~15 px, jadi
+tetap soft kalau dilihat dekat; yang diperbaiki keterbacaannya,
+bukan detailnya. Kuku kaki tidak tajam (sumbernya juga tidak tajam);
+yang kebaca adalah bentuk telapak (melebar + tepi bawah membulat),
+bukan kuku satu-satu.
+
 ## Yang masih placeholder / belum ada
 
 - Model masih berupa kotak + sprite billboard; ini prototipe gameplay, bukan build visual final.

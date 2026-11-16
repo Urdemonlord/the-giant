@@ -107,8 +107,17 @@ const BILLBOARDS: Array = [
 const HUNTER_POS_1 := Vector3(-1.6, 0.0, -11.0)
 const HUNTER_POS_2 := Vector3(1.9, 0.0, -12.5)
 const HUNTER_HEIGHT_M := 1.8
-const GIANT_FOOT_START := Vector3(-3.5, 2.25, 3.4)
+# v9: STAGING diperbaiki, bukan potongan. Dulu pusat y 2,25 + tinggi
+# 4,5 m -> telapak di y ~0, di bawah ambang, yang kelihatan cuma tengah
+# kaki. Sekarang pusat y 2,8 + tinggi 3,4 m -> telapak di y ~1,1-1,9,
+# TEPAT di band jendela (ambang 1,30-2,20, mata pemain 2,07).
+# Potongan kaki BARU dari gajah samping sempat dicoba tapi GAGAL
+# (terlalu sempit + terang, hilang di kabut, v14f); tekstur v5 (kaki
+# gajah depan, 120x218, gelap + lebar 1,87 m) dikembalikan karena
+# TERBUKTI kebaca sebagai siluet di v14. Kaki ini terangkat mid-stride
+# (langkah raksasa), debu + dentum di tanah di bawahnya menjual injakannya.
+const GIANT_FOOT_START := Vector3(-3.5, 2.8, 3.4)
 const GIANT_FOOT_END_X := 3.5
-const GIANT_FOOT_HEIGHT_M := 4.5
+const GIANT_FOOT_HEIGHT_M := 3.4
 const GIANT_EYE_POS := Vector3(0, 1.75, 2.25) # tengah jendela belakang
-const GIANT_EYE_HEIGHT_M := 1.1 # crop mata rapat, 1,1 m sudah memenuhi jendela
+const GIANT_EYE_HEIGHT_M := 1.5 # v9: 1,1 -> 1,5 m, mata memenuhi jendela
