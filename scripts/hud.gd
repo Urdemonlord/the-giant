@@ -1,25 +1,47 @@
 extends CanvasLayer
 ## HUD dibangun dari kode supaya main.tscn tetap ramping.
-## Crosshair titik di tengah, prompt di bawah tengah, SANITY/STABILITY
+## Crosshair titik di tengah, prompt di bawah tengah, Sanity/Stability
 ## di kiri bawah (VBox), jam + tugas di kanan atas, pesan fade di bawah.
 ## Tidak ada panel yang menutupi tengah layar.
+##
+## v15 UI/UX — arah unslop (lima baris, diturunkan dari brief + produk):
+## - Produk: shift malam orang pertama di pos jaga Malayunesia, dilihat
+##   lewat kamera pos yang rusak, 22:00-06:00.
+## - Karakter: tenang, waspada, birokratis.
+## - Dunia: kamera pos rusak + buku log kertas — grain VHS, REC CAM 07,
+##   dokumen ketikan, kertas bergaris, stempel karet.
+## - Momen: cahaya lentera di atas meja; titik REC merah; headline koran
+##   yang diketik.
+## - Signature: stempel "● REC   CAM 07", dipakai di HUD dan menu utama,
+##   tidak di tempat lain.
+## Aturannya: chrome tenang, satu aksen (kuning lentera), hierarki jelas,
+## ritme spasi 4px, sentence case, tanpa emoji, tanpa pil berpendar,
+## tanpa label kapital yang di-track. Semua panel memakai _panel_style(),
+## semua tombol memakai _style_button().
 
 var _prompt_label: Label
 var _message_label: Label
 var _clock_label: Label
-var _tasks_label: Label
+## v15: tugas bukan satu label lagi — satu label per tugas supaya yang
+## sudah selesai bisa diredupkan (warna) sementara yang belum tetap
+## terang. Bentuk [x]/[ ] tetap jadi penanda utama, bukan warna saja.
+var _tasks_box: VBoxContainer
+var _task_labels: Array[Label] = []
 var _sanity_bar: ProgressBar
 var _stability_bar: ProgressBar
 var _doc_panel: PanelContainer
 var _doc_title: Label
 var _doc_body: Label
+var _doc_close_btn: Button
 var _intro_panel: PanelContainer
+var _intro_start_btn: Button
 var _end_panel: PanelContainer
 var _end_title: Label
 var _end_body: Label
+var _end_replay_btn: Button
+var _resume_btn: Button
 var _msg_tween: Tween
 var _rec_label: Label
-var _capture_hint: Label
 var _blink_t := 0.0
 ## v14: material shader VHS disimpan supaya grain/desat/vignette
 ## bisa di-lerp mengikuti Sanity (kamera ikut rusak saat pemainnya).
@@ -85,6 +107,102 @@ func _make_bar() -> ProgressBar:
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(190, 10)
 	return bar
+
+## v15: satu gaya panel untuk semua layar (dokumen, intro, akhir,
+## jeda): gelap hangat, pinggir terang tipis 1px, radius 2 (bukan pil),
+## margin isi 20/16 supaya teks tidak menempel ke pinggir.
+func _panel_style() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.065, 0.055, 0.97)
+	sb.border_color = Color(0.45, 0.42, 0.34)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(2)
+	sb.content_margin_left = 20
+	sb.content_margin_right = 20
+	sb.content_margin_top = 16
+	sb.content_margin_bottom = 16
+	return sb
+
+## v15: satu gaya tombol untuk semua layar. Fokus keyboard/gamepad
+## dapat garis aksen kuning (terlihat beda dari hover), supaya
+## navigasi tanpa mouse tidak buta (game-ui-ux: fokus saat dibuka).
+func _style_button(b: Button) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.14, 0.13, 0.11)
+	normal.border_color = Color(0.45, 0.42, 0.34)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(2)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.2, 0.18, 0.14)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.1, 0.09, 0.08)
+	var focus := StyleBoxFlat.new()
+	focus.draw_center = false
+	focus.border_color = Color(0.95, 0.85, 0.45)
+	focus.set_border_width_all(1)
+	focus.set_corner_radius_all(2)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("focus", focus)
+	b.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
+	b.add_theme_color_override("font_hover_color", Color(0.96, 0.92, 0.8))
+	b.add_theme_color_override("font_disabled_color", Color(0.45, 0.43, 0.38))
+
+## v15: bilah status diwarnai secukupnya (Sanity hijau-abu sakit,
+## Stability kuning lentera). Label di sebelahnya tetap jadi penanda
+## utama, jadi warna cuma penanda kedua (bukan satu-satunya sinyal).
+func _style_bar(bar: ProgressBar, fill: Color) -> void:
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.1, 0.1, 0.09)
+	bg.set_corner_radius_all(2)
+	var fg := StyleBoxFlat.new()
+	fg.bg_color = fill
+	fg.set_corner_radius_all(2)
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fg)
+
+## v15: satu tombol keyboard sebagai keycap kecil (unslop §7):
+## kotak gelap, pinggir tipis, radius 3. Dipakai blok kontrol di
+## intro dan menu jeda — pemain belajar kontrol sekali di sana.
+func _keycap(text: String, size: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.15, 0.12)
+	sb.border_color = Color(0.5, 0.47, 0.4)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(3)
+	sb.content_margin_left = 7
+	sb.content_margin_right = 7
+	sb.content_margin_top = 3
+	sb.content_margin_bottom = 3
+	p.add_theme_stylebox_override("panel", sb)
+	p.add_child(_label(text, size, Color(0.92, 0.88, 0.74)))
+	return p
+
+## v15: blok daftar kontrol (2 baris x 3 pasangan keycap + aksi).
+## Dipakai intro dan menu jeda supaya pemain belajar kontrol sekali
+## di awal, bukan diomeli label tengah layar tiap Alt-Tab.
+func _controls_block(size: int) -> VBoxContainer:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	var rows: Array = [
+		[["WASD", "Jalan"], ["Shift", "Lari"], ["Mouse", "Melihat"]],
+		[["E", "Interaksi"], ["F", "Senter"], ["Esc", "Jeda"]],
+	]
+	for row in rows:
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 18)
+		h.alignment = BoxContainer.ALIGNMENT_CENTER
+		for pair in row:
+			var cell := HBoxContainer.new()
+			cell.add_theme_constant_override("separation", 6)
+			cell.add_child(_keycap(str(pair[0]), size))
+			cell.add_child(_label(str(pair[1]), size, Color(0.75, 0.73, 0.66)))
+			h.add_child(cell)
+		v.add_child(h)
+	return v
 
 func _build() -> void:
 	# --- Lapisan analog horror: satu shader layar penuh (post-process) ---
@@ -208,11 +326,15 @@ void fragment() {
 	stats.offset_bottom = -14
 	stats.add_theme_constant_override("separation", 3)
 	add_child(stats)
-	stats.add_child(_label("SANITY", 13, Color(0.7, 0.68, 0.6)))
+	# v15: sentence case (dulu "SANITY"/"STABILITY" kapital di-track —
+	# template tell). Bilah diwarnai secukupnya, label tetap penanda.
+	stats.add_child(_label("Sanity", 13, Color(0.7, 0.68, 0.6)))
 	_sanity_bar = _make_bar()
+	_style_bar(_sanity_bar, Color(0.6, 0.66, 0.52))
 	stats.add_child(_sanity_bar)
-	stats.add_child(_label("STABILITY", 13, Color(0.7, 0.68, 0.6)))
+	stats.add_child(_label("Stability", 13, Color(0.7, 0.68, 0.6)))
 	_stability_bar = _make_bar()
+	_style_bar(_stability_bar, Color(0.82, 0.66, 0.3))
 	stats.add_child(_stability_bar)
 
 	_clock_label = _label("22:00", 26)
@@ -224,29 +346,29 @@ void fragment() {
 	_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_clock_label)
 
-	_tasks_label = _label("", 14, Color(0.75, 0.73, 0.66))
-	_tasks_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_tasks_label.offset_left = -318
-	_tasks_label.offset_right = -18
-	_tasks_label.offset_top = 50
-	_tasks_label.offset_bottom = 190
-	_tasks_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(_tasks_label)
+	# v15: satu label per tugas (dulu satu label untuk semua baris).
+	# Yang selesai diredupkan, yang belum tetap terang — penanda utama
+	# tetap bentuk [x]/[ ], warna cuma penanda kedua.
+	_tasks_box = VBoxContainer.new()
+	_tasks_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tasks_box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_tasks_box.offset_left = -318
+	_tasks_box.offset_right = -18
+	_tasks_box.offset_top = 50
+	_tasks_box.offset_bottom = 190
+	_tasks_box.add_theme_constant_override("separation", 2)
+	add_child(_tasks_box)
+	for id in GameState.tasks.keys():
+		var tl := _label("", 14, Color(0.85, 0.83, 0.76))
+		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_tasks_box.add_child(tl)
+		_task_labels.append(tl)
 
-	# v13: petunjuk saat game jalan tapi mouse belum terkunci (mis.
-	# habis Alt-Tab di Windows). Sembunyi sendiri begitu mouse
-	# CAPTURED. Dulu tidak ada petunjuk sama sekali: pemain cuma
-	# merasa view-nya kekunci tanpa tahu harus klik dulu.
-	_capture_hint = _label("Klik untuk mengunci mouse", 18, Color(0.95, 0.85, 0.45))
-	_capture_hint.set_anchors_preset(Control.PRESET_CENTER)
-	_capture_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_capture_hint.offset_left = -300
-	_capture_hint.offset_right = 300
-	_capture_hint.offset_top = 44
-	_capture_hint.offset_bottom = 76
-	_capture_hint.visible = false
-	add_child(_capture_hint)
-
+	# v15: petunjuk "Klik untuk mengunci mouse" DIHAPUS. Tugasnya
+	# (memberi tahu pemain) pindah ke blok kontrol di intro + jeda,
+	# dan mouse dikunci otomatis saat jendela kembali fokus
+	# (_notification) + klik di mana saja (player._input). Label
+	# tengah layar yang mengomel tiap Alt-Tab tidak kembali lagi.
 	_build_doc_panel()
 	_build_intro_panel()
 	_build_end_panel()
@@ -260,6 +382,7 @@ func _panel_box(width: int) -> PanelContainer:
 	p.offset_top = -190
 	p.offset_bottom = 190
 	p.visible = false
+	p.add_theme_stylebox_override("panel", _panel_style())
 	add_child(p)
 	return p
 
@@ -274,6 +397,7 @@ func _big_button(text: String) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(0, 48)
 	b.add_theme_font_size_override("font_size", 19)
+	_style_button(b)
 	return b
 
 ## Panel baca dokumen (koran / surat). Game di-pause selama membaca.
@@ -287,9 +411,9 @@ func _build_doc_panel() -> void:
 	_doc_body = _label("", 17)
 	_doc_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_doc_body)
-	var close_btn := _big_button("Tutup (E)")
-	close_btn.pressed.connect(close_document)
-	box.add_child(close_btn)
+	_doc_close_btn = _big_button("Tutup (E)")
+	_doc_close_btn.pressed.connect(close_document)
+	box.add_child(_doc_close_btn)
 
 func show_document(title: String, body: String) -> void:
 	_doc_title.text = title
@@ -298,6 +422,9 @@ func show_document(title: String, body: String) -> void:
 	_doc_open = true
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# v15: fokus ke tombol tutup supaya keyboard/E langsung jalan
+	# tanpa mouse (game-ui-ux: satu kontrol fokus saat layar dibuka).
+	_doc_close_btn.grab_focus()
 
 func close_document() -> void:
 	if not _doc_open:
@@ -313,21 +440,29 @@ func close_document() -> void:
 func _build_intro_panel() -> void:
 	_intro_panel = _panel_box(320)
 	var box := _panel_column(_intro_panel)
-	var title := _label("POS JAGA 07 — 22:00", 22, Color(0.95, 0.9, 0.78))
+	# v15: sentence case (dulu "POS JAGA 07 — 22:00" kapital + em dash
+	# ber-spasi — dua template tell sekaligus). Judulnya nama pos saja;
+	# jam + tempat sudah ada di badan teks.
+	var title := _label("Pos Jaga 07", 24, Color(0.95, 0.9, 0.78))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var body := _label("Taman Nasional Malayunesia. Shift malam: 22:00 sampai 06:00.\n\nTugasmu: jaga lampu tetap menyala, tulis laporan, dan jangan buka pintu untuk yang mengetuk dari arah hutan.\n\nPenjaga sebelumnya pergi tanpa pamit. Di atas meja ada koran dan surat yang tidak ia bawa. Bacalah.", 17)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(body)
-	var start_btn := _big_button("Mulai Shift (E)")
-	start_btn.pressed.connect(close_intro)
-	box.add_child(start_btn)
+	# v15: kontrol diajarkan sekali di sini (pengganti petunjuk tengah
+	# layar yang dihapus): keycap + aksi, bukan satu baris teks padat.
+	box.add_child(_controls_block(15))
+	_intro_start_btn = _big_button("Mulai shift (E)")
+	_intro_start_btn.pressed.connect(close_intro)
+	box.add_child(_intro_start_btn)
 
 func show_intro() -> void:
 	_intro_panel.visible = true
 	_intro_open = true
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# v15: fokus ke tombol mulai (keyboard/gamepad langsung jalan).
+	_intro_start_btn.grab_focus()
 
 func close_intro() -> void:
 	if not _intro_open:
@@ -361,9 +496,9 @@ func _build_end_panel() -> void:
 	var menu_btn := _big_button("Kembali ke Menu")
 	menu_btn.pressed.connect(_on_end_menu_pressed)
 	box.add_child(menu_btn)
-	var replay_btn := _big_button("Main Lagi")
-	replay_btn.pressed.connect(_on_end_replay_pressed)
-	box.add_child(replay_btn)
+	_end_replay_btn = _big_button("Main Lagi")
+	_end_replay_btn.pressed.connect(_on_end_replay_pressed)
+	box.add_child(_end_replay_btn)
 
 func _on_end_menu_pressed() -> void:
 	get_tree().paused = false
@@ -409,40 +544,40 @@ func toggle_pause() -> void:
 	get_tree().paused = _paused
 	_pause_panel.visible = _paused
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if _paused else Input.MOUSE_MODE_CAPTURED
+	# v15: fokus ke Lanjutkan saat menu dibuka (keyboard/gamepad
+	# langsung jalan); saat resume, fokus lepas bersama panel.
+	if _paused:
+		_resume_btn.grab_focus()
 
 func _build_pause_menu() -> void:
 	_pause_panel = PanelContainer.new()
 	_pause_panel.set_anchors_preset(Control.PRESET_CENTER)
 	_pause_panel.offset_left = -190
 	_pause_panel.offset_right = 190
-	_pause_panel.offset_top = -150
-	_pause_panel.offset_bottom = 150
+	_pause_panel.offset_top = -180
+	_pause_panel.offset_bottom = 180
 	_pause_panel.visible = false
+	_pause_panel.add_theme_stylebox_override("panel", _panel_style())
 	add_child(_pause_panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	_pause_panel.add_child(box)
-	var title := _label("JEDA", 32, Color(0.92, 0.88, 0.74))
+	# v15: sentence case (dulu "JEDA" kapital di-track).
+	var title := _label("Jeda", 28, Color(0.92, 0.88, 0.74))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	var resume_btn := Button.new()
-	resume_btn.text = "Lanjutkan"
-	resume_btn.custom_minimum_size = Vector2(0, 48)
-	resume_btn.add_theme_font_size_override("font_size", 19)
-	resume_btn.pressed.connect(toggle_pause)
-	box.add_child(resume_btn)
-	_save_btn = Button.new()
-	_save_btn.text = "Simpan Shift"
-	_save_btn.custom_minimum_size = Vector2(0, 48)
-	_save_btn.add_theme_font_size_override("font_size", 19)
+	_resume_btn = _big_button("Lanjutkan")
+	_resume_btn.pressed.connect(toggle_pause)
+	box.add_child(_resume_btn)
+	_save_btn = _big_button("Simpan Shift")
 	_save_btn.pressed.connect(_on_save_pressed)
 	box.add_child(_save_btn)
-	var quit_btn := Button.new()
-	quit_btn.text = "Keluar ke Menu"
-	quit_btn.custom_minimum_size = Vector2(0, 48)
-	quit_btn.add_theme_font_size_override("font_size", 19)
+	var quit_btn := _big_button("Keluar ke Menu")
 	quit_btn.pressed.connect(_on_quit_pressed)
 	box.add_child(quit_btn)
+	# v15: kontrol diajarkan juga di sini — pemain yang lupa tombol
+	# tidak perlu keluar ke menu untuk melihatnya.
+	box.add_child(_controls_block(14))
 
 func _on_save_pressed() -> void:
 	if SaveGame.save():
@@ -456,6 +591,17 @@ func _on_quit_pressed() -> void:
 	get_tree().paused = false
 	_paused = false
 	get_tree().change_scene_to_file("res://scenes/menu.tscn")
+
+func _notification(what: int) -> void:
+	# v15: jendela kembali fokus (mis. habis Alt-Tab di Windows) —
+	# kunci mouse lagi tanpa perlu klik atau petunjuk. Di desktop ini
+	# langsung jalan; di web, pointer lock butuh gesture jadi
+	# permintaan ini diabaikan browser dan klik pertama tetap
+	# mengunci lewat player._input. Tidak jalan saat panel terbuka
+	# (tombol butuh mouse VISIBLE).
+	if what == NOTIFICATION_WM_WINDOW_FOCUS_IN:
+		if not _paused and not _doc_open and not _intro_open and not _end_open and not get_tree().paused:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _process(delta: float) -> void:
 	# REC berkedip pelan seperti kamera CCTV rusak.
@@ -484,14 +630,7 @@ func _process(delta: float) -> void:
 		if absf(d) > 0.00005:
 			_player.apply_look(d, 0.0)
 			_pan_yaw = target
-	# v13: petunjuk "klik untuk mengunci mouse" muncul hanya saat
-	# game jalan tapi mouse belum CAPTURED (mis. habis Alt-Tab).
-	if _capture_hint != null:
-		var playing := not _paused and not _doc_open and not _intro_open and not _end_open and not get_tree().paused
-		_capture_hint.visible = playing and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
-	# Prompt interaksi disembunyikan selama panel terbuka / pause,
-	# supaya teksnya tidak menimpa panel dokumen (kelihatan di
-	# screenshot v12 doc_newspaper).
+	# v15: tidak ada lagi label petunjuk di _process — dihapus.
 
 func show_message(text: String) -> void:
 	_message_label.text = text
@@ -506,11 +645,20 @@ func _on_clock(_minutes: float) -> void:
 	_clock_label.text = GameState.clock_text()
 
 func _refresh_tasks() -> void:
-	var lines: Array[String] = []
+	# Urutan label sama dengan urutan kunci tasks (insertion order),
+	# jadi indeks ke-i selalu tugas yang sama di _build dan di sini.
+	var i := 0
 	for id in GameState.tasks.keys():
+		if i >= _task_labels.size():
+			break
 		var t: Dictionary = GameState.tasks[id]
-		lines.append(("[x] " if t["done"] else "[ ] ") + str(t["label"]))
-	_tasks_label.text = "\n".join(lines)
+		var done := bool(t["done"])
+		_task_labels[i].text = ("[x] " if done else "[ ] ") + str(t["label"])
+		# Selesai = redup (muted), belum = terang. Bentuk [x]/[ ]
+		# tetap yang membedakan, warna cuma penanda kedua.
+		_task_labels[i].add_theme_color_override("font_color",
+			Color(0.5, 0.48, 0.42) if done else Color(0.85, 0.83, 0.76))
+		i += 1
 
 func _on_shift_ended(success: bool) -> void:
 	var reason := GameState.end_reason
@@ -527,3 +675,5 @@ func _on_shift_ended(success: bool) -> void:
 	_end_open = true
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# v15: fokus ke Main Lagi (aksi utama layar akhir).
+	_end_replay_btn.grab_focus()

@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | shots18 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | shots18 | shots19 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -108,6 +108,8 @@ func _run() -> void:
 			await _mode_shots16()
 		"shots18":
 			await _mode_shots18()
+		"shots19":
+			await _mode_shots19()
 		"story":
 			await _mode_story()
 		"verify":
@@ -563,6 +565,43 @@ func _mode_shots18() -> void:
 		await _frames(2)
 		_log("intro pan: yaw sesudah tutup=" + str(_player.rotation.y) + " (harus ~= sebelum)")
 
+func _mode_shots19() -> void:
+	# v19 (v15 UI/UX): semua layar UI, satu mode, untuk before/after.
+	# 1. Intro: panel + daftar kontrol (pengganti petunjuk tengah layar).
+	var hud := get_tree().get_first_node_in_group("hud")
+	GameState.set_generator(true)
+	GameState.shift_minutes = 120.0
+	if hud != null and hud.has_method("show_intro"):
+		hud.show_intro()
+		await _wait_sec(1.0)
+		await _shot("intro")
+		hud.close_intro()
+		await _frames(5)
+	# 2. HUD saat main (gerbang, tanpa senter): tidak boleh ada lagi
+	# label "Klik untuk mengunci mouse" di tengah layar.
+	await _set_view(Vector3(0, 0.45, -11.0), 0, 0)
+	await _shot("hud_play")
+	# 3. Pause: menu jeda + daftar kontrol.
+	if hud != null and hud.has_method("toggle_pause"):
+		hud.toggle_pause()
+		await _frames(5)
+		await _shot("pause")
+		hud.toggle_pause()
+		await _frames(5)
+	# 4. Dokumen: koran dibuka lewat interaksi sungguhan (seperti story).
+	# Pemain harus dekat meja dulu: raycast tidak sampai dari gerbang.
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	if await _interact_at(Vector3(-1.98, 1.24, 1.14), "Koran"):
+		await _frames(5)
+		await _shot("doc")
+		if hud != null and hud.has_method("close_document"):
+			hud.close_document()
+			await _frames(5)
+	# 5. Subtitle: pesan pembuka shift, ditangkap sebelum fade.
+	GameState.show_message("Jaga pos ini. Jangan biarkan mereka kembali.")
+	await _wait_sec(0.5)
+	await _shot("subtitle")
+
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.
 	# Rig menjalankan main.tscn dengan argumen mode=, jadi intro
@@ -884,20 +923,36 @@ func _mode_mouselook() -> void:
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		fails += 1
 		_log("mouselook: FAIL resume tidak mengembalikan CAPTURED")
-	# 7. Petunjuk: simulasi Alt-Tab (mouse lepas saat main).
+	# 7. Alt-Tab: mouse lepas saat main. v15: petunjuk tengah layar
+	# ("Klik untuk mengunci mouse") SUDAH DIHAPUS — buktinya: tidak
+	# ada lagi label berisi "mengunci mouse" di HUD, dan satu klik di
+	# mana saja mengembalikan CAPTURED + look bergerak.
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await _frames(5)
-	_log("mouselook: Alt-Tab simulasi, hint terlihat=" + str(hud._capture_hint.visible) + " (harus true)")
-	if not hud._capture_hint.visible:
+	await _shot("alt_tab")
+	var nag_found := false
+	for l in hud.find_children("*", "Label", true, false):
+		var lab := l as Label
+		if lab != null and "mengunci mouse" in lab.text:
+			nag_found = true
+	_log("mouselook: Alt-Tab simulasi, label nag ada=" + str(nag_found) + " (harus false)")
+	if nag_found:
 		fails += 1
-		_log("mouselook: FAIL petunjuk tidak muncul saat mouse lepas")
-	await _shot("hint")
+		_log("mouselook: FAIL petunjuk mengunci mouse masih ada")
+	yaw0 = _player.rotation.y
 	await _click_at(Vector2(640, 360))
 	await _frames(5)
-	_log("mouselook: SETELAH klik dari hint: mouse_mode=" + str(Input.mouse_mode) + " hint terlihat=" + str(hud._capture_hint.visible) + " (harus 2/false)")
-	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or hud._capture_hint.visible:
+	_log("mouselook: SETELAH klik dari Alt-Tab: mouse_mode=" + str(Input.mouse_mode) + " (harus 2)")
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		fails += 1
-		_log("mouselook: FAIL klik dari hint tidak mengunci mouse / menyembunyikan hint")
+		_log("mouselook: FAIL klik setelah Alt-Tab tidak mengunci mouse")
+	await _motion(Vector2(120, 0))
+	await _frames(5)
+	yaw1 = _player.rotation.y
+	_log("mouselook: look setelah klik Alt-Tab: delta yaw=" + str(yaw1 - yaw0) + " (harus != 0)")
+	if is_equal_approx(yaw1, yaw0):
+		fails += 1
+		_log("mouselook: FAIL look tidak bergerak setelah klik dari Alt-Tab")
 	_log("mouselook: HASIL fails=" + str(fails) + " -> " + ("PASS" if fails == 0 else "FAIL"))
 
 func _click_at(pos: Vector2) -> void:
