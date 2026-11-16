@@ -15,15 +15,15 @@
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
-background_color = Color(0.02, 0.024, 0.032, 1)
+background_color = Color(0.045, 0.06, 0.05, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.34, 0.32, 0.27, 1)
 ambient_light_energy = 0.65
 fog_enabled = true
-fog_light_color = Color(0.16, 0.18, 0.19, 1)
-fog_light_energy = 0.85
-fog_density = 0.032
-fog_sky_affect = 0.25
+fog_light_color = Color(0.23, 0.27, 0.22, 1)
+fog_light_energy = 1.0
+fog_density = 0.06
+fog_sky_affect = 0.85
 tonemap_mode = 2
 
 [sub_resource type="CapsuleShape3D" id="Capsule_1"]

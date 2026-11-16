@@ -14,6 +14,7 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	_rng.seed = LevelData.FOREST_SEED
 	print("[Main] scene main siap, jam=" + GameState.clock_text())
+	_apply_fog()
 	_apply_level_positions()
 	_apply_resume()
 	if not has_node("Ground"):
@@ -26,6 +27,22 @@ func _ready() -> void:
 	timer.timeout.connect(func() -> void:
 		if not GameState.is_task_done("generator"):
 			GameState.show_message("Generator di samping pos. Nyalakan sebelum gelap makan pos ini."))
+
+## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
+## .tscn menyimpan default yang sama supaya scene tetap benar walau
+## _ready tidak jalan (mis. dibuka di editor).
+func _apply_fog() -> void:
+	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if env_node == null or env_node.environment == null:
+		push_error("[Main] WorldEnvironment tidak ketemu, fog tidak diterapkan")
+		return
+	var env := env_node.environment
+	env.fog_enabled = true
+	env.fog_density = Balance.FOG_DENSITY
+	env.fog_light_color = Balance.FOG_LIGHT_COLOR
+	env.fog_light_energy = Balance.FOG_LIGHT_ENERGY
+	env.fog_sky_affect = Balance.FOG_SKY_AFFECT
+	env.background_color = Color(0.045, 0.06, 0.05, 1) # langit = kabut gelap
 
 func _process(delta: float) -> void:
 	if GameState.shift_over:
@@ -207,11 +224,25 @@ func _build_forest() -> void:
 	# Billboard statis dari tabel LevelData.
 	for entry in LevelData.BILLBOARDS:
 		_billboard(forest, String(entry[0]), entry[1], float(entry[2]), entry[3])
-	# Gumpalan kabut rendah di antara pohon.
-	for i in range(10):
+	# Gumpalan kabut di antara pohon (36x, abu kehijauan sakit, bukan putih).
+	# Koridor jalan gerbang->pos (|x|<3.5, z -16..2) dikosongkan supaya
+	# tidak ada gumpalan yang menempel di depan kamera dan menelan pos.
+	for i in range(Balance.FOG_PUFF_COUNT):
 		var a := _rng.randf_range(0.0, TAU)
 		var r := _rng.randf_range(9.0, 26.0)
-		_billboard(forest, "fog_puff", Vector3(cos(a) * r, _rng.randf_range(0.4, 1.2), sin(a) * r), _rng.randf_range(0.012, 0.02), Color(0.75, 0.8, 0.85, 0.32))
+		var fp := Vector3(cos(a) * r, 0, sin(a) * r)
+		if absf(fp.x) < 3.5 and fp.z > -16.0 and fp.z < 2.0:
+			continue
+		_billboard(forest, "fog_puff", Vector3(fp.x, _rng.randf_range(0.4, 1.4), fp.z), _rng.randf_range(0.015, 0.024), Color(0.62, 0.68, 0.58, Balance.FOG_PUFF_ALPHA))
+	# Ground fog: lapisan kabut rendah merayap di permukaan tanah,
+	# rapat di sekitar pos + jalan + gerbang, supaya tanah tidak bersih.
+	for i in range(Balance.GROUND_FOG_COUNT):
+		var ga := _rng.randf_range(0.0, TAU)
+		var gr := _rng.randf_range(6.0, 13.0)
+		var gp := Vector3(cos(ga) * gr, 0, sin(ga) * gr)
+		if absf(gp.x) < 3.5 and gp.z > -16.0 and gp.z < 2.0:
+			continue
+		_billboard(forest, "fog_puff", Vector3(gp.x, _rng.randf_range(0.15, 0.45), gp.z), _rng.randf_range(0.018, 0.026), Color(0.62, 0.68, 0.58, Balance.GROUND_FOG_ALPHA))
 
 # Billboard statis dari sprite sheet: posisi y = 0 (alas di tanah),
 # sprite diangkat setengah tinggi gambarnya supaya alasnya menapak.

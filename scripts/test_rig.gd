@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | verify | win | lose | audio | touch | pause | save | playtest
+## Mode: shots | shots11 | verify | win | lose | audio | touch | pause | save | playtest
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -94,6 +94,8 @@ func _run() -> void:
 			await _mode_shots9d()
 		"shots9e":
 			await _mode_shots9e()
+		"shots11":
+			await _mode_shots11()
 		"verify":
 			await _mode_verify()
 		"win":
@@ -270,6 +272,44 @@ func _mode_shots9e() -> void:
 	await _shot("crate_tall2")
 	_player.flashlight_on = false
 	_player.flashlight.visible = false
+
+func _mode_shots11() -> void:
+	# v11: kabut + grafik creepy. Tiap shot dicek: hutan jauh harus
+	# tertelan kabut, ground fog kelihatan, grain/scanline/CA/vignette
+	# terasa tapi HUD + prompt tetap kebaca.
+	GameState.set_generator(true)
+	# 1. Dari dalam pos, menghadap jendela belakang (hutan utara).
+	await _set_view(Vector3(0, 0.45, 1.3), 180, 0)
+	await _shot("window_fog")
+	# 2. Eksterior: dari jalan di depan pos, menghadap pos + hutan.
+	await _set_view(Vector3(0, 0.45, -8.0), 180, 2)
+	await _shot("outside_fog")
+	# 3. Dari hutan, menghadap pos dari utara (kabut di antara pohon).
+	await _set_view(Vector3(0, 0.45, -19.0), 180, 2)
+	await _shot("forest_fog")
+	# 4. Gerbang + jalan (ground fog di permukaan tanah).
+	await _set_view(Vector3(0, 0.45, -11.0), 0, 0)
+	await _shot("gate_fog")
+	# 5. Meja jaga: overlay creepy dari dekat (grain/scanline/vignette).
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	await _shot("desk_creepy")
+	# 6. Pintu dari dalam, senter menyala (CA + grain di cahaya).
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(0, 0.45, 1.3), 0, 0)
+	await _shot("door_creepy")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 7. Event mata Giant 04:45 (mata di kabut + overlay).
+	GameState.sanity = 100.0
+	GameState.shift_minutes = 404.0
+	var giant := get_tree().get_first_node_in_group("giant_event")
+	var ok := await _wait_until(func() -> bool: return giant.active_event == "eye", 6.0)
+	_log("eye event started: " + str(ok))
+	await _wait_sec(3.0)
+	# Jendela ada di belakang pos (arah +z): hadap ke sana, bukan ke pintu.
+	await _set_view(Vector3(0, 0.45, 0.2), 180, 0)
+	await _shot("eye_fog")
 
 func _mode_verify() -> void:
 	# Audit registry sprite + daftar semua Sprite3D di scene.

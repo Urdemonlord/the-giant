@@ -56,41 +56,74 @@ func _make_bar() -> ProgressBar:
 	return bar
 
 func _build() -> void:
-	# --- Lapisan analog horror: rekaman kamera pos yang rusak ---
-	# Vignette (tepi gelap) dari tekstur gradien radial prosedural.
-	var vig := TextureRect.new()
-	vig.texture = _vignette_texture()
-	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vig.stretch_mode = TextureRect.STRETCH_SCALE
-	add_child(vig)
-	# Scanlines: pola garis gelap tipis, diulang vertikal.
-	var scan := TextureRect.new()
-	scan.texture = _scanline_texture()
-	scan.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scan.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	scan.stretch_mode = TextureRect.STRETCH_TILE
-	scan.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	scan.modulate.a = 0.5
-	add_child(scan)
-	# Grain VHS: shader noise yang bergerak mengikuti TIME.
-	var grain := ColorRect.new()
-	grain.set_anchors_preset(Control.PRESET_FULL_RECT)
-	grain.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# --- Lapisan analog horror: satu shader layar penuh (post-process) ---
+	# Mengambil SCREEN_TEXTURE lalu: tracking tear, chromatic aberration,
+	# desaturasi ke hijau-abu sakit, scanlines, grain, vignette, flicker.
+	# Rect ini ditambah PALING AWAL, jadi label HUD di atasnya tidak
+	# ikut rusak dan tetap kebaca. v5 cuma punya grain 0.055 + scanline
+	# samar, tanpa tear / CA / desaturasi / flicker.
+	var fx := ColorRect.new()
+	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fx.color = Color(1, 1, 1, 1)
 	var sh := Shader.new()
 	sh.code = """
 shader_type canvas_item;
-uniform float strength : hint_range(0.0, 1.0) = 0.055;
+uniform sampler2D screen_texture : hint_screen_texture;
+uniform float grain : hint_range(0.0, 1.0) = 0.13;
+uniform float scanline : hint_range(0.0, 1.0) = 0.10;
+uniform float ca : hint_range(0.0, 0.01) = 0.0016;
+uniform float desat : hint_range(0.0, 1.0) = 0.45;
+uniform float vignette : hint_range(0.0, 1.0) = 0.38;
+uniform float flicker : hint_range(0.0, 0.2) = 0.04;
+uniform float tear_shift : hint_range(0.0, 0.1) = 0.02;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void fragment() {
-	float n = hash(UV * vec2(1280.0, 720.0) + vec2(TIME * 60.0, -TIME * 47.0));
-	COLOR = vec4(vec3(n), strength);
+	vec2 uv = SCREEN_UV;
+	// Tracking tear: di ~70% jendela 4 detik, sebuah pita horizontal
+	// bergeser selama 0.16 detik, lalu kembali normal.
+	float cycle = floor(TIME / 4.0);
+	float phase = fract(TIME / 4.0);
+	float tear_on = step(hash(vec2(cycle, 7.0)), 0.7) * step(phase, 0.04);
+	float band_y = hash(vec2(cycle, 13.0));
+	float band = step(abs(uv.y - band_y), 0.03) * tear_on;
+	uv.x += band * tear_shift * (hash(vec2(cycle, 3.0)) - 0.5) * 2.0;
+	// Chromatic aberration, makin kuat ke tepi layar.
+	float edge = length(uv - 0.5) * 2.0;
+	vec2 off = vec2(ca * (0.5 + edge), 0.0);
+	vec3 col;
+	col.r = texture(screen_texture, uv + off).r;
+	col.g = texture(screen_texture, uv).g;
+	col.b = texture(screen_texture, uv - off).b;
+	// Desaturasi ke hijau-abu sakit (palet moodboard).
+	float lum = dot(col, vec3(0.299, 0.587, 0.114));
+	vec3 sick = vec3(lum) * vec3(0.92, 1.0, 0.88);
+	col = mix(col, sick, desat);
+	// Scanlines.
+	col *= 1.0 - scanline * (0.5 + 0.5 * sin(uv.y * 2262.0));
+	// Grain VHS bergerak.
+	float n = hash(uv * vec2(1280.0, 720.0) + vec2(TIME * 60.0, -TIME * 47.0));
+	col += (n - 0.5) * grain;
+	// Vignette.
+	float d = length(uv - 0.5) * 2.0;
+	col *= 1.0 - vignette * smoothstep(0.6, 1.4, d);
+	// Flicker: napas halus + sesekali redup mendadak.
+	float dip = step(0.94, hash(vec2(floor(TIME * 3.0), 5.0))) * 0.08;
+	col *= 1.0 - dip + flicker * sin(TIME * 13.0) * 0.5;
+	COLOR = vec4(col, 1.0);
 }
 """
 	var sm := ShaderMaterial.new()
 	sm.shader = sh
-	grain.material = sm
-	add_child(grain)
+	sm.set_shader_parameter("grain", Balance.VHS_GRAIN)
+	sm.set_shader_parameter("scanline", Balance.VHS_SCANLINE)
+	sm.set_shader_parameter("ca", Balance.VHS_CA)
+	sm.set_shader_parameter("desat", Balance.VHS_DESATURATE)
+	sm.set_shader_parameter("vignette", Balance.VHS_VIGNETTE)
+	sm.set_shader_parameter("flicker", Balance.VHS_FLICKER)
+	sm.set_shader_parameter("tear_shift", Balance.VHS_TEAR_SHIFT)
+	fx.material = sm
+	add_child(fx)
 	# REC + label kamera, kiri atas (berkedip).
 	_rec_label = _label("● REC   CAM 07", 16, Color(0.85, 0.25, 0.15))
 	_rec_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -236,26 +269,6 @@ func _process(delta: float) -> void:
 	_blink_t += delta
 	if _rec_label:
 		_rec_label.modulate.a = 0.55 + 0.45 * sin(_blink_t * 2.4)
-
-func _vignette_texture() -> Texture2D:
-	var size := 256
-	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	for y in range(size):
-		for x in range(size):
-			var dx := (float(x) / float(size - 1) - 0.5) * 2.0
-			var dy := (float(y) / float(size - 1) - 0.5) * 2.0
-			var d := clampf(sqrt(dx * dx + dy * dy), 0.0, 1.0)
-			var a := clampf((d - 0.55) * 1.1, 0.0, 0.55)
-			img.set_pixel(x, y, Color(0, 0, 0, a))
-	return ImageTexture.create_from_image(img)
-
-func _scanline_texture() -> Texture2D:
-	var img := Image.create(1, 4, false, Image.FORMAT_RGBA8)
-	img.set_pixel(0, 0, Color(0, 0, 0, 0))
-	img.set_pixel(0, 1, Color(0, 0, 0, 0))
-	img.set_pixel(0, 2, Color(0, 0, 0, 0))
-	img.set_pixel(0, 3, Color(0, 0, 0, 0.22))
-	return ImageTexture.create_from_image(img)
 
 func show_message(text: String) -> void:
 	_message_label.text = text

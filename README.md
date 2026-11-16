@@ -206,6 +206,61 @@ event 01:30; sudah terbukti visual di `v9_hunter2`). Jalur menang
 scripted masih lolos setelah perubahan ini (Sanity 84), headless 300
 frame tanpa script error (hanya warning dummy-renderer yang dikenal).
 
+## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
+
+Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya
+diperbaiki dan diverifikasi screenshot seri v11
+(`~/workspace/godot/shots/v11_*.png`, Godot 4.3 Xvfb 1280x720).
+
+### Kabut (lama -> baru)
+- `fog_density` 0.032 -> **0.06** (eksponensial: 10 m -> 0.55, 20 m ->
+  0.30, 30 m -> 0.17). Pos + jalan dekat kebaca, pohon dekat jadi siluet
+  gelap, cincin hutan 19-34 m tertelan kabut.
+- `fog_light_color` gelap -> **abu kehijauan sakit** (0.23, 0.27, 0.22),
+  sesuai palet moodboard, bukan putih bersih. `fog_sky_affect` 0.25 ->
+  0.85: langit ikut berkabut, bukan hitam pekat polos.
+- Fog puff 10 -> **36** (alpha 0.32 -> 0.42), ditambah **ground fog 18**
+  lapisan kabut rendah merayap di permukaan tanah (alpha 0.45).
+- **Percobaan pertama kebablasan** (density 0.085, alpha 0.55/0.6):
+  jendela jadi dinding kabut polos, pos ketutup gumpalan dari jarak 8 m.
+  Diturunkan + koridor jalan gerbang->pos (|x|<3.5, z -16..2)
+  dikosongkan dari gumpalan supaya pos tidak pernah ketutup dari jalan.
+- Semua angka kabut di `Balance` (FOG_DENSITY, FOG_PUFF_COUNT,
+  FOG_PUFF_ALPHA, GROUND_FOG_COUNT, GROUND_FOG_ALPHA); `main.gd`
+  `_apply_fog()` menerapkannya ke WorldEnvironment saat `_ready`.
+  `.tscn` menyimpan default yang sama.
+
+### Grafik creepy (lama -> baru)
+- v5: grain 0.055 + scanline samar, tanpa tear / CA / desaturasi.
+- v6: **satu shader layar penuh** (`hud.gd`, ColorRect + `screen_texture`
+  `hint_screen_texture`) yang mengambil gambar 3D lalu: tracking tear
+  (pita horizontal bergeser ~0.16 detik di ~70% jendela 4 detik),
+  chromatic aberration ringan di tepi, desaturasi 45% ke hijau-abu sakit,
+  scanlines, grain 0.13, vignette, flicker cahaya + redup mendadak.
+  Rect ditambah paling awal di HUD, jadi label/prompt/bar tetap kebaca
+  dan tidak ikut rusak.
+- Catatan teknis: Godot 4.3 menghapus `SCREEN_TEXTURE` bawaan; shader
+  harus pakai `uniform sampler2D screen_texture : hint_screen_texture`.
+  Kesalahan pertama ketahuan dari `SHADER ERROR` di log, bukan dari
+  screenshot (screenshot pertama 36 KB, hampir kosong).
+- Semua angka overlay di `Balance` (VHS_GRAIN, VHS_SCANLINE, VHS_CA,
+  VHS_DESATURATE, VHS_VIGNETTE, VHS_FLICKER, VHS_TEAR_SECONDS,
+  VHS_TEAR_SHIFT).
+- Test rig mode baru: `shots11` (jendela, eksterior, hutan, gerbang,
+  meja, pintu + senter, event mata) — `mode=shots11 prefix=v11`.
+- Regresi v6: `mode=verify` bersih (registry 42 nama, 0 hilang),
+  `mode=win` lolos (Sanity 84), tidak ada script error.
+
+### Masih belum sempurna (jujur)
+- Kabut adalah fog eksponensial + billboard statis, bukan kabut volumetrik
+  yang bergerak; gumpalan tidak berpindah, hanya fog density yang konstan.
+- Tracking tear muncul sesekali (bukan di tiap screenshot); di shot yang
+  dicek, tear tertangkap sebagai garis gelap di eksterior, bukan selalu.
+- Langit masih gelap (bukan bintang/bulan kelihatan); kabut menutupi,
+  tapi bukan langit berawan yang digambar.
+- Semua screenshot dari llvmpipe (software rendering); di GPU asli
+  warna/cahaya bisa sedikit berbeda.
+
 ## Yang masih placeholder / belum ada
 
 - Model masih berupa kotak + sprite billboard; ini prototipe gameplay, bukan build visual final.
