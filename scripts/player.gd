@@ -49,6 +49,18 @@ func toggle_flashlight() -> void:
 	flashlight_on = not flashlight_on
 	flashlight.visible = flashlight_on
 
+func _input(event: InputEvent) -> void:
+	# v13: tangkap mouse DI SINI, bukan cuma di _unhandled_input.
+	# Klik yang dimakan GUI (dot crosshair / label HUD di tengah
+	# layar) tidak pernah sampai ke _unhandled_input, jadi dulu
+	# pemain harus klik area kosong dulu sebelum look jalan — dan
+	# tanpa petunjuk apa pun. Saat tree di-pause (intro/dokumen/
+	# jeda), _input pemain tidak jalan (pausable), jadi klik tombol
+	# di panel tidak ikut menangkap mouse.
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:

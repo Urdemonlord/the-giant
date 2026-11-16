@@ -19,6 +19,7 @@ var _end_title: Label
 var _end_body: Label
 var _msg_tween: Tween
 var _rec_label: Label
+var _capture_hint: Label
 var _blink_t := 0.0
 var _pause_panel: PanelContainer
 var _save_btn: Button
@@ -51,6 +52,12 @@ func _ready() -> void:
 
 func _label(text: String, size: int, color := Color(0.85, 0.83, 0.76)) -> Label:
 	var l := Label.new()
+	# v13: label TIDAK BOLEH memakan klik/gerak mouse. Dulu semua label
+	# default STOP, jadi klik di tengah layar + gerak mouse di atas
+	# dot crosshair tidak pernah sampai ke player (mouse look kekunci
+	# bahkan saat mouse sudah CAPTURED, karena kursor selalu di-warp
+	# ke tengah layar, tepat di atas dot).
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
@@ -61,6 +68,7 @@ func _label(text: String, size: int, color := Color(0.85, 0.83, 0.76)) -> Label:
 
 func _make_bar() -> ProgressBar:
 	var bar := ProgressBar.new()
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE # v13: jangan makan klik
 	bar.min_value = 0
 	bar.max_value = 100
 	bar.value = 100
@@ -148,6 +156,9 @@ void fragment() {
 
 	var dot := ColorRect.new()
 	dot.color = Color(0.9, 0.9, 0.85, 0.85)
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE # v13: dot di tengah
+	# layar TIDAK BOLEH memakan gerak mouse (dulu STOP: tiap motion
+	# event mendarat di atas dot dan tidak sampai ke player).
 	dot.custom_minimum_size = Vector2(4, 4)
 	dot.set_anchors_preset(Control.PRESET_CENTER)
 	dot.position = Vector2(-2, -2)
@@ -175,6 +186,7 @@ void fragment() {
 	add_child(_message_label)
 
 	var stats := VBoxContainer.new()
+	stats.mouse_filter = Control.MOUSE_FILTER_IGNORE # v13
 	stats.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	stats.offset_left = 18
 	stats.offset_right = 226
@@ -206,6 +218,20 @@ void fragment() {
 	_tasks_label.offset_bottom = 190
 	_tasks_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_tasks_label)
+
+	# v13: petunjuk saat game jalan tapi mouse belum terkunci (mis.
+	# habis Alt-Tab di Windows). Sembunyi sendiri begitu mouse
+	# CAPTURED. Dulu tidak ada petunjuk sama sekali: pemain cuma
+	# merasa view-nya kekunci tanpa tahu harus klik dulu.
+	_capture_hint = _label("Klik untuk mengunci mouse", 18, Color(0.95, 0.85, 0.45))
+	_capture_hint.set_anchors_preset(Control.PRESET_CENTER)
+	_capture_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_capture_hint.offset_left = -300
+	_capture_hint.offset_right = 300
+	_capture_hint.offset_top = 44
+	_capture_hint.offset_bottom = 76
+	_capture_hint.visible = false
+	add_child(_capture_hint)
 
 	_build_doc_panel()
 	_build_intro_panel()
@@ -265,6 +291,9 @@ func close_document() -> void:
 	_doc_panel.visible = false
 	_doc_open = false
 	get_tree().paused = false
+	# v13: dulu mouse tetap VISIBLE setelah dokumen ditutup, jadi
+	# pemain harus klik dulu (tanpa petunjuk) sebelum look jalan.
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 ## Intro shift (brief v7): 3 baris, bisa di-skip dengan E / tombol.
 func _build_intro_panel() -> void:
@@ -292,6 +321,10 @@ func close_intro() -> void:
 	_intro_panel.visible = false
 	_intro_open = false
 	get_tree().paused = false
+	# v13: dulu mouse tetap VISIBLE setelah intro ditutup. Ini akar
+	# bug "view kekunci" di Windows: pemain baru tidak tahu harus
+	# klik dulu, dan klik di tengah layar dimakan dot crosshair.
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 ## Layar akhir beneran (brief v7): judul + payoff cerita + satu
 ## kalimat faktual + tombol kembali ke menu / main lagi. Menggantikan
@@ -410,6 +443,11 @@ func _process(delta: float) -> void:
 	_blink_t += delta
 	if _rec_label:
 		_rec_label.modulate.a = 0.55 + 0.45 * sin(_blink_t * 2.4)
+	# v13: petunjuk "klik untuk mengunci mouse" muncul hanya saat
+	# game jalan tapi mouse belum CAPTURED (mis. habis Alt-Tab).
+	if _capture_hint != null:
+		var playing := not _paused and not _doc_open and not _intro_open and not _end_open and not get_tree().paused
+		_capture_hint.visible = playing and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
 	# Prompt interaksi disembunyikan selama panel terbuka / pause,
 	# supaya teksnya tidak menimpa panel dokumen (kelihatan di
 	# screenshot v12 doc_newspaper).

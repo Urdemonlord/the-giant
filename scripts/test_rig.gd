@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | verify | win | lose | audio | touch | pause | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -120,6 +120,8 @@ func _run() -> void:
 			await _mode_touch()
 		"pause":
 			await _mode_pause()
+		"mouselook":
+			await _mode_mouselook()
 		"save":
 			await _mode_save()
 		"playtest":
@@ -751,6 +753,111 @@ func _mode_touch() -> void:
 	_player.toggle_flashlight()
 	_log("touch: tombol senter toggle " + str(before) + " -> " + str(_player.flashlight_on))
 	await _shot("touch_flashlight")
+
+func _mode_mouselook() -> void:
+	# Reproduksi bug v12: setelah intro ditutup, mouse look terasa
+	# kekunci. Alur sungguhan: main.tscn memanggil hud.show_intro(),
+	# tapi rig melewati intro (_is_rig_run), jadi rig memanggilnya
+	# langsung. Lalu: tutup intro seperti tombol "Mulai Shift",
+	# klik di tengah layar (tempat crosshair), gerakkan mouse, cek yaw.
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud == null:
+		_log("mouselook: HUD tidak ditemukan (FAIL)")
+		return
+	var fails := 0
+	_log("mouselook: mouse_mode awal=" + str(Input.mouse_mode) + " (0=VISIBLE 2=CAPTURED)")
+	# 1. Intro seperti di permainan sungguhan.
+	hud.show_intro()
+	await _frames(5)
+	_log("mouselook: intro buka=" + str(hud._intro_open) + " paused=" + str(get_tree().paused) + " mouse_mode=" + str(Input.mouse_mode) + " (harus VISIBLE=0)")
+	# 2. Tutup intro lewat tombol (bukan E).
+	hud.close_intro()
+	await _frames(5)
+	_log("mouselook: SETELAH tutup intro: intro buka=" + str(hud._intro_open) + " paused=" + str(get_tree().paused) + " mouse_mode=" + str(Input.mouse_mode) + " (harus CAPTURED=2)")
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		fails += 1
+		_log("mouselook: FAIL tutup intro tidak mengembalikan CAPTURED")
+	# 3. Klik di tengah layar (tempat crosshair dot) lalu gerakkan mouse.
+	var yaw0: float = _player.rotation.y
+	await _click_at(Vector2(640, 360))
+	await _frames(5)
+	_log("mouselook: SETELAH klik tengah: mouse_mode=" + str(Input.mouse_mode))
+	await _motion(Vector2(120, 0))
+	await _frames(5)
+	var yaw1: float = _player.rotation.y
+	_log("mouselook: yaw sebelum gerak=" + str(yaw0) + " sesudah=" + str(yaw1) + " delta=" + str(yaw1 - yaw0) + " (harus != 0)")
+	if is_equal_approx(yaw1, yaw0):
+		fails += 1
+		_log("mouselook: FAIL mouse look tidak bergerak setelah klik tengah (KEKUNCI)")
+	# 4. Klik di area kosong (tengah-atas, jauh dari semua label HUD).
+	await _click_at(Vector2(640, 200))
+	await _frames(5)
+	_log("mouselook: SETELAH klik area kosong: mouse_mode=" + str(Input.mouse_mode))
+	yaw0 = _player.rotation.y
+	await _motion_at(Vector2(120, 0), Vector2(100, 500))
+	await _frames(5)
+	yaw1 = _player.rotation.y
+	_log("mouselook: klik kosong lalu gerak di (100,500) jauh dari dot: delta yaw=" + str(yaw1 - yaw0))
+	if is_equal_approx(yaw1, yaw0):
+		fails += 1
+		_log("mouselook: FAIL mouse look tidak bergerak bahkan setelah klik area kosong")
+	# 5. Dokumen: buka koran, tutup lewat E, cek mouse_mode.
+	hud.show_document("KORAN", "Isi koran.")
+	await _frames(5)
+	_log("mouselook: dokumen buka=" + str(hud._doc_open) + " mouse_mode=" + str(Input.mouse_mode))
+	hud.close_document()
+	await _frames(5)
+	_log("mouselook: SETELAH tutup dokumen: mouse_mode=" + str(Input.mouse_mode) + " (harus CAPTURED=2)")
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		fails += 1
+		_log("mouselook: FAIL tutup dokumen tidak mengembalikan CAPTURED")
+	# 6. Pause/resume (jalur yang sudah benar di v12, regresi check).
+	hud.toggle_pause()
+	await _frames(5)
+	_log("mouselook: pause mouse_mode=" + str(Input.mouse_mode) + " (harus VISIBLE=0)")
+	hud.toggle_pause()
+	await _frames(5)
+	_log("mouselook: resume mouse_mode=" + str(Input.mouse_mode) + " (harus CAPTURED=2)")
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		fails += 1
+		_log("mouselook: FAIL resume tidak mengembalikan CAPTURED")
+	# 7. Petunjuk: simulasi Alt-Tab (mouse lepas saat main).
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	await _frames(5)
+	_log("mouselook: Alt-Tab simulasi, hint terlihat=" + str(hud._capture_hint.visible) + " (harus true)")
+	if not hud._capture_hint.visible:
+		fails += 1
+		_log("mouselook: FAIL petunjuk tidak muncul saat mouse lepas")
+	await _shot("hint")
+	await _click_at(Vector2(640, 360))
+	await _frames(5)
+	_log("mouselook: SETELAH klik dari hint: mouse_mode=" + str(Input.mouse_mode) + " hint terlihat=" + str(hud._capture_hint.visible) + " (harus 2/false)")
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or hud._capture_hint.visible:
+		fails += 1
+		_log("mouselook: FAIL klik dari hint tidak mengunci mouse / menyembunyikan hint")
+	_log("mouselook: HASIL fails=" + str(fails) + " -> " + ("PASS" if fails == 0 else "FAIL"))
+
+func _click_at(pos: Vector2) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.position = pos
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await _frames(2)
+	var ev2 := InputEventMouseButton.new()
+	ev2.button_index = MOUSE_BUTTON_LEFT
+	ev2.position = pos
+	ev2.pressed = false
+	Input.parse_input_event(ev2)
+
+func _motion(rel: Vector2) -> void:
+	_motion_at(rel, Vector2(640, 360))
+
+func _motion_at(rel: Vector2, pos: Vector2) -> void:
+	var ev := InputEventMouseMotion.new()
+	ev.relative = rel
+	ev.position = pos
+	Input.parse_input_event(ev)
 
 func _mode_pause() -> void:
 	var hud := get_tree().get_first_node_in_group("hud")

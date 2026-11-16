@@ -575,6 +575,59 @@ di malam hari (kawat tipis + decal gelap di tanah gelap); jejak
 kaki kebaca jelas dari dekat, samar dari jauh. Video gameplay v8
 masih pakai layout lama; tidak di-re-record di tugas ini.
 
+## v13 (2026-11-16): mouse look tidak kekunci lagi
+
+Arya main build Windows v12: "gabisa gerakin viewnya pake mouse
+kek kekunci".
+
+**Reproduksi dulu (mode rig baru `mouselook`, prefix v17), sebelum fix:**
+fails=4. Setelah intro ditutup mouse_mode tetap VISIBLE (0),
+bukan CAPTURED (2). Klik di tengah layar juga tidak menangkap
+mouse (tetap 0). Setelah dokumen ditutup, mouse_mode tetap 0.
+Satu-satunya yang benar: pause/resume (ESC) sudah mengembalikan
+CAPTURED.
+
+**Dua akar masalah, bukan satu.**
+- `close_intro()` dan `close_document()` di `hud.gd` tidak pernah
+  mengembalikan `MOUSE_MODE_CAPTURED` (hanya `toggle_pause()` yang
+  melakukannya). Pemain baru harus klik dulu, tanpa petunjuk apa pun.
+- Yang lebih dalam: dot crosshair + semua label HUD default
+  `MOUSE_FILTER_STOP`, jadi mereka memakan event mouse. Terbukti
+  lewat isolasi: setelah mouse CAPTURED lewat klik area kosong,
+  gerak mouse di tengah layar (640,360, tepat di atas dot) delta
+  yaw = 0, tapi gerak yang sama di (100,500) jauh dari dot delta
+  yaw = -0,264. Di Windows asli, mouse yang di-capture selalu
+  di-warp ke tengah layar, tepat di atas dot — jadi mouse look
+  kemungkinan tidak pernah bisa jalan sama sekali, bahkan saat
+  mouse sudah CAPTURED.
+
+**Perbaikan.**
+- `close_intro()` + `close_document()`: kembalikan CAPTURED saat
+  tidak ada panel lain yang terbuka.
+- `player.gd`: tangkap mouse juga di `_input` (bukan cuma
+  `_unhandled_input`), supaya klik yang dimakan GUI tetap
+  menangkap mouse. Aman saat pause: `_input` pemain tidak jalan
+  saat tree di-pause, jadi klik tombol panel tidak ikut menangkap.
+- Semua label/bar/dot/stats HUD jadi `MOUSE_FILTER_IGNORE`
+  (panel + tombol tetap STOP, mereka butuh klik).
+- Petunjuk baru di tengah layar, "Klik untuk mengunci mouse",
+  muncul hanya saat game jalan tapi mouse belum CAPTURED (mis.
+  habis Alt-Tab), sembunyi sendiri begitu mouse terkunci.
+  Screenshot bukti: `v17_hint.png`.
+
+**Verifikasi v13 (mode `mouselook`, prefix v17):** PASS fails=0
+(intro -> CAPTURED, klik tengah + gerak di tengah delta yaw
+-0,264, tutup dokumen -> CAPTURED, pause/resume benar, hint
+muncul saat Alt-Tab simulasi dan hilang setelah klik).
+Regression: mode verify exit 0 (registry 42 nama, 0 missing,
+audit hitbox meja tumpang=0), mode playtest PASS fails=0,
+headless 300 frame 0 script error.
+
+**Batas jujur yang tersisa:** konfirmasi akhir hanya bisa dari
+Arya di Windows asli (sandbox pakai event sintetis + Xvfb, bukan
+mouse hardware). Jerat + darah tetap samar di malam hari. Video
+gameplay v8 masih pakai layout lama; tidak di-re-record di tugas ini.
+
 ## Yang masih placeholder / belum ada
 
 - Model masih berupa kotak + sprite billboard; ini prototipe gameplay, bukan build visual final.
@@ -584,9 +637,10 @@ masih pakai layout lama; tidak di-re-record di tugas ini.
 - Export Android belum pernah dicoba: tidak ada Java/Android SDK di
   sandbox, jadi APK tidak bisa dibangun di sini. Preset-nya ada, tapi
   belum terbukti.
-- Export Windows belum pernah dijalankan di Windows (tidak ada Wine di
-  sandbox): file .exe terbukti ada dan berformat PE, tapi belum
-  dijalankan di mesin Windows sungguhan.
+- Export Windows: **sudah dijalankan Arya di Windows asli (v12,
+  2026-11-16)** — game jalan sampai intro, bug mouse look ketemu
+  dari main sungguhan (diperbaiki di v13). v11 sempat rusak (zip
+  tanpa .pck), diperbaiki di v12.
 - Proyek ini **sudah diuji di Godot 4.3 headless** (2026-11-16): `--import` bersih setelah dua sheet sumber yang tadinya JPEG ber-ekstensi .png dikonversi ke PNG asli, dan game jalan 300 frame tanpa script error. Peringatan mesh di headless dummy renderer bukan error game.
 
 ## v5 (2026-11-16): tech debt + menu/save/pause/touch + mata baru
