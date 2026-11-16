@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | shots18 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -106,6 +106,8 @@ func _run() -> void:
 			await _mode_shots15()
 		"shots16":
 			await _mode_shots16()
+		"shots18":
+			await _mode_shots18()
 		"story":
 			await _mode_story()
 		"verify":
@@ -499,6 +501,67 @@ func _mode_shots16() -> void:
 	await _shot("yard_close")
 	_player.flashlight_on = false
 	_player.flashlight.visible = false
+
+func _mode_shots18() -> void:
+	# v18 (v14-atmosphere): semua perubahan suasana, satu mode.
+	# 1. Gerbang TANPA senter, jam 00:00: gerbang + topeng pemburu +
+	# papan harus kebaca samar (unshaded), bukan hitam total.
+	GameState.set_generator(true)
+	GameState.shift_minutes = 120.0
+	await _set_view(Vector3(0, 0.45, -11.0), 0, 0)
+	await _shot("gate_dark")
+	# 2. Gerbang yang sama DENGAN senter (banding v18base sign_park).
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(3.2, 0.45, -13.2), 0, -2)
+	await _shot("gate_flash")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 3. Kurva malam: pos dari luar jam 02:00 (titik tergelap).
+	GameState.shift_minutes = 240.0
+	await _wait_sec(2.0) # lerp kurva butuh ~2 dtk sampai target
+	await _set_view(Vector3(0, 0.45, -8.0), 180, 2)
+	await _shot("night_deep")
+	# 4. Meja dari dekat jam 02:00: jendela belakang harus punya
+	# struktur kabut (gumpalan mid-ground), bukan dinding polos.
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	await _shot("window_fog")
+	# 5. Meja yang sama, Sanity 20: VHS ikut rusak (grain + desat naik).
+	GameState.sanity = 20.0
+	await _wait_sec(1.0)
+	await _shot("desk_low_sanity")
+	GameState.sanity = 100.0
+	# 6. Lampu teras saat bahan bakar 15 (kedip sekarat): screenshot
+	# ini cuma bukti visual pos; kedipnya DIBUKTIKAN ANGKA di
+	# tools/verify_atmosphere.gd (min/max energi lampu selama 5 dtk),
+	# karena satu frame tidak bisa menjamin menangkap redup.
+	GameState.fuel = 15.0
+	GameState.set_generator(true)
+	await _wait_sec(2.0)
+	await _set_view(Vector3(0, 0.45, -8.0), 180, 2)
+	await _shot("porch_flicker")
+	GameState.fuel = 100.0
+	# 7. Kurva malam: pos yang sama jam 05:10 (fajar mengintip).
+	# PALING AKHIR: lompat ke 430 memicu event kaki (330) + mata
+	# (405) yang berbasis waktu nyata (9/12 dtk) — kalau shot
+	# jendela diambil sesudahnya, mata masih menempel di kaca dan
+	# menutupi kabut yang mau dicek (kejadian di run pertama).
+	GameState.shift_minutes = 430.0
+	await _wait_sec(2.0)
+	await _set_view(Vector3(0, 0.45, -8.0), 180, 2)
+	await _shot("night_dawn")
+	# 8. Intro slow pan: tampilkan intro, tunggu 6 dtk (pan +6 derajat),
+	# screenshot, lalu tutup dan pastikan yaw kembali ke spawn.
+	var hud := get_tree().get_first_node_in_group("hud")
+	var yaw_before := _player.rotation.y
+	if hud != null and hud.has_method("show_intro"):
+		hud.show_intro()
+		await _wait_sec(6.0)
+		_log("intro pan: yaw sebelum=" + str(yaw_before) + " saat pan=" + str(_player.rotation.y))
+		await _shot("intro_pan")
+		hud.close_intro()
+		await _frames(2)
+		_log("intro pan: yaw sesudah tutup=" + str(_player.rotation.y) + " (harus ~= sebelum)")
 
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.

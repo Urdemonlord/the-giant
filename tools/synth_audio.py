@@ -4,7 +4,7 @@
 Regenerasi: wind.wav, footstep.wav, heartbeat.wav, giant_thud.wav,
 door_creak.wav (baru di v8-suara: dulu door_creak.wav dibuat entah di
 mana, isinya didominasi noise di atas 3 kHz, centroid 3561 Hz, tanpa
-nada derit kayu sama sekali).
+nada derit kayu sama sekali), crickets.wav (v14: jangkrik malam).
 Suara radio (radio_voice_1..5.wav) TIDAK dari sini, tapi dari gTTS,
 lihat tools/make_radio_voice.py.
 
@@ -180,6 +180,42 @@ def giant_thud():
     save("giant_thud.wav", normalize_peak(x, 0.9))
 
 
+def crickets():
+    """v14: jangkrik malam, bed ambience di atas angin. Loop 6 dtk:
+    dua jangkrik (4,2 kHz + 4,6 kHz), tiap train 3-4 chirp 18 ms,
+    train tiap ~1,2 dtk. Sangat pelan (peak 0,3) + di-mix -30 dB di
+    audio.gd, supaya tidak mengganggu radio dan suara Giant.
+    Batas jujur sama seperti suara lain: belum didengar telinga
+    manusia; yang dicek spektrum (centroid ~4,2 kHz) + jalur play."""
+    rng = np.random.default_rng(41)
+    dur = 6.0
+    t = np.arange(dur * SR) / SR
+    x = np.zeros_like(t)
+
+    def add_cricket(freq, offset):
+        tt = 0.0
+        while tt < dur:
+            train_len = int(rng.integers(3, 5))
+            for c in range(train_len):
+                start = tt + c * 0.07 + offset
+                if start >= dur:
+                    break
+                n = int(0.018 * SR)
+                i0 = int(start * SR)
+                i1 = min(i0 + n, len(t))
+                if i1 <= i0:
+                    continue
+                env = np.hanning(i1 - i0)
+                seg_t = np.arange(i1 - i0) / SR
+                x[i0:i1] += np.sin(2 * np.pi * freq * seg_t) * env * 0.5
+            tt += float(rng.uniform(1.0, 1.5))
+
+    add_cricket(4200.0, 0.0)
+    add_cricket(4600.0, 0.45)
+    x = make_loopable(x / np.abs(x).max() * 0.3)
+    save("crickets.wav", x)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     wind()
@@ -187,3 +223,4 @@ if __name__ == "__main__":
     heartbeat()
     door_creak()
     giant_thud()
+    crickets()

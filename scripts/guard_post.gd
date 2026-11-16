@@ -14,6 +14,10 @@ const FLOOR_Y := LevelData.POST_FLOOR_Y # lantai panggung
 
 var door_pivot: Node3D
 var _porch: OmniLight3D
+## v14 (generator sekarat): lampu teras berkedip saat bahan bakar
+## menipis — redup singkat, bukan strobo. State dadu flicker di sini.
+var _flicker_slice := 0.0
+var _flicker_mult := 1.0
 
 var _wood: StandardMaterial3D
 var _wood_dark: StandardMaterial3D
@@ -39,10 +43,23 @@ func _ready() -> void:
 	_porch.omni_range = 7.0
 	add_child(_porch)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _porch:
 		var target := 0.9 if GameState.generator_on else 0.0
-		_porch.light_energy = lerpf(_porch.light_energy, target, 0.08)
+		# v14: generator sekarat = lampu teras ikut tersendat. Tiap
+		# irisan 0,15 dtk dadu ulang: biasanya 1,0, kadang redup ke
+		# 0,3-0,6. Makin parah saat bahan bakar < 10. Redup, bukan
+		# kilat terang, jadi aman dari flash (<= ~2 redup/detik).
+		if GameState.generator_on and GameState.fuel < Balance.GEN_FLICKER_FUEL:
+			_flicker_slice -= delta
+			if _flicker_slice <= 0.0:
+				_flicker_slice = 0.15
+				var p := 0.30 if GameState.fuel < Balance.GEN_SPUTTER_FUEL else 0.15
+				_flicker_mult = randf_range(0.3, 0.6) if randf() < p else 1.0
+			target *= _flicker_mult
+		else:
+			_flicker_mult = 1.0
+		_porch.light_energy = lerpf(_porch.light_energy, target, 0.25)
 
 # Kayu dari sprite sheet Arya, bukan warna datar: tekstur papan door.png
 # dipakai sebagai albedo, diulang lewat uv1_scale supaya papan tidak melar.

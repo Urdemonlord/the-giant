@@ -5,6 +5,23 @@ extends StaticBody3D
 @export var sprite_name := "generator"
 
 var _light: OmniLight3D
+## v14 (generator sekarat): lampu generator ikut berkedip saat bahan
+## bakar menipis, seirama lampu teras (dadu sendiri, bukan sinkron).
+var _flicker_slice := 0.0
+var _flicker_mult := 1.0
+
+func _process(delta: float) -> void:
+	if _light == null or not GameState.generator_on:
+		return
+	if GameState.fuel < Balance.GEN_FLICKER_FUEL:
+		_flicker_slice -= delta
+		if _flicker_slice <= 0.0:
+			_flicker_slice = 0.15
+			var p := 0.30 if GameState.fuel < Balance.GEN_SPUTTER_FUEL else 0.15
+			_flicker_mult = randf_range(0.3, 0.6) if randf() < p else 1.0
+		_light.light_energy = 0.7 * _flicker_mult
+	else:
+		_light.light_energy = 0.7
 
 func _ready() -> void:
 	add_to_group("interactable")

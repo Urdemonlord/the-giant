@@ -23,8 +23,9 @@ AUDIO = os.path.join(ROOT, "assets", "audio")
 
 EXPECTED = ["wind.wav", "generator_hum.wav", "radio_static.wav",
             "door_creak.wav", "footstep.wav", "heartbeat.wav",
-            "giant_thud.wav", "radio_voice_1.wav", "radio_voice_2.wav",
-            "radio_voice_3.wav", "radio_voice_4.wav", "radio_voice_5.wav"]
+            "giant_thud.wav", "crickets.wav", "radio_voice_1.wav",
+            "radio_voice_2.wav", "radio_voice_3.wav", "radio_voice_4.wav",
+            "radio_voice_5.wav"]
 
 
 def spectrum(x, sr):

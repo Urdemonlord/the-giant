@@ -12,15 +12,27 @@ var pitch := 0.0
 var bob_time := 0.0
 var step_timer := 0.0
 var flashlight_on := false
+## v14 (game-feel): trauma 0..1, bukan kekuatan acak per frame.
+## shake() menambah trauma; _physics_process meluruhkannya dan
+## menghitung offset dari summed sines (trauma^2). shake_strength
+## dipertahankan sebagai alias baca supaya pemanggil lama (giant_event)
+## tidak pecah, tapi sumber kebenarannya trauma.
+var trauma := 0.0
 var shake_strength := 0.0
+var _shake_t := 0.0
+var _shake_offset := Vector2.ZERO
+var _shake_roll := 0.0
+var _bob_y := 0.0 # bob dihaluskan supaya berhenti jalan tidak snap ke 0
 ## Input sentuh (diisi TouchControls): x = strafe, y = maju/mundur (-1 = maju).
 var touch_move := Vector2.ZERO
 ## Dipakai test rig playtest untuk mengarahkan pandangan tanpa mouse.
 var look_override := false
 
 ## Dipanggil event Giant: getaran tanah mengguncang kamera sesaat.
+## v14: menambah trauma (game-feel), bukan set angka acak.
 func shake(amount: float) -> void:
-	shake_strength = maxf(shake_strength, amount)
+	trauma = clampf(trauma + amount, 0.0, 1.0)
+	shake_strength = trauma
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -87,24 +99,51 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	# Head bob halus + bunyi langkah (placeholder: sinyal ke Audio).
+	# v14: bob dan shake dihitung terpisah, lalu digabung SEKALI di
+	# camera.position, supaya keduanya tidak saling menimpa y.
+	var bob_y := 0.0
 	var horizontal := Vector2(velocity.x, velocity.z).length()
 	if horizontal > 0.4 and is_on_floor():
 		bob_time += delta * horizontal * 1.6
-		camera.position.y = sin(bob_time * 2.0) * 0.035
+		bob_y = sin(bob_time * 2.0) * 0.035
 		step_timer -= delta
 		if step_timer <= 0.0:
 			step_timer = 2.4 / horizontal
 			footstep.emit()
-	else:
-		camera.position.y = lerpf(camera.position.y, 0.0, delta * 8.0)
-	# Guncangan (langkah Giant): acak kecil yang meluruh cepat.
-	if shake_strength > 0.001:
-		camera.position.x = randf_range(-1.0, 1.0) * shake_strength * 0.05
-		camera.position.y += randf_range(-1.0, 1.0) * shake_strength * 0.05
-		shake_strength = lerpf(shake_strength, 0.0, delta * 3.0)
-	else:
-		camera.position.x = lerpf(camera.position.x, 0.0, delta * 8.0)
+	# Guncangan (langkah Giant): trauma^2 + summed sines (game-feel
+	# Pattern 1), meluruh di real time, snap ke rest saat habis.
+	# Dulu randf_range tiap frame: buzz statis, bukan gempa.
+	if trauma > 0.0:
+		var real_dt := delta / maxf(Engine.time_scale, 0.0001)
+		trauma = maxf(trauma - Balance.SHAKE_DECAY * real_dt, 0.0)
+		var s := trauma * trauma
+		_shake_t += real_dt * 30.0
+		_shake_offset = Vector2(
+			Balance.SHAKE_MAX_OFFSET * s * sin(_shake_t * 1.7),
+			Balance.SHAKE_MAX_OFFSET * s * sin(_shake_t * 2.3))
+		_shake_roll = Balance.SHAKE_MAX_ROLL * s * sin(_shake_t * 1.1)
+		if trauma == 0.0:
+			_shake_offset = Vector2.ZERO
+			_shake_roll = 0.0
+		shake_strength = trauma
+	_bob_y = lerpf(_bob_y, bob_y, 1.0 - exp(-8.0 * delta))
+	camera.position = Vector3(_shake_offset.x, _bob_y + _shake_offset.y, 0.0)
+	camera.rotation.z = _shake_roll
+	_update_fov(delta)
 	_update_prompt()
+
+## v14 (camera-systems): FOV menyempit halus saat Sanity rendah
+## (terowongan) dan sedikit lagi saat event Giant aktif. Semua di-ease
+## dengan 1-exp(-rate*dt), bukan snap.
+func _update_fov(delta: float) -> void:
+	var target := Balance.FOV_BASE
+	if GameState.sanity < Balance.HEARTBEAT_SANITY_THRESHOLD:
+		target -= Balance.FOV_SANITY_NARROW * (1.0 - GameState.sanity / Balance.HEARTBEAT_SANITY_THRESHOLD)
+	var giant := get_tree().get_first_node_in_group("giant_event")
+	if giant != null and str(giant.get("active_event")) != "":
+		target -= Balance.FOV_EVENT_NARROW
+	var k := 1.0 - exp(-2.0 * delta)
+	camera.fov = lerpf(camera.fov, target, k)
 
 func get_current_interactable() -> Object:
 	if ray.is_colliding():

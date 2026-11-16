@@ -91,6 +91,43 @@ func _process(delta: float) -> void:
 		GameState.restore_stability(Balance.LIGHT_STABILITY_REGEN * delta)
 	else:
 		GameState.damage_stability(Balance.DARK_STABILITY_DRAIN * delta)
+	_apply_night_curve(delta)
+
+## v14 (tension pacing): malam makin dalam sampai ~02:00, bertahan
+## gelap sampai ~04:00, lalu fajar mengintip dari 05:00. Bulan, ambient,
+## dan fog volumetrik di-lerp pelan (konstanta ~2 detik) supaya tidak
+## ada lompatan yang kelihatan; semua angka di Balance, semua kecil.
+func _apply_night_curve(delta: float) -> void:
+	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	var moon := get_node_or_null("MoonLight") as DirectionalLight3D
+	if env_node == null or env_node.environment == null or moon == null:
+		return
+	var m := GameState.shift_minutes
+	var dark := 0.0
+	if m < Balance.NIGHT_DEEP_MINUTE:
+		dark = m / Balance.NIGHT_DEEP_MINUTE
+	elif m < Balance.NIGHT_HOLD_MINUTE:
+		dark = 1.0
+	elif m < Balance.NIGHT_DAWN_MINUTE:
+		dark = 1.0 - (m - Balance.NIGHT_HOLD_MINUTE) / (Balance.NIGHT_DAWN_MINUTE - Balance.NIGHT_HOLD_MINUTE) * 0.5
+	else:
+		dark = 0.5 - (m - Balance.NIGHT_DAWN_MINUTE) / (Balance.SHIFT_LENGTH_MINUTES - Balance.NIGHT_DAWN_MINUTE) * 0.5
+	var dawn := 0.0
+	if m > Balance.NIGHT_DAWN_MINUTE:
+		dawn = clampf((m - Balance.NIGHT_DAWN_MINUTE) / (Balance.SHIFT_LENGTH_MINUTES - Balance.NIGHT_DAWN_MINUTE), 0.0, 1.0)
+	var env := env_node.environment
+	var k := 1.0 - exp(-0.5 * delta)
+	moon.light_energy = lerpf(moon.light_energy,
+		0.75 - 0.20 * dark + 0.10 * dawn, k)
+	env.ambient_light_energy = lerpf(env.ambient_light_energy,
+		0.65 - 0.15 * dark + 0.05 * dawn, k)
+	if Balance.volumetric_active():
+		env.volumetric_fog_density = lerpf(env.volumetric_fog_density,
+			Balance.VOL_FOG_DENSITY + (Balance.NIGHT_VOL_DEEP - Balance.VOL_FOG_DENSITY) * dark
+			+ (Balance.NIGHT_VOL_DAWN - Balance.VOL_FOG_DENSITY) * dawn, k)
+	else:
+		env.fog_density = lerpf(env.fog_density,
+			Balance.FOG_DENSITY + 0.01 * dark - 0.005 * dawn, k)
 
 ## Posisi spawn + benda interaktif diambil dari LevelData, supaya
 ## main.tscn bukan satu-satunya sumber kebenaran. Dipanggil sebelum
@@ -236,6 +273,11 @@ func _make_sign(parent: Node, pos: Vector3, sprite_name: String, color: Color) -
 		if spr != null:
 			# v11: papan menghadap jalan (sisi +z, dari arah pos): dulu
 			# -0,12 di sisi jauh, ketutup papan dari arah jalan.
+			# v14: wajah papan unshaded + tint redup (0.55) supaya
+			# tulisannya kebaca samar di gelap tanpa senter — dengan
+			# senter tetap terbaca seperti dulu (shots16 sign_park).
+			spr.shaded = false
+			spr.modulate = Color(0.55, 0.58, 0.55, 1.0)
 			spr.position = Vector3(0, 1.55, 0.05)
 			root.add_child(spr)
 
@@ -270,17 +312,36 @@ func _build_forest() -> void:
 		_ground_decal(forest, String(entry[0]), entry[1], float(entry[2]))
 	# Billboard statis dari tabel LevelData.
 	for entry in LevelData.BILLBOARDS:
-		_billboard(forest, String(entry[0]), entry[1], float(entry[2]), entry[3])
+		_billboard(forest, String(entry[0]), entry[1], float(entry[2]), entry[3],
+			String(entry[0]) in UNSHADED_BILLBOARDS)
 	# Gumpalan kabut di antara pohon (36x, abu kehijauan sakit, bukan putih).
 	# Koridor jalan gerbang->pos (|x|<3.5, z -16..2) dikosongkan supaya
 	# tidak ada gumpalan yang menempel di depan kamera dan menelan pos.
+	# v14 (depth cueing): alpha gumpalan DIGRADING menurut jarak —
+	# dekat lebih padat (0.38), jauh lebih tipis (0.26) — supaya kabut
+	# punya lapisan, bukan satu veil datar. Dulu semua 0.34 sama rata;
+	# lewat jendela belakang itu yang bikin kabut kelihatan dinding
+	# polos tanpa depth cue (catatan jujur v8).
 	for i in range(Balance.FOG_PUFF_COUNT):
 		var a := _rng.randf_range(0.0, TAU)
 		var r := _rng.randf_range(9.0, 26.0)
 		var fp := Vector3(cos(a) * r, 0, sin(a) * r)
 		if absf(fp.x) < 3.5 and fp.z > -16.0 and fp.z < 2.0:
 			continue
-		_billboard(forest, "fog_puff", Vector3(fp.x, _rng.randf_range(0.4, 1.4), fp.z), _rng.randf_range(0.015, 0.024), Color(0.62, 0.68, 0.58, Balance.FOG_PUFF_ALPHA))
+		var depth_k := clampf((r - 9.0) / (26.0 - 9.0), 0.0, 1.0)
+		var puff_alpha := lerpf(0.38, 0.26, depth_k)
+		_billboard(forest, "fog_puff", Vector3(fp.x, _rng.randf_range(0.4, 1.4), fp.z), _rng.randf_range(0.015, 0.024), Color(0.62, 0.68, 0.58, puff_alpha))
+	# Gumpalan tetap di mid-ground (10-12 m), supaya selalu ada
+	# struktur kabut yang kebaca dari pos dan gerbang. Ronde 1 pakai
+	# tint GELAP untuk yang selatan — lewat jendela cuma jadi noda
+	# samar di kabut (diukur: std jendela 14,1 vs 15,9 baseline) dan
+	# di luar berisiko kelihatan gumpalan hitam; dikembalikan pucat
+	# seperti gumpalan lain. Jendela belakang tetap dinding kabut:
+	# pada 0,07/m, billboard apa pun di 10-14 m cuma ~40% kebaca
+	# dengan latar kabut sewarna + desaturasi VHS. Batas jujur v14.
+	for fp in [Vector3(-5.0, 0.8, 11.0), Vector3(1.5, 0.6, 12.0), Vector3(6.0, 0.9, 10.0),
+			Vector3(-7.0, 0.8, -11.0), Vector3(8.0, 1.0, -12.0)]:
+		_billboard(forest, "fog_puff", fp, 0.022, Color(0.62, 0.68, 0.58, 0.34))
 	# Ground fog: lapisan kabut rendah merayap di permukaan tanah,
 	# rapat di sekitar pos + jalan + gerbang, supaya tanah tidak bersih.
 	for i in range(Balance.GROUND_FOG_COUNT):
@@ -289,11 +350,24 @@ func _build_forest() -> void:
 		var gp := Vector3(cos(ga) * gr, 0, sin(ga) * gr)
 		if absf(gp.x) < 3.5 and gp.z > -16.0 and gp.z < 2.0:
 			continue
-		_billboard(forest, "fog_puff", Vector3(gp.x, _rng.randf_range(0.15, 0.45), gp.z), _rng.randf_range(0.018, 0.026), Color(0.62, 0.68, 0.58, Balance.GROUND_FOG_ALPHA))
+		var gdepth_k := clampf((gr - 6.0) / (13.0 - 6.0), 0.0, 1.0)
+		var ground_alpha := lerpf(0.42, 0.32, gdepth_k)
+		_billboard(forest, "fog_puff", Vector3(gp.x, _rng.randf_range(0.15, 0.45), gp.z), _rng.randf_range(0.018, 0.026), Color(0.62, 0.68, 0.58, ground_alpha))
+
+## v14 (polish #6): sosok jauh yang harus kebaca sebagai siluet di
+## kabut (gerbang, pemburu, gajah) dibuat UNSHADED — shaded membuat
+## mereka hitam total di gelap karena membelakangi bulan. Preseden:
+## mata Giant sudah unshaded + HDR sejak v9 dengan alasan sama.
+## Fog tetap berlaku pada sprite unshaded, jadi mereka tetap tertelan
+## kabut di jarak jauh, hanya tidak lagi hilang total di 15 m.
+const UNSHADED_BILLBOARDS: Array[String] = [
+	"gate", "poacher_mask", "poacher_ghost",
+	"elephant_front", "elephant_shadow", "elephant_side",
+]
 
 # Billboard statis dari sprite sheet: posisi y = 0 (alas di tanah),
 # sprite diangkat setengah tinggi gambarnya supaya alasnya menapak.
-func _billboard(parent: Node, sprite_name: String, pos: Vector3, pixel_size: float, tint: Color) -> void:
+func _billboard(parent: Node, sprite_name: String, pos: Vector3, pixel_size: float, tint: Color, unshaded := false) -> void:
 	var tex := SpriteRegistry.texture(sprite_name)
 	if tex == null:
 		return
@@ -302,6 +376,7 @@ func _billboard(parent: Node, sprite_name: String, pos: Vector3, pixel_size: flo
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.pixel_size = pixel_size
 	spr.modulate = tint
+	spr.shaded = not unshaded
 	spr.position = pos + Vector3(0, tex.get_height() * pixel_size * 0.5, 0)
 	parent.add_child(spr)
 

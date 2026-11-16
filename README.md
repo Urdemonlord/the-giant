@@ -628,6 +628,97 @@ Arya di Windows asli (sandbox pakai event sintetis + Xvfb, bukan
 mouse hardware). Jerat + darah tetap samar di malam hari. Video
 gameplay v8 masih pakai layout lama; tidak di-re-record di tugas ini.
 
+## v14 (2026-11-17): atmosphere pass — kabut, cahaya, VHS, kamera, audio
+
+Suasana dulu, sesuai pilihan Arya ("Suasana horor dulu"). Tidak ada
+perubahan gameplay: tidak ada sistem/tugas/event/AI baru. Semua angka
+baru di `scripts/balance.gd`, satu tempat tune seperti biasa.
+
+**Kabut + gelap (level-design).**
+- Alpha gumpalan kabut sekarang digrading menurut jarak (dekat 0,38,
+  jauh 0,26; ground fog 0,42 -> 0,32) supaya kabut punya lapisan,
+  bukan satu veil datar.
+- 5 gumpalan tetap di mid-ground (10-12 m, posisi tetap supaya shot
+  bisa dibanding): 3 di selatan pos, 2 di utara jalan.
+- Kurva malam (`main.gd`): bulan 0,75 -> 0,55 (02:00) -> 0,85
+  (06:00), ambient 0,65 -> 0,50 -> 0,70, fog volumetrik 0,030 ->
+  0,036 -> 0,028. Semua lerp pelan (konstanta ~2 dtk).
+
+**Cahaya (level-design: guide with light).**
+- Lampu teras + lampu generator berkedip saat bahan bakar < 25
+  (makin parah < 10): redup singkat 0,3-0,6x tiap irisan 0,15 dtk,
+  peluang 15% / 30%. Bukan strobo, bukan kilat terang.
+- Gerbang + topeng pemburu + gajah jauh + wajah papan tanda jadi
+  UNSHADED (tint redup 0,55-0,65): dulu hitam total di gelap karena
+  membelakangi bulan (polish #6). Preseden: mata Giant sudah
+  unshaded + HDR sejak v9. Fog tetap berlaku, jadi mereka tetap
+  tertelan kabut di jarak jauh.
+
+**Kamera (game-feel + camera-systems).**
+- Shake diganti trauma^2 + summed sines, meluruh di real time
+  (dulu `randf_range` tiap frame — skill game-feel: "buzzes like
+  static"). Bob dan shake sekarang digabung sekali di
+  `camera.position`, tidak saling menimpa y; roll maks 0,01 rad.
+- FOV 72 -> ~70,3 saat Sanity < 35 (terowongan), -1,5 lagi saat
+  event Giant aktif; semua di-ease `1-exp(-rate*dt)`.
+- Intro: slow pan +-6 derajat dalam 24 detik (polish #8); yaw
+  dikembalikan ke 0 saat intro ditutup (terbukti di log rig).
+
+**Audio (audio-design + godot-audio).**
+- Bus layout baru (`default_bus_layout.tres`): Master <- Ambience /
+  SFX / Voice. Sebelumnya semua di Master.
+- Ambience di-duck -6 dB (tween 0,25 dtk) saat siaran radio bersuara,
+  kembali saat siaran habis.
+- Jangkrik malam baru (`assets/audio/crickets.wav`, disintesis
+  `tools/synth_audio.py`, 2 jangkrik 4,2/4,6 kHz, peak 0,3, di-mix
+  -30 dB): centroid terukur 4402 Hz, 100% energi > 3 kHz.
+- Dentum jauh: Giant terdengar dari kejauhan (thud -20 dB, pitch
+  0,8) tiap 90-180 detik di jam 23:00-03:20, tidak saat event
+  pemburu/Giant aktif, tidak saat radio bersuara.
+
+**VHS (hud.gd).**
+- Rolling band baru: pita terang redup merayap ke bawah (amplitudo
+  0,03, satu putaran 20 dtk). Tear/scanline/CA tidak diubah.
+- Grain/desat/vignette ikut Sanity: grain 0,13 -> 0,16, desat
+  0,45 -> 0,52, vignette 0,38 -> 0,45 saat Sanity < 35.
+
+**Verifikasi v14 (mode rig baru `shots18`, prefix v18).**
+- `tools/verify_atmosphere.tscn` (cek numerik, headless): PASS 19/19
+  (bus ada, wind + crickets jalan di bus benar, porch kedip min
+  0,34/max 0,90, generator kedip min 0,26/max 0,70, trauma 1,0 ->
+  0,40 (0,5 dtk) -> 0,000 (2 dtk), FOV 70,52 di Sanity 20, bulan
+  0,57 + vol 0,0353 jam 02:00, dentum jauh bunyi).
+- `tools/frame_stats.tscn` (headless, 600 frame): avg 0,00 ms,
+  p95 0,01 ms, 0/600 di atas budget 16,6 ms (CPU saja, tanpa GPU).
+- Rig: verify DONE (hitbox meja tumpang=0), shots DONE, shots16
+  DONE, shots18 DONE (8 shot), mouselook PASS fails=0 (fix v13
+  utuh), playtest PASS fails=0 (5 tugas), story PASS fails=0,
+  audio DONE (semua siaran jalan, footstep pitch 0,92-1,08).
+  Tidak ada SCRIPT ERROR / SHADER ERROR di log mana pun.
+- Before/after: `v18base_*` (v13) vs `v18_*` (v14) di
+  `~/workspace/godot/shots/`. Gerbang tanpa senter sekarang kebaca
+  (papan + pagar + celah gerbang), papan tetap kebaca dengan senter,
+  mata Giant tidak berubah, interior/meja tidak berubah.
+
+**Batas jujur yang tersisa (v14).**
+- Jendela belakang tetap dinding kabut: dua ronde coba memberi
+  struktur (grading + gumpalan tetap, lalu gumpalan gelap) tidak
+  menaikkan std jendela (14,1 vs 15,9 baseline). Pada 0,07/m,
+  billboard di 10-14 m cuma ~40% kebaca dengan latar kabut sewarna
+  + desaturasi VHS. Gumpalan gelap dibatalkan (cuma jadi noda samar).
+- Kurva malam terukur di angka (bulan 0,57 jam 02:00) tapi beda
+  layarnya tipis: mean frame night_deep vs night_dawn 37,3 vs 37,1.
+  Sengaja halus, bukan siklus siang-malam.
+- Audio belum pernah didengar telinga manusia (sandbox tanpa sound
+  card): jangkrik + dentum jauh + ducking baru terbukti bentuk
+  gelombang + jalur play, bukan bunyinya. Mix tetap konservatif.
+- GPU tidak terukur di sandbox (headless tanpa renderer): tidak ada
+  lampu/shader pass baru, jadi biaya GPU praktis sama dengan v13,
+  tapi angka pastinya butuh Windows asli.
+- Kabut volumetrik yang BERGERAK tetap dipotong sesuai brief
+  (billboard statis cukup); yang berubah hanya grading + posisi
+  gumpalan, bukan animasi kabut.
+
 ## Yang masih placeholder / belum ada
 
 - Model masih berupa kotak + sprite billboard; ini prototipe gameplay, bukan build visual final.

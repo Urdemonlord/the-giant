@@ -21,6 +21,15 @@ var _msg_tween: Tween
 var _rec_label: Label
 var _capture_hint: Label
 var _blink_t := 0.0
+## v14: material shader VHS disimpan supaya grain/desat/vignette
+## bisa di-lerp mengikuti Sanity (kamera ikut rusak saat pemainnya).
+var _fx_mat: ShaderMaterial
+## v14 (polish #8): slow pan selama intro — kamera menyapu pelan
+## keluar jendela. _pan_yaw = offset yaw saat ini, direset ke 0 saat
+## intro ditutup supaya yaw pemain tidak bergeser.
+var _player: Node3D
+var _intro_t := 0.0
+var _pan_yaw := 0.0
 var _pause_panel: PanelContainer
 var _save_btn: Button
 var _paused := false
@@ -45,6 +54,7 @@ func _ready() -> void:
 	GameState.message_shown.connect(show_message)
 	GameState.shift_ended.connect(_on_shift_ended)
 	var player := get_tree().get_first_node_in_group("player")
+	_player = player as Node3D
 	if player != null and player.has_signal("prompt_changed"):
 		player.prompt_changed.connect(func(t: String) -> void: _prompt_label.text = t)
 	_refresh_tasks()
@@ -122,6 +132,9 @@ void fragment() {
 	col = mix(col, sick, desat);
 	// Scanlines.
 	col *= 1.0 - scanline * (0.5 + 0.5 * sin(uv.y * 2262.0));
+	// Rolling band (v14): pita terang redup yang merayap pelan ke
+	// bawah, khas VHS. Amplitudo 0.03 saja: terasa, tidak mengganggu.
+	col *= 1.0 + 0.03 * sin((uv.y + TIME * 0.05) * 6.2831);
 	// Grain VHS bergerak.
 	float n = hash(uv * vec2(1280.0, 720.0) + vec2(TIME * 60.0, -TIME * 47.0));
 	col += (n - 0.5) * grain;
@@ -144,6 +157,7 @@ void fragment() {
 	sm.set_shader_parameter("flicker", Balance.VHS_FLICKER)
 	sm.set_shader_parameter("tear_shift", Balance.VHS_TEAR_SHIFT)
 	fx.material = sm
+	_fx_mat = sm
 	add_child(fx)
 	# REC + label kamera, kiri atas (berkedip).
 	_rec_label = _label("● REC   CAM 07", 16, Color(0.85, 0.25, 0.15))
@@ -320,6 +334,11 @@ func close_intro() -> void:
 		return
 	_intro_panel.visible = false
 	_intro_open = false
+	# v14: kembalikan yaw pan intro ke 0 supaya pandangan pemain
+	# mulai dari arah spawn semula, bukan dari ujung sapuan.
+	if _pan_yaw != 0.0 and _player != null and _player.has_method("apply_look"):
+		_player.apply_look(-_pan_yaw, 0.0)
+		_pan_yaw = 0.0
 	get_tree().paused = false
 	# v13: dulu mouse tetap VISIBLE setelah intro ditutup. Ini akar
 	# bug "view kekunci" di Windows: pemain baru tidak tahu harus
@@ -443,6 +462,28 @@ func _process(delta: float) -> void:
 	_blink_t += delta
 	if _rec_label:
 		_rec_label.modulate.a = 0.55 + 0.45 * sin(_blink_t * 2.4)
+	# v14: kamera ikut rusak saat Sanity rendah — grain naik, warna
+	# makin sakit, vignette makin menutup. Di-ease lewat nilai yang
+	# di-set tiap frame (k 0..1 dari Sanity < 35).
+	if _fx_mat != null:
+		var k := 0.0
+		if GameState.sanity < Balance.HEARTBEAT_SANITY_THRESHOLD:
+			k = clampf((Balance.HEARTBEAT_SANITY_THRESHOLD - GameState.sanity) / Balance.HEARTBEAT_SANITY_THRESHOLD, 0.0, 1.0)
+		_fx_mat.set_shader_parameter("grain", lerpf(Balance.VHS_GRAIN, Balance.VHS_GRAIN_LOW_SANITY, k))
+		_fx_mat.set_shader_parameter("desat", lerpf(Balance.VHS_DESATURATE, Balance.VHS_DESAT_LOW_SANITY, k))
+		_fx_mat.set_shader_parameter("vignette", lerpf(Balance.VHS_VIGNETTE, Balance.VHS_VIGNETTE_LOW_SANITY, k))
+	# v14 (polish #8): slow pan selama intro — kamera menyapu pelan
+	# +-6 derajat dalam 24 detik, kembali ke titik awal. Tree sedang
+	# pause tapi HUD jalan (PROCESS_MODE_ALWAYS), jadi pan digerakkan
+	# dari sini lewat apply_look; input mouse pemain sedang pause
+	# sehingga tidak ada yang berebut yaw.
+	if _intro_open and _player != null and _player.has_method("apply_look"):
+		_intro_t += delta
+		var target := deg_to_rad(6.0) * sin(_intro_t * TAU / 24.0)
+		var d := target - _pan_yaw
+		if absf(d) > 0.00005:
+			_player.apply_look(d, 0.0)
+			_pan_yaw = target
 	# v13: petunjuk "klik untuk mengunci mouse" muncul hanya saat
 	# game jalan tapi mouse belum CAPTURED (mis. habis Alt-Tab).
 	if _capture_hint != null:

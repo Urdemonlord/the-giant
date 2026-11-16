@@ -110,6 +110,53 @@ static func volumetric_active() -> bool:
 		return false
 	return str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "gl_compatibility")) == "forward_plus"
 
+## --- Kurva malam (v14, suasana) ----------------------------------------------
+## Malam makin dalam sampai ~02:00, bertahan gelap sampai ~04:00, lalu
+## fajar mengintip dari 05:00. Semua lerp KECIL supaya tidak merusak
+## tuning kabut v6/v8 yang sudah susah payah: bulan 0.75 -> 0.55 -> 0.85,
+## ambient 0.65 -> 0.50 -> 0.70, fog volumetrik 0.030 -> 0.036 -> 0.028.
+## Tidak menyentuh gameplay (generator/lampu/tugas tetap seperti semula).
+const NIGHT_DEEP_MINUTE := 240.0 # 02:00, titik tergelap
+const NIGHT_HOLD_MINUTE := 360.0 # 04:00, gelap bertahan sampai sini
+const NIGHT_DAWN_MINUTE := 420.0 # 05:00, fajar mulai mengintip
+const NIGHT_MOON_DEEP := 0.55
+const NIGHT_MOON_DAWN := 0.85
+const NIGHT_AMBIENT_DEEP := 0.50
+const NIGHT_AMBIENT_DAWN := 0.70
+const NIGHT_VOL_DEEP := 0.036
+const NIGHT_VOL_DAWN := 0.028
+
+## --- Goyang kamera trauma (v14, game-feel) -----------------------------------
+## game-feel: trauma^2 + summed sines, meluruh di real time, snap ke rest.
+## Menggantikan randf_range per frame di player.gd (yang skill sebut
+## "buzzes like static"). Roll sangat kecil supaya tidak memuakkan.
+const SHAKE_DECAY := 1.2 # trauma hilang per detik (real time)
+const SHAKE_MAX_OFFSET := 0.05 # meter di kamera
+const SHAKE_MAX_ROLL := 0.01 # radian
+const FOV_BASE := 72.0
+const FOV_SANITY_NARROW := 4.0 # menyempit saat Sanity < 35 (terowongan)
+const FOV_EVENT_NARROW := 1.5 # tambahan saat event Giant aktif
+
+## --- Generator sekarat (v14) --------------------------------------------------
+## Di bawah ambang ini lampu teras + generator mulai berkedip (bukan
+## strobo: redup singkat, paling sering ~2x/detik di ambang parah).
+const GEN_FLICKER_FUEL := 25.0
+const GEN_SPUTTER_FUEL := 10.0
+
+## --- Dentum jauh (v14) -------------------------------------------------------
+## Dentum Giant dari kejauhan, sebelum event kaki 03:30: petunjuk audio
+## tanpa menampakkan apa pun. Hanya di jendela jam ini, tidak saat event
+## pemburu/Giant sedang aktif.
+const DISTANT_THUD_EARLIEST := 60.0 # menit shift (23:00)
+const DISTANT_THUD_LATEST := 320.0 # menit shift (03:20)
+const DISTANT_THUD_MIN_GAP := 90.0 # detik antar dentum
+const DISTANT_THUD_MAX_GAP := 180.0
+
+## --- VHS ikut Sanity (v14) ----------------------------------------------------
+const VHS_GRAIN_LOW_SANITY := 0.16 # dulu 0.13
+const VHS_DESAT_LOW_SANITY := 0.52 # dulu 0.45
+const VHS_VIGNETTE_LOW_SANITY := 0.45 # dulu 0.38
+
 ## --- Grafik creepy (overlay analog horror, hud.gd) ---------------------------
 ## Semua angka di sini supaya intensitas bisa di-tune tanpa baca shader.
 const VHS_GRAIN := 0.13 # v5: 0.055
