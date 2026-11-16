@@ -1,0 +1,4 @@
+.godot/
+*.import
+builds/
+.DS_Store
