@@ -30,6 +30,13 @@ const GENERATOR_ROT_Y_DEG := -23.0
 const RADIO_POS := Vector3(-1.55, 1.27, 1.35)
 const LOGBOOK_POS := Vector3(-1.02, 1.14, 1.28)
 const LANTERN_POS := Vector3(1.85, 1.06, 1.5)
+## Dokumen cerita di atas meja (brief v7): koran di ujung kiri DEPAN
+## meja, di luar bayangan hitbox radio dari arah spawn (raycast dari
+## spawn mengenai radio dulu kalau koran di belakangnya — dua ronde
+## perbaikan di v12 membuktikannya). Surat izin di ujung kanan meja,
+## di depan meter. Y = permukaan meja.
+const NEWSPAPER_POS := Vector3(-2.05, 1.07, 1.05)
+const PERMIT_POS := Vector3(-0.8, 1.07, 1.6)
 
 ## --- Terrain / pagar ---------------------------------------------------------
 const GROUND_SIZE := 90.0

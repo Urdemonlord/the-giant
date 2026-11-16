@@ -91,6 +91,15 @@ func _player() -> Node:
 	return get_tree().get_first_node_in_group("player")
 
 func _on_interact() -> void:
+	# Kalau dokumen/intro sedang terbuka, tombol E menutupnya
+	# (bukan memicu interaksi lagi di belakang panel).
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null and (hud._doc_open or hud._intro_open):
+		if hud._doc_open:
+			hud.close_document()
+		else:
+			hud.close_intro()
+		return
 	var p := _player()
 	if p != null and p.has_method("try_interact"):
 		p.try_interact()

@@ -16,17 +16,38 @@ func _ready() -> void:
 	print("[Main] scene main siap, jam=" + GameState.clock_text())
 	_apply_fog()
 	_apply_level_positions()
+	var resumed := not GameState.resume_data.is_empty()
 	_apply_resume()
 	if not has_node("Ground"):
 		_build_terrain()
 	if not has_node("Forest"):
 		_build_forest()
+	# Intro shift (brief v7): hanya untuk shift baru, bukan lanjutan
+	# save, dan tidak saat dijalankan test rig / menu_autostart
+	# (keduanya memberi argumen baris perintah; lihat _is_rig_run).
+	if not resumed and not _is_rig_run():
+		if GameState.skip_intro:
+			GameState.skip_intro = false
+		else:
+			var hud := get_tree().get_first_node_in_group("hud")
+			if hud != null and hud.has_method("show_intro"):
+				hud.show_intro()
 	# Pesan pembuka shift.
 	GameState.show_message("Jaga pos ini. Jangan biarkan mereka kembali.")
 	var timer := get_tree().create_timer(4.5)
 	timer.timeout.connect(func() -> void:
 		if not GameState.is_task_done("generator"):
 			GameState.show_message("Generator di samping pos. Nyalakan sebelum gelap makan pos ini."))
+
+## Test rig dan menu_autostart memberi argumen baris perintah
+## (mode=... / menu_autostart=1). Shift sungguhan tidak punya argumen
+## itu, jadi intro hanya muncul di permainan sungguhan.
+func _is_rig_run() -> bool:
+	for a in OS.get_cmdline_user_args():
+		var s := str(a)
+		if s.begins_with("mode=") or s == "menu_autostart=1":
+			return true
+	return false
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
@@ -65,6 +86,8 @@ func _apply_level_positions() -> void:
 	_apply_node_pos("Radio", LevelData.RADIO_POS, 0.0)
 	_apply_node_pos("Logbook", LevelData.LOGBOOK_POS, 0.0)
 	_apply_node_pos("Lantern", LevelData.LANTERN_POS, 0.0)
+	_apply_node_pos("Newspaper", LevelData.NEWSPAPER_POS, deg_to_rad(12.0))
+	_apply_node_pos("Permit", LevelData.PERMIT_POS, deg_to_rad(-8.0))
 
 func _apply_node_pos(node_name: String, pos: Vector3, rot_y: float) -> void:
 	var n := get_node_or_null(node_name) as Node3D

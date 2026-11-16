@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/player.gd" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/interactables/radio.gd" id="8"]
 [ext_resource type="Script" path="res://scripts/interactables/logbook.gd" id="9"]
 [ext_resource type="Script" path="res://scripts/interactables/lantern.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/interactables/readable.gd" id="13"]
 [ext_resource type="Script" path="res://scripts/touch_controls.gd" id="12"]
 
 [sub_resource type="Environment" id="Environment_1"]
@@ -87,6 +88,16 @@ script = ExtResource("9")
 [node name="Lantern" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.85, 1.06, 1.5)
 script = ExtResource("10")
+
+[node name="Newspaper" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.95, 1.07, 1.5)
+script = ExtResource("13")
+doc_id = "newspaper"
+
+[node name="Permit" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8, 1.07, 1.6)
+script = ExtResource("13")
+doc_id = "permit"
 
 [node name="Audio" type="Node" parent="."]
 script = ExtResource("5")

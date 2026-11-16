@@ -23,6 +23,13 @@ var fuel: float = Balance.MAX_FUEL
 var door_open: bool = false
 var shift_minutes: float = 0.0
 var shift_over: bool = false
+## Alasan shift berakhir ("dawn" / "sanity" / "stability"), dibaca HUD
+## untuk teks ending. Diisi _end_shift, bukan ditebak dari angka.
+var end_reason: String = ""
+## "Main Lagi" dari layar akhir melewati intro satu kali.
+## reset_shift() mengembalikannya ke false (shift baru dari menu
+## tetap menampilkan intro).
+var skip_intro: bool = false
 
 var tasks: Dictionary = {
 	"generator": {"label": "Nyalakan generator", "done": false},
@@ -47,6 +54,8 @@ func reset_shift() -> void:
 	door_open = false
 	shift_minutes = 0.0
 	shift_over = false
+	end_reason = ""
+	skip_intro = false
 	for id in tasks.keys():
 		tasks[id]["done"] = false
 	sanity_changed.emit(sanity)
@@ -127,4 +136,5 @@ func _end_shift(success: bool) -> void:
 	if shift_over:
 		return
 	shift_over = true
+	end_reason = "dawn" if success else ("sanity" if sanity <= 0.0 else "stability")
 	shift_ended.emit(success)

@@ -10,13 +10,26 @@ var _clock_label: Label
 var _tasks_label: Label
 var _sanity_bar: ProgressBar
 var _stability_bar: ProgressBar
-var _end_label: Label
+var _doc_panel: PanelContainer
+var _doc_title: Label
+var _doc_body: Label
+var _intro_panel: PanelContainer
+var _end_panel: PanelContainer
+var _end_title: Label
+var _end_body: Label
 var _msg_tween: Tween
 var _rec_label: Label
 var _blink_t := 0.0
 var _pause_panel: PanelContainer
 var _save_btn: Button
 var _paused := false
+var _doc_open := false
+var _intro_open := false
+var _end_open := false
+
+## Satu kalimat penutup faktual, tampil di akhir kedua ending.
+## (Brief: ending ditutup satu kalimat faktual saja.)
+const CLOSING_FACT := "Di Malayunesia, gajah adalah satwa dilindungi; setiap tahun, ribuan hektar hutan tempat mereka hidup berubah menjadi kebun sawit."
 
 func _ready() -> void:
 	add_to_group("hud")
@@ -194,19 +207,147 @@ void fragment() {
 	_tasks_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_tasks_label)
 
-	_end_label = _label("", 32, Color(0.95, 0.9, 0.8))
-	_end_label.set_anchors_preset(Control.PRESET_CENTER)
-	_end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_end_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_end_label.offset_left = -420
-	_end_label.offset_right = 420
-	_end_label.offset_top = -40
-	_end_label.offset_bottom = 40
-	add_child(_end_label)
+	_build_doc_panel()
+	_build_intro_panel()
+	_build_end_panel()
+
+func _panel_box(width: int) -> PanelContainer:
+	# Panel baca/akhir yang sama gayanya: gelap, pinggir terang tipis.
+	var p := PanelContainer.new()
+	p.set_anchors_preset(Control.PRESET_CENTER)
+	p.offset_left = -width
+	p.offset_right = width
+	p.offset_top = -190
+	p.offset_bottom = 190
+	p.visible = false
+	add_child(p)
+	return p
+
+func _panel_column(panel: PanelContainer) -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	panel.add_child(box)
+	return box
+
+func _big_button(text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(0, 48)
+	b.add_theme_font_size_override("font_size", 19)
+	return b
+
+## Panel baca dokumen (koran / surat). Game di-pause selama membaca.
+func _build_doc_panel() -> void:
+	_doc_panel = _panel_box(320)
+	var box := _panel_column(_doc_panel)
+	_doc_title = _label("", 22, Color(0.95, 0.9, 0.78))
+	_doc_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_doc_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_doc_title)
+	_doc_body = _label("", 17)
+	_doc_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_doc_body)
+	var close_btn := _big_button("Tutup (E)")
+	close_btn.pressed.connect(close_document)
+	box.add_child(close_btn)
+
+func show_document(title: String, body: String) -> void:
+	_doc_title.text = title
+	_doc_body.text = body
+	_doc_panel.visible = true
+	_doc_open = true
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func close_document() -> void:
+	if not _doc_open:
+		return
+	_doc_panel.visible = false
+	_doc_open = false
+	get_tree().paused = false
+
+## Intro shift (brief v7): 3 baris, bisa di-skip dengan E / tombol.
+func _build_intro_panel() -> void:
+	_intro_panel = _panel_box(320)
+	var box := _panel_column(_intro_panel)
+	var title := _label("POS JAGA 07 — 22:00", 22, Color(0.95, 0.9, 0.78))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var body := _label("Taman Nasional Malayunesia. Shift malam: 22:00 sampai 06:00.\n\nTugasmu: jaga lampu tetap menyala, tulis laporan, dan jangan buka pintu untuk yang mengetuk dari arah hutan.\n\nPenjaga sebelumnya pergi tanpa pamit. Di atas meja ada koran dan surat yang tidak ia bawa. Bacalah.", 17)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(body)
+	var start_btn := _big_button("Mulai Shift (E)")
+	start_btn.pressed.connect(close_intro)
+	box.add_child(start_btn)
+
+func show_intro() -> void:
+	_intro_panel.visible = true
+	_intro_open = true
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+func close_intro() -> void:
+	if not _intro_open:
+		return
+	_intro_panel.visible = false
+	_intro_open = false
+	get_tree().paused = false
+
+## Layar akhir beneran (brief v7): judul + payoff cerita + satu
+## kalimat faktual + tombol kembali ke menu / main lagi. Menggantikan
+## label teks satu baris yang dulu cuma bilang shift selesai.
+func _build_end_panel() -> void:
+	_end_panel = _panel_box(360)
+	var box := _panel_column(_end_panel)
+	_end_title = _label("", 26, Color(0.95, 0.9, 0.78))
+	_end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_end_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_end_title)
+	_end_body = _label("", 17)
+	_end_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_end_body)
+	var menu_btn := _big_button("Kembali ke Menu")
+	menu_btn.pressed.connect(_on_end_menu_pressed)
+	box.add_child(menu_btn)
+	var replay_btn := _big_button("Main Lagi")
+	replay_btn.pressed.connect(_on_end_replay_pressed)
+	box.add_child(replay_btn)
+
+func _on_end_menu_pressed() -> void:
+	get_tree().paused = false
+	_end_open = false
+	get_tree().change_scene_to_file("res://scenes/menu.tscn")
+
+func _on_end_replay_pressed() -> void:
+	get_tree().paused = false
+	_end_open = false
+	GameState.reset_shift()
+	GameState.skip_intro = true
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 func _unhandled_input(event: InputEvent) -> void:
+	# E menutup dokumen / intro yang sedang terbuka. Pemain dalam
+	# keadaan pause, jadi E tidak sampai ke player (tidak memicu
+	# interaksi kedua di belakang panel).
+	# set_input_as_handled() WAJIB: _unhandled_input dipanggil dalam
+	# urutan terbalik (anak terakhir dulu), jadi HUD menutup panel
+	# DULU lalu event yang sama sampai ke player — tanpa ini, player
+	# yang sudah tidak pause akan berinteraksi lagi dan membuka
+	# dokumen yang sama persis (bug v12: E tidak bisa menutup surat).
+	if event.is_action_pressed("interact"):
+		if _doc_open:
+			close_document()
+			get_viewport().set_input_as_handled()
+			return
+		if _intro_open:
+			close_intro()
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed("pause"):
+		if _doc_open or _intro_open or _end_open:
+			return
 		toggle_pause()
+		get_viewport().set_input_as_handled()
 
 ## Dipakai tombol II di TouchControls dan tombol ESC.
 func toggle_pause() -> void:
@@ -269,6 +410,9 @@ func _process(delta: float) -> void:
 	_blink_t += delta
 	if _rec_label:
 		_rec_label.modulate.a = 0.55 + 0.45 * sin(_blink_t * 2.4)
+	# Prompt interaksi disembunyikan selama panel terbuka / pause,
+	# supaya teksnya tidak menimpa panel dokumen (kelihatan di
+	# screenshot v12 doc_newspaper).
 
 func show_message(text: String) -> void:
 	_message_label.text = text
@@ -290,5 +434,17 @@ func _refresh_tasks() -> void:
 	_tasks_label.text = "\n".join(lines)
 
 func _on_shift_ended(success: bool) -> void:
-	_end_label.text = "06:00 - Shift selesai. Kamu masih di sini." if success else "Shift berakhir. Pos kosong sebelum pagi."
+	var reason := GameState.end_reason
+	if success:
+		_end_title.text = "06:00 — Fajar"
+		_end_body.text = "Kamu masih di sini. Lampu pos masih menyala, laporan sudah tertulis, dan kabut akhirnya menipis. Di luar, hutan diam. Giant tidak pernah menampakkan dirinya utuh, dan pagi ini ia pergi seperti ia datang: tanpa penjelasan.\n\n" + CLOSING_FACT
+	else:
+		_end_title.text = "Shift Berakhir Sebelum Pagi"
+		if reason == "sanity":
+			_end_body.text = "Kamu menatap terlalu lama pada hal yang tidak seharusnya dilihat. Pagi datang, tapi pos jaga sudah kosong. Yang tertinggal hanya laporan setengah tertulis dan radio yang masih menyala.\n\n" + CLOSING_FACT
+		else:
+			_end_body.text = "Lampu padam dan gelap memakan pos ini sebelum pagi. Generator diam, lentera padam, dan kabut masuk lewat celah pintu.\n\n" + CLOSING_FACT
+	_end_panel.visible = true
+	_end_open = true
+	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

@@ -5,6 +5,73 @@ Ini versi native dari prototipe browser sebelumnya: bukan halaman web, jadi tida
 
 Setting: **pos jaga** (bukan rumah) di Taman Nasional **Malayunesia**. Kamu penjaga shift malam, 22:00 sampai 06:00. Jaga pos ini. Jangan biarkan mereka kembali.
 
+## Handover card — v7 (2026-11-16, cara kerja Claude Code Game Studios)
+
+Brief satu halaman: `design/game-brief.md` (kata-kata Arya
+dipertahankan, tiap baris dicek built/missing/broken dari screenshot
+dan kode — lihat bagian "Cek per baris" di brief).
+
+### Yang baru di v7
+- **Koran Harian Rimba Post bisa dibaca** (`scripts/interactables/readable.gd`,
+  `doc_id=newspaper`): di ujung kiri depan meja, E untuk membaca, panel
+  judul "HARIAN RIMBA POST" + headline "Gajah Liar Masuk Kebun Sawit,
+  Petani Rugi Miliaran" + kalimat "yang tidak ditulis koran ini" +
+  catatan alas makan. Kertas + garis cetakan di atas meja.
+- **Surat izin pelepasan hutan 12.400 hektar bisa dibaca**
+  (`doc_id=permit`): di ujung kanan meja, stempel merah, catatan tangan
+  "gajah sudah tidak ada di sini".
+- **Intro singkat, bisa di-skip (E / tombol)**: Pos Jaga 07, shift
+  22:00-06:00, tugas jaga lampu + tulis laporan + jangan buka pintu
+  untuk yang mengetuk dari hutan, penjaga sebelumnya pergi tanpa pamit.
+- **Ending beneran, menang dan kalah**: judul + payoff cerita + satu
+  kalimat faktual ("Di Malayunesia, gajah adalah satwa dilindungi;
+  setiap tahun, ribuan hektar hutan tempat mereka hidup berubah menjadi
+  kebun sawit."), tombol Kembali ke Menu / Main Lagi. "Main Lagi"
+  melewati intro sekali.
+
+### Yang lolos QA v7 (Godot 4.3, Xvfb 1280x720)
+- `mode=story` **PASS fails=0**: koran dibidik + dibuka + ditutup
+  pakai E, surat dibidik + dibuka + ditutup pakai E, ending menang
+  (alasan `dawn`, judul "06:00 — Fajar", kalimat penutup ada), ending
+  kalah (alasan `sanity`, judul "Shift Berakhir Sebelum Pagi").
+- `mode=playtest` **PASS fails=0** (regresi, Sanity akhir 100).
+- `mode=verify` bersih (registry 42 nama, 0 hilang).
+- Intro dicek **run langsung** `scenes/main.tscn` (tanpa rig) +
+  screenshot `v12_intro.png`.
+- Screenshot: `v12_doc_newspaper.png`, `v12_doc_permit.png`,
+  `v12_ending_win.png`, `v12_ending_lose.png`, `v12_desk_docs.png`,
+  `v12_desk_docs_close.png`, `v12_desk_docs_top.png`
+  (di `~/workspace/godot/shots/`).
+
+### Bug yang ketemu QA v7 (diperbaiki, lolos ulang)
+- **Koran tidak bisa dibidik dari spawn**: raycast mengenai hitbox
+  radio dulu (radio berdiri di antara kamera dan koran). Perbaiki:
+  koran pindah ke ujung kiri depan meja (-2.05, 1.07, 1.05) di luar
+  bayangan radio, hitbox radio diperkecil jadi pas ukuran radio
+  (0.55 x 0.42 x 0.32), kertas diputar searah lebar meja.
+- **E tidak bisa menutup dokumen**: `_unhandled_input` dipanggil
+  urutan terbalik (HUD dulu, player belakangan), jadi HUD menutup panel
+  lalu event E yang sama sampai ke player dan membuka dokumen itu lagi.
+  Perbaiki: `get_viewport().set_input_as_handled()` setelah HUD menutup
+  panel / toggle pause. Tombol E sentuh juga menutup dokumen kalau ada
+  yang terbuka, bukan memicu interaksi lagi.
+- **Prompt interaksi menimpa panel dokumen** (kelihatan di screenshot
+  v12 pertama): prompt disembunyikan selama panel / pause terbuka
+  (`hud.gd` `_process`).
+
+### Yang masih rusak
+Tidak ada yang diketahui di lingkup v7. Lihat "Polish list" di brief
+untuk yang belum dikerjakan.
+
+### Yang ditebak (bukan kata Arya)
+- Posisi koran/surat di meja, teks intro, dan kalimat penutup faktual
+  ditulis asisten dengan nada Arya; belum disetujui kata per kata.
+- "Main Lagi" melewati intro sekali (bukan keputusan Arya).
+- Prioritas sensor-dulu dan durasi ~10 menit dari konsep v1 masih
+  asumsi asisten, belum dikonfirmasi Arya.
+
+**Not yet played by a person.**
+
 ## Cara membuka
 
 1. Install Godot **4.3 atau lebih baru** (https://godotengine.org/download).
@@ -47,11 +114,15 @@ tidak disimpan, event akan terpicu ulang kalau jamnya belum lewat.
   - `generator.gd` - nyala/matikan generator di samping pos; bahan bakar terkuras saat menyala; lampu pos ikut hidup/mati.
   - `radio.gd` - 5 potongan siaran bergiliran, termasuk headline Harian Rimba dan peringatan dari hutan.
   - `logbook.gd` - menulis laporan jaga (menyelesaikan tugas + memulihkan sedikit Sanity).
+  - `readable.gd` - dokumen cerita yang bisa dibaca (v7): koran
+    Harian Rimba Post + surat izin 12.400 hektar. E membuka panel
+    judul + isi + tombol "Tutup (E)"; game pause selama panel terbuka.
+    Posisi di `level_data.gd` (NEWSPAPER_POS, PERMIT_POS).
   - `lantern.gd` - lentera di dalam pos, nyala/matikan cahayanya.
   - `door.gd` - buka/tutup pintu pos.
 - **Sistem shift** (`scripts/game_state.gd`, autoload `GameState`): Sanity, Stability, bahan bakar, jam shift 22:00 ke 06:00 (1 detik nyata = 1 menit shift, shift penuh sekitar 8 menit), daftar tugas, sinyal untuk HUD. Generator mati = Stability terkuras; menyala = pulih perlahan.
 - **Event pemburu** (`scripts/hunter_event.gd`): pukul 01:30 dua sosok diam muncul di depan pos dan menatap, persis momen *No I'm Not a Human*. Menatap mereka menguras Sanity. Tutup pintu dan tunggu di dalam 12 detik untuk melewatinya dengan aman; event juga berakhir sendiri setelah 50 detik dengan harga Sanity.
-- **HUD** (`scripts/hud.gd`): titik crosshair di tengah, prompt interaksi, bar SANITY dan STABILITY di kiri bawah, jam + daftar tugas di kanan atas, pesan naratif yang memudar. Tidak ada panel yang menutupi tengah layar.
+- **HUD** (`scripts/hud.gd`): titik crosshair di tengah, prompt interaksi, bar SANITY dan STABILITY di kiri bawah, jam + daftar tugas di kanan atas, pesan naratif yang memudar. Tidak ada panel yang menutupi tengah layar. Sejak v7: panel dokumen, panel intro, dan panel ending (judul + payoff cerita + satu kalimat faktual + tombol menu / main lagi); prompt disembunyikan selama panel terbuka.
 - **Audio prosedural** (`scripts/audio.gd` + `assets/audio/*.wav`): angin (loop), dengung generator (loop), statis radio, derit pintu, langkah kaki, dan detak jantung saat Sanity di bawah 35. Semua WAV **disintesis dari kode** (noise/sine), tidak ada file audio berlisensi pihak ketiga.
 - **Lingkungan** (`scripts/main.gd`): tanah, jalan tanah, pagar kayu dengan celah gerbang, papan tanda, dan +/- 100 pohon prosedural mengelilingi pos. Kabut tebal + cahaya bulan redup dari `WorldEnvironment` di scene.
 
@@ -431,9 +502,14 @@ the-giant-godot/
     hunter_event.gd      event dua pemburu 01:30
     giant_event.gd       event kaki Giant 03:30 + mata Giant 04:45
     test_rig.gd          rig uji: shots/verify/win/lose/audio/
-                         touch/pause/save/playtest (v5)
+                         touch/pause/save/playtest/story/shots12 (v7)
     menu_shot.gd         uji menu headless (v5)
-    interactables/       generator, radio, logbook, lantern, door
+    interactables/       generator, radio, logbook, lantern, door,
+                         readable (v7: koran + surat)
+  design/
+    game-brief.md        brief satu halaman + cek per baris + cut +
+                         polish list (v7, cara kerja Claude Code
+                         Game Studios)
   tools/
     synth_audio.py       sintesis WAV prosedural (v5, numpy)
   assets/

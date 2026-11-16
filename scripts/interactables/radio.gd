@@ -20,7 +20,10 @@ func _build_visual() -> void:
 	# Tanpa kotak gelap: radio adalah sprite dari sheet.
 	var shape := CollisionShape3D.new()
 	var col := BoxShape3D.new()
-	col.size = Vector3(0.7, 0.5, 0.4)
+	# Hitbox pas ukuran radio, bukan pemurah: hitbox lama (0.7 lebar)
+	# menutupi koran di ujung kiri meja dari arah spawn, jadi koran
+	# tidak bisa dibidik (raycast mengenai radio dulu).
+	col.size = Vector3(0.55, 0.42, 0.32)
 	shape.shape = col
 	add_child(shape)
 	var spr := SpriteRegistry.billboard("radio", 0.0022)

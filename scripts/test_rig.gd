@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | verify | win | lose | audio | touch | pause | save | playtest
+## Mode: shots | shots11 | shots12 | verify | win | lose | audio | touch | pause | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -96,6 +96,10 @@ func _run() -> void:
 			await _mode_shots9e()
 		"shots11":
 			await _mode_shots11()
+		"shots12":
+			await _mode_shots12()
+		"story":
+			await _mode_story()
 		"verify":
 			await _mode_verify()
 		"win":
@@ -310,6 +314,108 @@ func _mode_shots11() -> void:
 	# Jendela ada di belakang pos (arah +z): hadap ke sana, bukan ke pintu.
 	await _set_view(Vector3(0, 0.45, 0.2), 180, 0)
 	await _shot("eye_fog")
+
+func _mode_shots12() -> void:
+	# v12 (brief v7): koran + surat di atas meja, dari sudut meja jaga.
+	GameState.set_generator(true)
+	await _set_view(Vector3(0.6, 0.45, 0.2), 140, -6)
+	await _shot("desk_docs")
+	# Dari dekat + senter: kertas koran dan stempel merah surat kebaca.
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _set_view(Vector3(-0.6, 0.45, 0.2), 125, -14)
+	await _shot("desk_docs_close")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# Dari atas meja, menunduk: kedua kertas di atas meja harus
+	# kebaca sebagai kertas (bukan cuma hitbox).
+	await _set_view(Vector3(-1.35, 0.45, -0.1), 178, -42)
+	await _shot("desk_docs_top")
+
+func _mode_story() -> void:
+	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.
+	# Rig menjalankan main.tscn dengan argumen mode=, jadi intro
+	# sengaja dilewati di sini (intro dicek lewat run langsung + ffmpeg).
+	var fails := 0
+	var hud := get_tree().get_first_node_in_group("hud")
+	_log("story: intro dilewati di rig=" + str(not hud._intro_open) + " (harus true)")
+	if hud._intro_open:
+		fails += 1
+	# 1. Koran: bidik, E, panel buka + pause, screenshot, E lagi tutup.
+	if not await _interact_at(Vector3(-2.05, 1.19, 1.05), "Koran"):
+		fails += 1
+		_log("story: koran FAIL bidik")
+	await _frames(5)
+	_log("story: koran panel buka=" + str(hud._doc_open) + " paused=" + str(get_tree().paused) + " judul='" + hud._doc_title.text + "'")
+	if not hud._doc_open or not get_tree().paused or not "HARIAN RIMBA" in hud._doc_title.text:
+		fails += 1
+		_log("story: koran FAIL panel/judul/pause")
+	if not "Gajah Liar Masuk Kebun Sawit" in hud._doc_body.text:
+		fails += 1
+		_log("story: koran FAIL headline tidak ada di isi")
+	await _shot("doc_newspaper")
+	await _press_interact() # E menutup dokumen
+	await _frames(5)
+	_log("story: koran tutup lewat E, panel buka=" + str(hud._doc_open) + " paused=" + str(get_tree().paused))
+	if hud._doc_open or get_tree().paused:
+		fails += 1
+		_log("story: koran FAIL tidak tertutup lewat E")
+		hud.close_document()
+	# 2. Surat izin: sama, cek angka 12.400 + catatan tangan.
+	if not await _interact_at(Vector3(-0.8, 1.19, 1.6), "Surat"):
+		fails += 1
+		_log("story: surat FAIL bidik")
+	await _frames(5)
+	_log("story: surat panel buka=" + str(hud._doc_open) + " judul='" + hud._doc_title.text + "'")
+	if not hud._doc_open or not "SURAT KEPUTUSAN" in hud._doc_title.text:
+		fails += 1
+		_log("story: surat FAIL panel/judul")
+	if not "12.400" in hud._doc_body.text or not "gajah sudah tidak ada di sini" in hud._doc_body.text:
+		fails += 1
+		_log("story: surat FAIL isi (12.400 / catatan tangan)")
+	await _shot("doc_permit")
+	await _press_interact()
+	await _frames(5)
+	_log("story: surat tutup lewat E, panel buka=" + str(hud._doc_open) + " paused=" + str(get_tree().paused))
+	if hud._doc_open or get_tree().paused:
+		fails += 1
+		_log("story: surat FAIL tidak tertutup lewat E")
+		hud.close_document()
+	# 3. Ending menang: sampai 06:00, panel akhir + kalimat faktual.
+	GameState.sanity = 100.0
+	GameState.stability = 100.0
+	GameState.set_generator(true)
+	GameState.shift_minutes = 470.0
+	var ok := await _wait_until(func() -> bool: return GameState.shift_over, 30.0)
+	_log("story: ending menang shift_over=" + str(ok) + " alasan=" + GameState.end_reason)
+	if not ok or GameState.end_reason != "dawn":
+		fails += 1
+	await _frames(5)
+	_log("story: ending menang panel buka=" + str(hud._end_open) + " paused=" + str(get_tree().paused) + " judul='" + hud._end_title.text + "'")
+	if not hud._end_open or not "Fajar" in hud._end_title.text:
+		fails += 1
+	if not "satwa dilindungi" in hud._end_body.text:
+		fails += 1
+		_log("story: ending menang FAIL kalimat faktual tidak ada")
+	await _shot("ending_win")
+	# 4. Ending kalah (Sanity 0): reset, sembunyikan panel, jatuhkan Sanity.
+	GameState.reset_shift()
+	hud._end_panel.visible = false
+	hud._end_open = false
+	get_tree().paused = false
+	await _frames(5)
+	GameState.damage_sanity(200.0)
+	await _frames(5)
+	_log("story: ending kalah shift_over=" + str(GameState.shift_over) + " alasan=" + GameState.end_reason + " judul='" + hud._end_title.text + "'")
+	if not GameState.shift_over or GameState.end_reason != "sanity":
+		fails += 1
+	if not hud._end_open or not "Sebelum Pagi" in hud._end_title.text:
+		fails += 1
+	if not "menatap terlalu lama" in hud._end_body.text or not "satwa dilindungi" in hud._end_body.text:
+		fails += 1
+		_log("story: ending kalah FAIL isi/payat")
+	await _shot("ending_lose")
+	_log("story: HASIL fails=" + str(fails) + " -> " + ("PASS" if fails == 0 else "FAIL"))
 
 func _mode_verify() -> void:
 	# Audit registry sprite + daftar semua Sprite3D di scene.
