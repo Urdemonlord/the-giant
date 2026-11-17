@@ -109,6 +109,44 @@ untuk senter, tombol **II** kiri atas untuk jeda
 (`scripts/touch_controls.gd`, muncul otomatis kalau layar sentuh
 tersedia).
 
+## Android (APK, v18, 2026-11-17)
+
+APK sudah dibangun dan terverifikasi di sandbox (bukan janji):
+
+- **Release** `the-giant-v18-android-release.apk` (30,3 MB): package
+  `id.meowlabs.thegiant`, versionCode 18, versionName 1.8.0, targetSdk
+  34, minSdk 21, landscape, launchable activity `com.godot.game.GodotApp`.
+  Di-sign keystore rilis Meow Labs, `apksigner verify` lolos, tidak
+  debuggable.
+- **Debug** `the-giant-v18-android-debug.apk` (31,6 MB): sama, tapi
+  di-sign debug keystore Godot dan debuggable (untuk tes di HP).
+- Kedua APK lolos `aapt2 dump badging` dan `unzip -t` (tidak korup).
+
+**Cara install di HP (sideload):** kirim APK ke HP, ketuk file-nya,
+izinkan "Install dari sumber tidak dikenal" kalau diminta, lalu
+install. HP harus Android 5.0+ (API 21), arsitektur arm64. Mainkan
+dalam posisi landscape; game berjalan immersive (layar penuh).
+Kontrol sentuh sama seperti di atas: joystick kiri jalan, geser kanan
+untuk melihat, E / SENTER / II.
+
+**Batas jujur:** APK belum pernah di-install dan dimainkan di HP asli
+(tidak ada device/emulator di sandbox); touch controls baru
+diverifikasi rig (`mode=touch`), bukan jari manusia. Volumetric fog
+butuh Forward+ dan tidak jalan di Android (GL Compatibility, fallback
+ke exponential fog + billboard, sama seperti Web).
+
+**Build ulang:** butuh JDK 17 (`~/jdk17`) + Android SDK
+(`~/android-sdk`: cmdline-tools, platform-tools, build-tools 34.0.0,
+platform android-34; `ANDROID_HOME=~/android-sdk`). Godot 4.3 headless:
+`--export-debug "Android"` / `--export-release "Android"`. Keystore
+rilis ada di `android-release.keystore` (alias `thegiant`, berlaku
+sampai 2054-04-04, JANGAN hilang: update APK wajib pakai keystore
+yang sama, dan file ini di-gitignore); password-nya di
+`~/.local/share/godot/keystores/release-keystore-pass.txt` (mode 600,
+di luar repo). Preset `export_presets.cfg` menyimpan path + alias
+keystore, password-nya TIDAK di-commit dan diisi lewat env
+`GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD` saat export.
+
 ## Menu utama, save, pause (v5)
 
 Game mulai dari **menu utama** (`scenes/menu.tscn`, scene utama proyek):
@@ -844,9 +882,10 @@ baru di `scripts/balance.gd`, satu tempat tune seperti biasa.
 - Audio tetap sintesis prosedural dan **belum pernah didengar telinga
   manusia** (sandbox tanpa sound card); yang diverifikasi adalah bentuk
   gelombang + jalur play (lihat "v5" di bawah).
-- Export Android belum pernah dicoba: tidak ada Java/Android SDK di
-  sandbox, jadi APK tidak bisa dibangun di sini. Preset-nya ada, tapi
-  belum terbukti.
+- Export Android: **sudah dibangun (v18, 2026-11-17)** — APK debug +
+  release terverifikasi (`aapt2 dump badging`, `apksigner verify`,
+  `unzip -t`); lihat "Android (APK, v18)" di atas. Belum pernah
+  di-install di HP asli.
 - Export Windows: **sudah dijalankan Arya di Windows asli (v12,
   2026-11-16)** — game jalan sampai intro, bug mouse look ketemu
   dari main sungguhan (diperbaiki di v13). v11 sempat rusak (zip
@@ -918,10 +957,9 @@ Windows Desktop (`builds/windows/THE-GIANT.exe`, PE x86_64) dan Web
 (`builds/web/index.html` + `.pck` + `.wasm`, dicek serve lokal +
 respons HTTP 200). Cara export ulang: Project > Export, atau
 `Godot --headless --path . --export-release "Windows Desktop"
-../builds/windows/THE-GIANT.exe` (dan `"Web"`). Android **belum**:
-tidak ada Java/Android SDK di sandbox (`which java/adb/sdkmanager`
-kosong, `ANDROID_HOME` tidak disetel), jadi APK tidak dibangun; preset
-Android tetap ada di `export_presets.cfg` untuk nanti.
+../builds/windows/THE-GIANT.exe` (dan `"Web"`). Android: lihat
+"Android (APK, v18)" — APK debug + release sudah dibangun 2026-11-17
+dari preset yang sama.
 
 ### 7. Mata Giant lebih tajam (item 8)
 Mata asli di sheet Arya ternyata cuma ~25 px, jadi crop lama (kulit

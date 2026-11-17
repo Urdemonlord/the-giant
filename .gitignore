@@ -2,3 +2,4 @@
 *.import
 builds/
 .DS_Store
+android-release.keystore
