@@ -597,6 +597,70 @@ kertas masih cukup lurus di tengah; label kepala terpotong 1px di portrait
 letterbox (bawaan v20); slider + CheckButton Options dan HUD dalam game
 masih default. Sprite menu tetap kelas PLACEHOLDER.
 
+## Menu utama v22: Opsi B diegetic, meja pos jaga (2026-11-18)
+
+Kritik Arya 03:00 WIB (4 poin, semua dijawab): 1) tombol harus menonjol,
+tekstur kusut di belakangnya terlalu ramai; 2) "Buku jaga, Pos 07" keluar
+dari kertas dan tenggelam ke gelap, garis merah terlalu mepet; 3) jangan
+campur CCTV (REC CAM 07 + grain) dengan kertas fisik, pilih SATU arah,
+Arya pilih Opsi B: kamera menyorot meja kayu di depan jendela, buku jaga
+tergeletak + lentera fisik di sampingnya, klik tulisan di kertas untuk
+mulai; 4) cahaya datar, kabut merata, Giant kurang mengancam.
+- Kamera di DALAM pos, utara meja, menghadap selatan (yaw 180, pitch -24,
+  FOV 62, pos (-1.30, 2.10, 0.15), `Balance.MENU_DESK_CAM_*`). Buku jaga
+  TERBUKA di atas meja adalah menu-nya: halaman kiri judul + logo, halaman
+  kanan 4 baris (Start / Continue / Options / Exit) sebagai tinta gelap
+  Label3D di atas kertas, klik baris (raycast ke bidang meja) atau keyboard
+  (atas/bawah + Enter). Hover: highlight hangat redup di baris.
+- Halaman buku v22 (`tools/make_menu_book_v22.py`, seed 22, dari foto
+  perkamen asli yang sama dengan v20, `tools/ref/REFERENCES.md`): jauh
+  lebih terang dari v20/v21 supaya tinta gelap terbaca (mean lum 146/147,
+  form 166), tepi sobek alpha. Logo v20 dipakai ulang tapi ditintai tinta
+  gelap (aslinya teks terang untuk latar gelap, tidak kelihatan di kertas
+  terang). Halaman + logo pakai `ALPHA_CUT_DISCARD` (halaman transparan
+  yang di-sort berdasarkan jarak sempat menutupi teks yang lebih jauh).
+- Yang DIHAPUS dari menu: label REC CAM 07 + dot, overlay CCTV/scanline/
+  tear, ikon lentera di Continue, coretan merah di bawah Exit, jejak kaki
+  di bawah tombol, panel kertas tempel + tombol strip kertas. HUD dalam
+  game BOLEH tetap VHS; yang dihapus hanya menu. Grain tinggal 0.05
+  sebagai grade halus, bukan bingkai CCTV.
+- Pencahayaan: ambient 0.30 (lebih gelap), bulan 0.80 dari barat daya
+  jadi rim/back light, lentera diredupkan (dim_factor 0.6) tapi tetap
+  titik fokus hangat di halaman. Kabut menu lebih tipis dari malam game
+  (0.05/0.025) supaya Giant terbaca lewat jendela.
+- Giant di jendela: BUKAN siluet utuh 13 m (tiga kali gagal: kaki
+  selebar beberapa piksel dibaca batang pohon lewat kabut). Sekarang
+  `giant_foot` close-up (sprite yang sama dengan event kaki 03:30),
+  4 m di 6 m dari jendela, tint terang (2.0, 2.1, 2.0) supaya terpisah
+  dari hutan gelap, di tengah jendela. Yang terbaca: kaki raksasa
+  berkerut di kabut, bukan bukit. Puff kabut di kusen dihapus (menutupi
+  kaki); radio disembunyikan di menu saja (badannya menutupi baris
+  Start/Continue dari sudut kamera meja).
+- Bug yang ditemukan lewat screenshot (bukan lewat log): halaman
+  tertukar kiri-kanan (kamera menghadap selatan, +x adalah kiri pembaca);
+  tinta shaded terbakar putih di bawah lentera (teks + logo jadi
+  unshaded); CA 0.008 membuat teks berpinggiran merah/hijau (turun ke
+  0.003); tepi dekat buku terpotong (kamera mundur/naik, FOV 62).
+- Rig menu v25 (`scripts/menu_shot.gd`, PREFIX v25, portrait v25p):
+  desktop 1280x720 PASS 27/0, portrait 720x1280 PASS 27/0 (klik
+  sungguhan Options + Kembali, save dummy -> Continue hidup, tanpa
+  save -> Continue mati "no record on file", tanpa CCTV, grain 0.05).
+  Pelajaran rig: headless TIDAK menghasilkan screenshot (renderer
+  dummy) — semua run pakai Xvfb; klik yang di-inject lewat
+  `parse_input_event` masuk sebagai koordinat jendela lalu
+  ditransformasi stretch ke kanvas, jadi di portrait posisi klik
+  harus dikonversi kanvas -> jendela manual (skala + offset letterbox);
+  `get_canvas_transform()` identitas di portrait, tidak bisa dipakai.
+  Mode verify PASS (0 FAIL); mode playtest PASS fails=0 (5 tugas,
+  Sanity 100); menu_autostart=1 masuk scene main (fog game 0.04/0.03
+  setelah transisi, bukan fog menu).
+- Batas jujur: di portrait 720x405 dasar lentera sedikit menyentuh
+  huruf "T" logo (masih terbaca); kaki Giant terbaca sebagai kaki
+  berkerut, bukan kaki gajah utuh dengan jari (telapaknya terpotong
+  tepi bawah jendela); slider + CheckButton Options sudah di-skin
+  (track gelap, grabber hangat), HUD dalam game masih font default.
+  Sprite menu tetap kelas PLACEHOLDER.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya

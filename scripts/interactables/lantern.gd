@@ -3,6 +3,9 @@ extends StaticBody3D
 ## Pos yang terang menahan Stability; gelap menggerusnya (diurus Main).
 
 var is_on := true
+var dim_factor := 1.0 # v22 menu: lentera diredupkan (0.6) supaya
+# cahaya hangatnya tidak membakar tepi jauh buku jaga di menu.
+# Default 1.0 = permainan tidak berubah.
 var _light: OmniLight3D
 var _flicker_t := 0.0
 
@@ -13,7 +16,7 @@ func _process(delta: float) -> void:
 	_flicker_t -= delta
 	if _flicker_t <= 0.0:
 		_flicker_t = 0.12
-		_light.light_energy = 2.0 + randf_range(-0.18, 0.18)
+		_light.light_energy = 2.0 * dim_factor + randf_range(-0.18, 0.18) * dim_factor
 
 func _ready() -> void:
 	add_to_group("interactable")
@@ -33,7 +36,7 @@ func _build_visual() -> void:
 	_light = OmniLight3D.new()
 	_light.position = Vector3(0, 0.25, 0)
 	_light.light_color = Color(1.0, 0.72, 0.4)
-	_light.light_energy = 2.0
+	_light.light_energy = 2.0 * dim_factor
 	_light.omni_range = 9.0
 	add_child(_light)
 	var spr := SpriteRegistry.billboard("lantern", 0.0016)

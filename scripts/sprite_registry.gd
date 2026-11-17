@@ -8,7 +8,7 @@ class_name SpriteRegistry
 ## Audit: jalankan test rig mode=verify, ia memanggil validate() dan
 ## mencatat sprite yang hilang; game tetap jalan (fallback kotak).
 
-## Semua sprite yang dipakai game (63). Satu nama = satu file
+## Semua sprite yang dipakai game (66). Satu nama = satu file
 ## res://assets/sprites/<nama>.png. Jangan tambah sprite baru tanpa
 ## mendaftarkannya di sini.
 const ALL_NAMES: Array[String] = [
@@ -19,7 +19,9 @@ const ALL_NAMES: Array[String] = [
 	"footprint", "gate", "generator", "giant_eye", "giant_foot",
 	"guard_back", "guard_front", "guard_hut", "hunter",
 	"hunter_rifle", "lantern", "log", "logbook", "meter",
-	"menu_btn_v20", "menu_btn_v20_hover", "menu_btn_v20_pressed",
+	"menu_book_page_l", "menu_book_page_r", "menu_btn_v20",
+	"menu_btn_v20_hover", "menu_btn_v20_pressed",
+	"menu_form_page",
 	"menu_giant_v21",
 	"menu_ledger_v20", "menu_ledger_v21", "menu_logo_v20", "menu_rec_v20",
 	"menu_stamp_v20",

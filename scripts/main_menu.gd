@@ -1,49 +1,74 @@
 extends Control
-## Menu utama THE GIANT — BUKU JAGA POS 07.
-## Dibangun dari kode supaya menu.tscn tetap ramping.
+## Menu utama THE GIANT v22 — Opsi B (diegetic, meja pos jaga).
+## Rebuild konsep (bukan poles) atas kritik desain 2026-11-18:
+## menu v17-v21 mencampur dua arah visual (layar CCTV REC CAM 07 +
+## kertas fisik ditempel rata) dan kertasnya mengambang di atas
+## backdrop. v22 memilih SATU arah: kamera menyorot MEJA KAYU pos
+## jaga di depan jendela selatan (lihat main.gd _setup_menu_backdrop).
+## Buku jaga terbuka tergeletak di atas meja, lentera fisik menyala
+## di sampingnya, hutan gelap + Giant di luar jendela. Buku itu
+## sendiri adalah menu-nya: klik baris tulisan di halaman untuk
+## memilih. Lentera sudah ada sebagai benda di meja, bukan ikon.
+##
+## Yang dihapus dari menu (bukan disembunyikan): label REC CAM 07 +
+## dot REC, overlay scanline/tear CCTV, ikon lentera di tombol
+## Continue, stempel/coretan merah di bawah Exit, jejak kaki di bawah
+## tombol, panel kertas tempel + tombol strip kertas. HUD di dalam
+## game BOLEH tetap VHS — yang dihapus hanya di menu.
+## Yang dijawab dari kritik: (1) baris menu jadi tulisan dengan
+## highlight redup saat hover — zona teks halaman dibuat tenang
+## (blur tengah) supaya tidak bertabrakan dengan kerut foto;
+## (2) "Buku jaga, Pos 07" masuk ke dalam halaman paling atas dengan
+## tinta gelap (mesin tik), padding lega di sekitar judul, garis
+## merah diberi jarak dari judul; (3) satu arah visual (meja), tanpa
+## CCTV; (4) ambient lebih gelap + bulan dikuatkan jadi rim light
+## (di main.gd, bukan di sini).
+##
+## Cara kerja: teks menu adalah Label3D yang tergeletak di atas
+## halaman buku 3D (cover + 2 halaman dari foto perkamen asli v20).
+## Klik/hover dihitung dari raycast kamera menu ke bidang meja
+## (lihat _ray_to_book) — bukan tombol Control. Keyboard tetap jalan
+## (atas/bawah + Enter). Layar Options tetap formulir Control (lembar
+## formulir di atas meja) supaya slider/toggle tetap bisa dipakai;
+## ia memakai tekstur kertas yang sama + tinta gelap.
+##
 ## START = reset shift, masuk main.tscn (lewat intro).
 ## CONTINUE = load user://savegame.json (kalau ada), masuk main.tscn.
 ## OPTIONS = layar peralatan pos (pengaturan + cara main).
 ## EXIT = keluar dari game (disembunyikan di web: quit tidak
 ## menutup tab browser).
-##
-## v18 (arah unslop, tema buku jaga): menu INI buku jaga pos.
-## Produk = daftar shift malam penjaga Pos 07, dibaca lewat kamera
-## pos yang rusak. Karakter = tenang, waspada, birokratis.
-## Dunia = buku log kertas + formulir ketikan + stempel karet,
-## grain VHS, REC CAM 07, lentera. Momen = garis aturan buku
-## (ruled line) di bawah judul + stempel REC. Signature = suara
-## buku jaga: setiap teks adalah catatan di dunia (kepala log,
-## catatan dinas, formulir peralatan), tidak pernah suara toko
-## yang mendeskripsikan game.
-## Footer blurb v15/v17 ("Sebuah cerita horor psikologis. Giant
-## tidak pernah tampil utuh.") DIHAPUS — itu suara toko, bukan
-## suara penjaga. Label tombol persis kata pemilik: Start,
-## Continue, Options, Exit (bahasa Inggris karena begitu yang
-## diminta; bukan pelanggaran sentence case, itu nama kanonik).
-## v17: latar 3D hidup (scene main mode backdrop) tetap; sistem
-## panel/tombol v15 tetap; stempel "● REC   CAM 07" tetap.
-## v19: sprite Main UI — logo "THE GIANT" rusak VHS, panel kertas
-## buku jaga (menu_ledger), tombol strip kertas (menu_btn*),
-## dot REC + ikon lentera/jejak dari sheet Arya. Semua sprite baru
-## digambar prosedural (tools/make_menu_sprites.py): PLACEHOLDER,
-## bukan art final. Tombol default Godot sudah tidak ada lagi di
-## menu utama; slider/check di Options masih default (dicatat di
-## README, bukan disembunyikan).
 
-var _menu_box: VBoxContainer
 var _options_scroll: ScrollContainer
-var _stamp: TextureRect
-var _start_btn: Button
-var _continue_btn: Button
-var _options_btn: Button
-var _exit_btn: Button
 var _master_slider: HSlider
 var _sens_slider: HSlider
 var _fullscreen_check: CheckButton
 var _grain_check: CheckButton
 var _fx_mat: ShaderMaterial
 var _ui_layer: CanvasLayer
+
+## v22: buku jaga 3D di atas meja (bukan panel Control).
+## Geometri meja: tengah (-1.30, 1.11, 1.35), 2,2 x 0,8. Buku
+## 2,0 x 0,70 menutupi hampir seluruh meja; halaman kiri
+## x -2,27..-1,31, halaman kanan x -1,29..-0,33; z 0,95..1,61.
+## y: cover 1,1175 (puncak 1,125), halaman 1,130, highlight 1,133,
+## teks 1,136. Jarak antar lapis 0,003-0,005: cukup untuk hindari
+## z-fighting, cukup rapat untuk terlihat menempel di halaman.
+const BOOK_CENTER := Vector3(-1.30, 1.13, 1.28)
+const PAGE_Y := 1.130
+const HIGHLIGHT_Y := 1.133
+const TEXT_Y := 1.136
+const INK := Color(0.13, 0.10, 0.07) # tinta gelap (mesin tik)
+const INK_DIM := Color(0.38, 0.35, 0.30) # tinta redup (baris mati)
+const INK_BODY := Color(0.22, 0.19, 0.15) # tinta isi (sub-teks)
+const INK_RULE := Color(0.45, 0.13, 0.08) # garis merah (tinta)
+const HIGHLIGHT := Color(0.85, 0.66, 0.23, 0.30) # sorot hover
+const HIGHLIGHT_SEL := Color(0.85, 0.66, 0.23, 0.45) # sorot pilihan
+
+## Baris menu: nama, pusat (x, z di bidang meja), setengah ukuran
+## (x, z), aksi. Kiri-kanan halaman kanan (x -1,27..-0,35).
+var _rows: Array = []
+var _hovered := ""
+var _selected := 0
 
 ## v22 ronde 2: font mono untuk seluruh menu (suara UI kamera,
 ## sesuai design read). Font default Godot adalah bagian paling
@@ -58,7 +83,7 @@ func _ready() -> void:
 	# seperti pilihan pemain dari frame pertama.
 	Settings.apply_all()
 	# v17: latar 3D hidup — scene main yang sama, mode backdrop
-	# (main.gd: tidak ada shift/event/HUD, kamera menu sendiri).
+	# (main.gd: tidak ada shift/event/HUD, kamera meja sendiri).
 	# Dibuat SEBELUM _build() supaya UI tergambar di atasnya; ikut
 	# ter-free saat ganti scene, tidak ada yang bocor ke permainan.
 	var level: Node = (load("res://scenes/main.tscn") as PackedScene).instantiate()
@@ -75,9 +100,9 @@ func _ready() -> void:
 	_ui_layer.name = "MenuLayer"
 	_ui_layer.layer = 1
 	add_child(_ui_layer)
-	_build_fx_and_stamp()
-	_build_ledger()
-	_build_menu_box()
+	_build_grade()
+	_build_book()
+	_build_book_text()
 	_build_options_box()
 	_show_main()
 	# Hook uji headless: jalankan menu dengan `-- menu_autostart=1`
@@ -94,201 +119,422 @@ func _ready() -> void:
 			await get_tree().process_frame
 			_on_exit()
 
-func _unhandled_input(event: InputEvent) -> void:
-	# v18: Esc di layar Options kembali ke menu utama.
-	if _options_scroll.visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
-		_show_main()
-		get_viewport().set_input_as_handled()
-
-func _build_fx_and_stamp() -> void:
-	# v17: latar belakang BUKAN lagi ColorRect hitam — di belakang
-	# kontrol ini ada scene main hidup (Backdrop). Yang pertama
-	# digambar adalah shader VHS yang sama dengan game (satu file
-	# dengan hud.gd: assets/shaders/vhs.gdshader), jadi latar menu
-	# kelihatan lewat kamera pos yang rusak; teks menu ditambah
-	# SETELAH-nya supaya tetap bersih (persis pola HUD: fx dulu,
-	# teks belakangan).
+## v22: grade halus, BUKAN bingkai CCTV. Shader VHS yang sama
+## dipakai HUD, tapi parameternya dimatikan satu per satu: tidak ada
+## scanline, tidak ada tracking tear, tidak ada flicker; grain kecil
+## saja (ikut Settings), desat + CA + vignette tipis sebagai grade
+## foto, bukan sebagai layar monitor rusak.
+func _build_grade() -> void:
 	var fx := ColorRect.new()
 	fx.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fx.color = Color(1, 1, 1, 1)
 	var sm := ShaderMaterial.new()
 	sm.shader = load("res://assets/shaders/vhs.gdshader") as Shader
-	# v18: grain ikut Settings — mati = 0, bukan bawaan.
-	sm.set_shader_parameter("grain", Balance.VHS_GRAIN if Settings.grain_on() else 0.0)
-	sm.set_shader_parameter("scanline", Balance.VHS_SCANLINE)
-	sm.set_shader_parameter("ca", Balance.VHS_CA)
-	sm.set_shader_parameter("desat", Balance.VHS_DESATURATE)
-	sm.set_shader_parameter("vignette", Balance.VHS_VIGNETTE)
-	sm.set_shader_parameter("flicker", Balance.VHS_FLICKER)
-	sm.set_shader_parameter("tear_shift", Balance.VHS_TEAR_SHIFT)
+	sm.set_shader_parameter("grain", Balance.MENU_GRADE_GRAIN if Settings.grain_on() else 0.0)
+	sm.set_shader_parameter("scanline", Balance.MENU_GRADE_SCANLINE)
+	sm.set_shader_parameter("ca", Balance.MENU_GRADE_CA)
+	sm.set_shader_parameter("desat", Balance.MENU_GRADE_DESAT)
+	sm.set_shader_parameter("vignette", Balance.MENU_GRADE_VIGNETTE)
+	sm.set_shader_parameter("flicker", Balance.MENU_GRADE_FLICKER)
+	sm.set_shader_parameter("tear_shift", Balance.MENU_GRADE_TEAR)
 	fx.material = sm
 	_fx_mat = sm
 	_ui_layer.add_child(fx)
-	# Vignette tipis di menu supaya tidak terasa seperti layar kosong.
-	var vig := ColorRect.new()
-	vig.color = Color(0, 0, 0, 0.35)
-	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(vig)
-	# v19: stempel REC sebagai dot sprite + teks (dulu satu Label
-	# dengan karakter "●"). Satu detail signature yang mengikat
-	# menu dan game. Bukan dekorasi baru, tapi identitas yang
-	# sudah ada dipakai konsisten.
-	var rec_row := HBoxContainer.new()
-	rec_row.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	rec_row.offset_left = 18
-	rec_row.offset_right = 220
-	rec_row.offset_top = 12
-	rec_row.offset_bottom = 40
-	rec_row.add_theme_constant_override("separation", 8)
-	rec_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(rec_row)
-	var rec_dot := TextureRect.new()
-	rec_dot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rec_dot.texture = SpriteRegistry.texture("menu_rec_v20")
-	rec_dot.custom_minimum_size = Vector2(22, 22)
-	rec_dot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	rec_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rec_row.add_child(rec_dot)
-	var rec := Label.new()
-	rec.text = "REC   CAM 07"
-	rec.add_theme_font_override("font", MENU_FONT)
-	rec.add_theme_font_size_override("font_size", 16)
-	rec.add_theme_color_override("font_color", Color(0.85, 0.25, 0.15))
-	rec.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rec_row.add_child(rec)
 
-## v19: kertas buku jaga di belakang kolom menu (dan Options —
-## keduanya di kolom yang sama, jadi satu panel cukup). Panel
-## polos sudah tidak ada: teks menu sekarang duduk di atas kertas,
-## bukan melayang di atas backdrop 3D.
-func _build_ledger() -> void:
-	var ledger := TextureRect.new()
-	ledger.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	# v21: tepi sobek alpha + cahaya hangat tepi kanan (lampu teras).
-	# v20 fully opaque = persegi keras yang ditempel; itu separuh
-	# alasan menu dinilai 3/10. Tekstur v21 dari foto yang sama.
-	ledger.texture = SpriteRegistry.texture("menu_ledger_v21")
-	ledger.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	ledger.offset_left = 88
-	ledger.offset_right = 548
-	ledger.offset_top = -290
-	ledger.offset_bottom = 290
-	ledger.stretch_mode = TextureRect.STRETCH_SCALE
-	ledger.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(ledger)
-	# v20: cap basah POS 07 sebagai node terpisah di sudut bawah kanan
-	# kertas (bukan bagian dari tekstur ledger — di Options, teks
-	# instruksi yang di-scroll menimpa posisi stempel). Hanya tampil
-	# di menu utama; _show_options menyembunyikannya.
-	_stamp = TextureRect.new()
-	_stamp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_stamp.texture = SpriteRegistry.texture("menu_stamp_v20")
-	_stamp.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	_stamp.offset_left = 400
-	_stamp.offset_right = 510
-	_stamp.offset_top = 240
-	_stamp.offset_bottom = 290
-	_stamp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(_stamp)
+func _menu_camera() -> Camera3D:
+	return get_node_or_null("Backdrop/MenuCamera") as Camera3D
 
-func _build_menu_box() -> void:
-	# v18: kolom kiri yang sama dengan v17 (88..548, split
-	# asimetris: teks kiri, pos jaga hidup di kanan frame). Isinya
-	# kepala buku jaga, bukan blurb toko.
-	_menu_box = VBoxContainer.new()
-	_menu_box.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	_menu_box.offset_left = 88
-	_menu_box.offset_right = 548
-	_menu_box.offset_top = -290
-	_menu_box.offset_bottom = 290
-	_menu_box.add_theme_constant_override("separation", 14)
-	_ui_layer.add_child(_menu_box)
+## --- Buku jaga 3D ----------------------------------------------------------
+## Cover kulit gelap + 2 halaman foto perkamen (v22, dari foto asli
+## yang sama dengan ledger v20) + garis lipatan tengah. Halaman
+## adalah Sprite3D DATAR (SpriteRegistry.flat): tepi atas tekstur ke
+## arah +z, terbaca benar dari sisi -z (kursi di depan meja) — sama
+## seperti buku jaga kecil di dalam permainan. Halaman di-shade
+## supaya cahaya lentera hangat benar-benar jatuh di atasnya.
+func _build_book() -> void:
+	var backdrop := get_node_or_null("Backdrop") as Node3D
+	if backdrop == null:
+		push_error("[Menu] Backdrop tidak ada, buku tidak dibangun")
+		return
+	var cover_mat := StandardMaterial3D.new()
+	cover_mat.albedo_color = Color(0.09, 0.07, 0.05)
+	cover_mat.roughness = 0.9
+	var cover := MeshInstance3D.new()
+	var cb := BoxMesh.new()
+	cb.size = Vector3(2.02, 0.015, 0.72)
+	cover.mesh = cb
+	cover.position = Vector3(BOOK_CENTER.x, 1.1175, BOOK_CENTER.z)
+	cover.material_override = cover_mat
+	backdrop.add_child(cover)
+	# Garis lipatan tengah (bayangan jilid).
+	var spine_mat := StandardMaterial3D.new()
+	spine_mat.albedo_color = Color(0.05, 0.04, 0.03)
+	spine_mat.roughness = 1.0
+	var spine := MeshInstance3D.new()
+	var sb := BoxMesh.new()
+	sb.size = Vector3(0.03, 0.006, 0.70)
+	spine.mesh = sb
+	spine.position = Vector3(-1.30, 1.131, BOOK_CENTER.z)
+	spine.material_override = spine_mat
+	backdrop.add_child(spine)
+	# Halaman kiri + kanan (0,96 x 0,66: tekstur persegi di-squash
+	# di sumbu z supaya muat di meja 0,80 — kerut kertas sedikit
+	# melebar horizontal, tidak masalah untuk kertas).
+	# v25: kiri-kanan halaman DITUKAR dari dugaan awal. Kamera
+	# menghadap selatan (+z), jadi +x adalah KIRI pembaca: halaman
+	# kiri (judul) ada di x -0,81, halaman kanan (baris menu) di
+	# x -1,79. Sebelumnya terbalik (buku terbaca judul di kanan).
+	for side in ["l", "r"]:
+		var page := SpriteRegistry.flat("menu_book_page_" + side, 0.96 / 1024.0)
+		if page == null:
+			continue
+		page.shaded = true
+		# v25 ronde 2: alpha_cut DISCARD, bukan blending transparan.
+		# Sprite3D transparan di-sort berdasarkan jarak dari kamera:
+		# halaman (pusat z 1,28) lebih dekat dari teks di tepi jauh
+		# buku (z 1,39-1,54), jadi halaman digambar SETELAH teks dan
+		# menutupinya — header, logo, Start, Continue hilang total
+		# di dua screenshot v25 pertama, padahal sub-baris di tepi
+		# dekat (z < 1,3) terbaca. Dengan discard, halaman jadi
+		# opaque (piksel alpha < 0,5 dibuang, sisanya penuh) dan
+		# depth test yang menentukan: teks di y 1,136 di atas halaman
+		# y 1,130 selalu menang. Tepi sobek tetap bekerja (alpha 0
+		# dibuang), hanya sedikit lebih keras.
+		page.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		page.scale = Vector3(1.0, 0.6875, 1.0)
+		page.position = Vector3(-0.81 if side == "l" else -1.79, PAGE_Y, BOOK_CENTER.z)
+		backdrop.add_child(page)
 
-	# Kepala buku jaga: label kecil, tanpa titik — bukan paragraf.
-	# (v22 ronde 2: lentera kecil di baris ini dihapus — pada 16x32
-	# ia terbaca sebagai bintik debu, bukan lentera. Lentera tetap
-	# ada sebagai ikon tombol Continue saat ada simpanan.)
-	var head := _label("Buku jaga, Pos 07", 14, Color(0.6, 0.58, 0.5))
-	_menu_box.add_child(head)
+## Satu Label3D tinta di atas halaman: tergeletak menghadap atas,
+## puncak huruf ke +z (selatan, menjauhi kamera di utara) supaya
+## terbaca benar dari kursi. Rotasi SAMA dengan SpriteRegistry.flat
+## (-90 X, lalu 180 Z) dengan alasan yang sama.
+## v25: UNSHADED (dulu shaded=true). Tinta gelap di bawah lentera
+## (0,3 m, energi 1,2) ikut terbakar sampai putih — header + logo
+## di tepi jauh buku hilang total di screenshot v25 pertama. Tinta
+## tidak menyala sendiri: warnanya konstan (0,13), kertasnya yang
+## menerima cahaya. Jadi teks selalu terbaca, terang atau gelap.
+func _book_label(text: String, font_size: int, pixel: float, color: Color) -> Label3D:
+	var l := Label3D.new()
+	l.text = text
+	l.font = MENU_FONT
+	l.font_size = font_size
+	l.pixel_size = pixel
+	l.modulate = color
+	l.outline_size = 0
+	l.shaded = false
+	l.rotation = Vector3(-PI * 0.5, 0, PI)
+	return l
 
-	# v19: logo judul sebagai sprite (huruf berat + rusak VHS),
-	# bukan Label font default. Font default Godot di judul adalah
-	# bagian paling generik dari menu v18.
-	var logo := TextureRect.new()
-	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	logo.texture = SpriteRegistry.texture("menu_logo_v20")
-	logo.custom_minimum_size = Vector2(460, 124)
-	logo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	logo.stretch_mode = TextureRect.STRETCH_SCALE
-	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_menu_box.add_child(logo)
+## Satu baris menu: label + (opsional) sub-baris + quad sorot.
+## Baris adalah data, bukan Button — klik/hover lewat raycast
+## (_ray_to_book), keyboard lewat ui_up/ui_down/ui_accept.
+func _add_row(row_name: String, center: Vector3, half: Vector2,
+		font_size: int, action: Callable) -> Dictionary:
+	var backdrop := get_node_or_null("Backdrop") as Node3D
+	var label := _book_label(row_name, font_size, 0.0022, INK)
+	label.position = Vector3(center.x, TEXT_Y, center.z)
+	backdrop.add_child(label)
+	var hl := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(half.x * 2.0, half.y * 2.0)
+	hl.mesh = q
+	hl.rotation = Vector3(-PI * 0.5, 0, 0)
+	hl.position = Vector3(center.x, HIGHLIGHT_Y, center.z)
+	var hm := StandardMaterial3D.new()
+	hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hm.albedo_color = HIGHLIGHT
+	hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hl.material_override = hm
+	hl.visible = false
+	backdrop.add_child(hl)
+	var row := {
+		"name": row_name, "center": center, "half": half,
+		"label": label, "sub": null, "highlight": hl,
+		"material": hm, "action": action, "enabled": true,
+	}
+	_rows.append(row)
+	return row
 
-	# Garis aturan buku (ruled line): pembatas kepala dan isi log.
-	var rule := HSeparator.new()
-	rule.custom_minimum_size = Vector2(0, 2)
-	var rule_sb := StyleBoxFlat.new()
-	rule_sb.bg_color = Color(0.45, 0.42, 0.34)
-	rule.add_theme_stylebox_override("separator", rule_sb)
-	_menu_box.add_child(rule)
+func _add_sub(row: Dictionary, text: String, z: float) -> void:
+	var backdrop := get_node_or_null("Backdrop") as Node3D
+	var sub := _book_label(text, 22, 0.0022, INK_BODY)
+	sub.position = Vector3((row["center"] as Vector3).x, TEXT_Y, z)
+	backdrop.add_child(sub)
+	row["sub"] = sub
 
-	# Catatan dinas: tempat + jam shift + perintah jaga. Semua
-	# kalimat sudah ada di game (subtitle pembuka shift), bukan
-	# karangan baru — dipindah ke kepala log supaya menu berbunyi
-	# seperti buku, bukan seperti halaman toko.
-	var sub := _label("Taman Nasional Malayunesia.\nShift malam 22:00 - 06:00.\n\nJaga pos ini. Jangan biarkan mereka kembali.", 17, Color(0.75, 0.73, 0.66))
-	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_menu_box.add_child(sub)
-
-	# v18: empat tombol persis kata pemilik. Start = shift baru
-	# (lewat intro), Continue = lanjutkan simpanan, Options =
-	# peralatan pos, Exit = keluar.
-	_start_btn = _menu_button("Start")
-	_start_btn.pressed.connect(_on_new_game)
-	_menu_box.add_child(_start_btn)
-
-	_continue_btn = _menu_button("Continue")
-	_continue_btn.pressed.connect(_on_continue)
-	_menu_box.add_child(_continue_btn)
+func _build_book_text() -> void:
+	var backdrop := get_node_or_null("Backdrop") as Node3D
+	if backdrop == null:
+		return
+	# --- Halaman kiri: kepala buku + judul + catatan dinas. ---
+	# v25 ronde 4: susunan dibalik — LOGO di atas, "Buku jaga,
+	# Pos 07" jadi subtitle di bawah logo. Header di paling atas
+	# (z 1,54, lalu 1,50) selalu nempel bayangan dasar lentera yang
+	# berdiri tepat di belakang tepi jauh halaman — "Bu" tidak
+	# terbaca di tiga screenshot. Di bawah logo (z 1,24) header
+	# jauh dari lentera dan terbaca penuh. Tetap di dalam kertas
+	# dengan tinta gelap (kritik #2). Baris "Shift malam 22:00 -
+	# 06:00." DIHAPUS dari menu: jam shift sudah ada di intro +
+	# jam HUD; halaman jadi lega, bukan dipadatkan.
+	var head := _book_label("Buku jaga, Pos 07", 30, 0.0022, INK)
+	head.position = Vector3(-0.81, TEXT_Y, 1.21)
+	backdrop.add_child(head)
+	# Logo judul sebagai quad di halaman (sprite v20, alpha): huruf
+	# berat + rusak VHS. Padding lega: logo 0,86 m di halaman 0,96 m.
+	# v25: logo v20 adalah teks TERANG untuk latar gelap — di atas
+	# kertas terang ia hilang. Di-tint tinta gelap (modulate INK)
+	# supaya terbaca sebagai cap judul di halaman.
+	var logo := SpriteRegistry.flat("menu_logo_v20", 0.86 / 920.0)
+	if logo != null:
+		# v25: unshaded juga (alasan sama dengan _book_label:
+		# di bawah lentera, logo yang di-shade ikut terbakar).
+		# Discard juga (alasan sama dengan halaman: logo transparan
+		# di-sort setelah teks di bawahnya kalau tidak di-discard).
+		logo.shaded = false
+		logo.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		logo.modulate = INK
+		logo.position = Vector3(-0.81, 1.133, 1.37)
+		backdrop.add_child(logo)
+	# Garis merah di bawah judul, DIBERI JARAK (kritik #2): 0,06 m
+	# dari bawah logo, bukan mepet. Tipis, tinta — bukan garis UI.
+	var rule := MeshInstance3D.new()
+	var rq := QuadMesh.new()
+	rq.size = Vector2(0.86, 0.014)
+	rule.mesh = rq
+	rule.rotation = Vector3(-PI * 0.5, 0, 0)
+	rule.position = Vector3(-0.81, 1.1335, 1.14)
+	var rm := StandardMaterial3D.new()
+	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rm.albedo_color = INK_RULE
+	rule.material_override = rm
+	backdrop.add_child(rule)
+	# Catatan dinas, baris pendek (tulisan mesin tik, bukan paragraf):
+	# tiap baris muat di halaman tanpa membungkus.
+	var sub_lines: Array = [
+		["Taman Nasional", 1.06], ["Malayunesia.", 0.99],
+	]
+	for pair in sub_lines:
+		var l := _book_label(str(pair[0]), 30 if str(pair[0]).length() < 20 else 24, 0.0022, INK_BODY)
+		l.position = Vector3(-0.81, TEXT_Y, float(pair[1]))
+		backdrop.add_child(l)
+	# --- Halaman kanan: empat baris menu. ---
+	# Urutan baca atas-bawah = jauh-dekat: Start 1,48 / Continue
+	# 1,32 (+ sub 1,245) / Options 1,16 / Exit 1,02. Batas rect
+	# saling menempel tanpa tumpang tindih.
+	_add_row("Start", Vector3(-1.79, TEXT_Y, 1.48), Vector2(0.46, 0.06), 40, _on_new_game)
+	var cont := _add_row("Continue", Vector3(-1.79, TEXT_Y, 1.32), Vector2(0.46, 0.10), 40, _on_continue)
+	_add_sub(cont, "no record on file", 1.245)
+	_add_row("Options", Vector3(-1.79, TEXT_Y, 1.16), Vector2(0.46, 0.06), 40, _show_options)
+	_add_row("Exit", Vector3(-1.79, TEXT_Y, 1.02), Vector2(0.46, 0.06), 40, _on_exit)
 	_refresh_continue()
 
-	_options_btn = _menu_button("Options")
-	_options_btn.pressed.connect(_show_options)
-	_menu_box.add_child(_options_btn)
+## --- Input: raycast ke bidang meja -----------------------------------------
+## Klik/hover dihitung dari kamera menu ke bidang y = TEXT_Y. Bukan
+## tombol Control: tidak ada Control di atas buku (yang ada hanya
+## grade + formulir Options). Saat Options terbuka, input diserahkan
+## ke formulir (return lebih awal) supaya slider/toggle bisa diklik.
+func _input(event: InputEvent) -> void:
+	if _options_scroll != null and _options_scroll.visible:
+		return
+	if event is InputEventMouseMotion:
+		_update_hover((event as InputEventMouseMotion).position)
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			_click_at(mb.position)
+	elif event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if st.pressed:
+			_click_at(st.position)
 
-	_exit_btn = _menu_button("Exit")
-	_exit_btn.pressed.connect(_on_exit)
-	# Web: quit tidak menutup tab browser, jadi tombolnya
-	# disembunyikan (bukan di-disable — tidak ada yang bisa dilakukan).
-	_exit_btn.visible = not OS.has_feature("web")
-	_menu_box.add_child(_exit_btn)
+func _unhandled_input(event: InputEvent) -> void:
+	# v18: Esc di layar Options kembali ke menu utama.
+	if _options_scroll.visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
+		_show_main()
+		get_viewport().set_input_as_handled()
+		return
+	if _options_scroll.visible:
+		return
+	if event.is_action_pressed("ui_up"):
+		_move_selection(-1)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_down"):
+		_move_selection(1)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_accept"):
+		_activate_selected()
+		get_viewport().set_input_as_handled()
 
-	# Jejak kaki dari sheet Arya di bawah tombol: penanda bahwa
-	# seseorang sudah lewat sini sebelum pemain. Samar, miring.
-	var track := TextureRect.new()
-	track.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	track.texture = SpriteRegistry.texture("footprint")
-	track.custom_minimum_size = Vector2(42, 38)
-	track.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	track.rotation = -0.3
-	track.modulate = Color(1, 1, 1, 0.5)
-	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_menu_box.add_child(track)
+func _ray_to_book(screen_pos: Vector2) -> Vector3:
+	var cam := _menu_camera()
+	if cam == null:
+		return Vector3.INF
+	var from := cam.project_ray_origin(screen_pos)
+	var dir := cam.project_ray_normal(screen_pos)
+	if absf(dir.y) < 0.001:
+		return Vector3.INF
+	var t := (TEXT_Y - from.y) / dir.y
+	if t < 0.0:
+		return Vector3.INF
+	return from + dir * t
 
+func _row_at(p: Vector3) -> Dictionary:
+	for row in _rows:
+		if not bool(row["enabled"]):
+			continue
+		var c := row["center"] as Vector3
+		var h := row["half"] as Vector2
+		if absf(p.x - c.x) <= h.x and absf(p.z - c.z) <= h.y:
+			return row
+	return {}
+
+func _update_hover(screen_pos: Vector2) -> void:
+	var p := _ray_to_book(screen_pos)
+	var row := _row_at(p) if p != Vector3.INF else {}
+	var row_name := str(row.get("name", ""))
+	if row_name != _hovered:
+		_hovered = row_name
+		_refresh_highlights()
+
+func _click_at(screen_pos: Vector2) -> void:
+	var p := _ray_to_book(screen_pos)
+	if p == Vector3.INF:
+		return
+	var row := _row_at(p)
+	if row.is_empty():
+		return
+	_selected = _rows.find(row)
+	_refresh_highlights()
+	(row["action"] as Callable).call()
+
+func _move_selection(d: int) -> void:
+	if _rows.is_empty():
+		return
+	var n := _rows.size()
+	for i in range(n):
+		_selected = (_selected + d + n) % n
+		if bool(_rows[_selected]["enabled"]):
+			break
+	_refresh_highlights()
+
+func _activate_selected() -> void:
+	if _rows.is_empty():
+		return
+	var row: Dictionary = _rows[_selected]
+	if not bool(row["enabled"]):
+		return
+	(row["action"] as Callable).call()
+
+func _refresh_highlights() -> void:
+	for i in range(_rows.size()):
+		var row: Dictionary = _rows[i]
+		var hl := row["highlight"] as MeshInstance3D
+		var hm := row["material"] as StandardMaterial3D
+		var label := row["label"] as Label3D
+		# Baris mati (Continue tanpa save) tetap redup: jangan
+		# ditimpa sorot/seleksi.
+		if not bool(row["enabled"]):
+			hl.visible = false
+			label.modulate = INK_DIM
+			continue
+		var active := str(row["name"]) == _hovered or i == _selected
+		hl.visible = active
+		hm.albedo_color = HIGHLIGHT_SEL if i == _selected else HIGHLIGHT
+		label.modulate = Color(0.25, 0.21, 0.17) if active else INK
+
+## --- API untuk rig -----------------------------------------------------------
+func row_names() -> Array[String]:
+	var out: Array[String] = []
+	for row in _rows:
+		out.append(str(row["name"]))
+	return out
+
+func row_label(row_name: String) -> String:
+	for row in _rows:
+		if str(row["name"]) == row_name:
+			return str((row["label"] as Label3D).text)
+	return ""
+
+func row_enabled(row_name: String) -> bool:
+	for row in _rows:
+		if str(row["name"]) == row_name:
+			return bool(row["enabled"])
+	return false
+
+func row_sub(row_name: String) -> String:
+	for row in _rows:
+		if str(row["name"]) == row_name:
+			var sub := row["sub"] as Label3D
+			return "" if sub == null else str(sub.text)
+	return ""
+
+func screen_pos_for_row(row_name: String) -> Vector2:
+	var cam := _menu_camera()
+	if cam == null:
+		return Vector2.ZERO
+	for row in _rows:
+		if str(row["name"]) == row_name:
+			return cam.unproject_position(row["center"] as Vector3)
+	return Vector2.ZERO
+
+func activate_row(row_name: String) -> void:
+	for row in _rows:
+		if str(row["name"]) == row_name and bool(row["enabled"]):
+			(row["action"] as Callable).call()
+			return
+
+func is_main_visible() -> bool:
+	return _options_scroll == null or not _options_scroll.visible
+
+func is_options_visible() -> bool:
+	return _options_scroll != null and _options_scroll.visible
+
+## Cari sisa-sisa CCTV di menu (dipakai rig): teks REC/CAM, dot REC.
+## Hanya UI menu sendiri (_ui_layer: grade + formulir Options).
+## Backdrop TIDAK dipindai: HUD permainan yang tersembunyi di
+## dalamnya BOLEH tetap VHS (REC di sana bukan menu).
+func has_cctv() -> bool:
+	if _ui_layer == null:
+		return false
+	return _find_text(_ui_layer, ["REC", "CAM 07"])
+
+func _find_text(node: Node, needles: Array) -> bool:
+	if node is Label:
+		var t := str((node as Label).text)
+		for n in needles:
+			if str(n) in t:
+				return true
+	for c in node.get_children():
+		if _find_text(c, needles):
+			return true
+	return false
+
+## --- Layar Options: lembar formulir -----------------------------------------
+## Formulir Control di atas meja (lembar yang ditarik penjaga dari
+## laci): latar kertas foto yang sama + tinta gelap. Slider + saklar
+## di-skin ringan (bukan default abu-abu Godot lagi): track gelap,
+## pegangan hangat, kotak centang tinta.
 func _build_options_box() -> void:
 	# v18: layar peralatan pos — pengaturan yang benar-benar jalan
-	# + cara main. Satu kolom yang sama dengan menu (88..548),
-	# bisa di-scroll: isinya lebih panjang dari 560px.
+	# + cara main. Satu kolom yang sama dengan menu, bisa di-scroll:
+	# isinya lebih panjang dari layarnya.
 	_options_scroll = ScrollContainer.new()
-	_options_scroll.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	_options_scroll.offset_left = 88
-	_options_scroll.offset_right = 548
+	_options_scroll.set_anchors_preset(Control.PRESET_CENTER)
+	_options_scroll.offset_left = -230
+	_options_scroll.offset_right = 230
 	_options_scroll.offset_top = -290
 	_options_scroll.offset_bottom = 290
 	_options_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_options_scroll.visible = false
+	var form_sb := StyleBoxTexture.new()
+	form_sb.texture = SpriteRegistry.texture("menu_form_page")
+	form_sb.content_margin_left = 30
+	form_sb.content_margin_right = 30
+	form_sb.content_margin_top = 24
+	form_sb.content_margin_bottom = 24
+	_options_scroll.add_theme_stylebox_override("panel", form_sb)
 	_ui_layer.add_child(_options_scroll)
 
 	var box := VBoxContainer.new()
@@ -296,7 +542,7 @@ func _build_options_box() -> void:
 	box.add_theme_constant_override("separation", 12)
 	_options_scroll.add_child(box)
 
-	box.add_child(_label("Peralatan pos", 22, Color(0.95, 0.9, 0.78)))
+	box.add_child(_label("Peralatan pos", 22, INK))
 	box.add_child(_section_label("Suara"))
 	_master_slider = _slider_row(box, "Suara utama", 0.0, 1.0, 0.01, Settings.vol("Master"),
 		func(v: float, val: Label) -> void:
@@ -328,10 +574,10 @@ func _build_options_box() -> void:
 			_apply_grain_to_menu())
 	box.add_child(_grain_check)
 	# v18: "Cara main" pindah ke sini dari menu utama — menu utama
-	# tinggal empat tombol. Isi + keycap sama dengan intro/jeda.
+	# tinggal empat baris. Isi + keycap sama dengan intro/jeda.
 	box.add_child(_section_label("Cara main"))
 	box.add_child(_controls_block(15))
-	var how := _label("Nyalakan generator, cek radio, tulis laporan di buku jaga.\nKalau ada yang berdiri diam di luar dan menatap pos: tutup pintu, tunggu di dalam.\nJangan lihat matanya.\n\nDi layar sentuh: joystick kiri untuk jalan, geser kanan untuk melihat,\ntombol E untuk interaksi, SENTER untuk senter.", 15, Color(0.7, 0.68, 0.6))
+	var how := _label("Nyalakan generator, cek radio, tulis laporan di buku jaga.\nKalau ada yang berdiri diam di luar dan menatap pos: tutup pintu, tunggu di dalam.\nJangan lihat matanya.\n\nDi layar sentuh: joystick kiri untuk jalan, geser kanan untuk melihat,\ntombol E untuk interaksi, SENTER untuk senter.", 15, INK_BODY)
 	how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(how)
 
@@ -341,7 +587,7 @@ func _build_options_box() -> void:
 
 func _section_label(text: String) -> Label:
 	# Label seksi formulir: kecil, redup, tanpa titik.
-	return _label(text, 16, Color(0.6, 0.58, 0.5))
+	return _label(text, 16, Color(0.35, 0.32, 0.27))
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
@@ -359,7 +605,7 @@ func _slider_row(box: VBoxContainer, label_text: String, min_v: float, max_v: fl
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	box.add_child(row)
-	var lab := _label(label_text, 16, Color(0.75, 0.73, 0.66))
+	var lab := _label(label_text, 16, INK_BODY)
 	lab.custom_minimum_size = Vector2(140, 0)
 	row.add_child(lab)
 	var sl := HSlider.new()
@@ -369,6 +615,16 @@ func _slider_row(box: VBoxContainer, label_text: String, min_v: float, max_v: fl
 	sl.value = value
 	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sl.custom_minimum_size = Vector2(0, 28)
+	# v22: track gelap + pegangan hangat (bukan default abu-abu).
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.16, 0.13, 0.10)
+	track.set_corner_radius_all(2)
+	track.content_margin_top = 10
+	track.content_margin_bottom = 10
+	sl.add_theme_stylebox_override("slider", track)
+	sl.add_theme_icon_override("grabber", _grabber_tex(Color(0.85, 0.66, 0.23)))
+	sl.add_theme_icon_override("grabber_highlight", _grabber_tex(Color(0.96, 0.80, 0.35)))
+	sl.add_theme_icon_override("grabber_disabled", _grabber_tex(Color(0.45, 0.43, 0.38)))
 	# Fokus keyboard harus kelihatan (garis kuning, sama dengan tombol).
 	sl.add_theme_stylebox_override("focus", _focus_style())
 	row.add_child(sl)
@@ -377,12 +633,22 @@ func _slider_row(box: VBoxContainer, label_text: String, min_v: float, max_v: fl
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	val.add_theme_font_override("font", MENU_FONT)
 	val.add_theme_font_size_override("font_size", 16)
-	val.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
+	val.add_theme_color_override("font_color", INK)
 	val.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(val)
 	sl.value_changed.connect(func(v: float) -> void: on_change.call(v, val))
 	on_change.call(value, val)
 	return sl
+
+func _grabber_tex(color: Color) -> ImageTexture:
+	var img := Image.create(16, 28, false, Image.FORMAT_RGBA8)
+	img.fill(color)
+	var edge := Color(0.12, 0.10, 0.08, 1)
+	for x in range(16):
+		for y in range(28):
+			if x < 2 or x >= 14 or y < 2 or y >= 26:
+				img.set_pixel(x, y, edge)
+	return ImageTexture.create_from_image(img)
 
 ## Satu baris saklar: CheckButton dengan gaya yang sama (font +
 ## fokus kuning). Nilai langsung diterapkan saat diubah.
@@ -392,10 +658,27 @@ func _toggle_row(label_text: String, pressed: bool, on_change: Callable) -> Chec
 	cb.button_pressed = pressed
 	cb.add_theme_font_override("font", MENU_FONT)
 	cb.add_theme_font_size_override("font_size", 16)
-	cb.add_theme_color_override("font_color", Color(0.75, 0.73, 0.66))
+	cb.add_theme_color_override("font_color", INK_BODY)
+	cb.add_theme_icon_override("unchecked", _check_tex(false))
+	cb.add_theme_icon_override("checked", _check_tex(true))
 	cb.add_theme_stylebox_override("focus", _focus_style())
 	cb.toggled.connect(func(on: bool) -> void: on_change.call(on))
 	return cb
+
+func _check_tex(checked: bool) -> ImageTexture:
+	var img := Image.create(18, 18, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var ink := Color(0.13, 0.10, 0.07, 1)
+	for x in range(18):
+		for y in range(18):
+			if x < 2 or x >= 16 or y < 2 or y >= 16:
+				img.set_pixel(x, y, ink)
+	if checked:
+		var warm := Color(0.85, 0.66, 0.23, 1)
+		for x in range(5, 13):
+			for y in range(5, 13):
+				img.set_pixel(x, y, warm)
+	return ImageTexture.create_from_image(img)
 
 func _focus_style() -> StyleBoxFlat:
 	var focus := StyleBoxFlat.new()
@@ -410,7 +693,7 @@ func _pct(v: float) -> String:
 
 func _apply_grain_to_menu() -> void:
 	if _fx_mat != null:
-		_fx_mat.set_shader_parameter("grain", Balance.VHS_GRAIN if Settings.grain_on() else 0.0)
+		_fx_mat.set_shader_parameter("grain", Balance.MENU_GRADE_GRAIN if Settings.grain_on() else 0.0)
 
 ## v15: blok daftar kontrol (2 baris x 3 pasangan keycap + aksi).
 ## Salinan pola hud.gd _controls_block — menu tidak bisa memakai
@@ -430,7 +713,7 @@ func _controls_block(size: int) -> VBoxContainer:
 			var cell := HBoxContainer.new()
 			cell.add_theme_constant_override("separation", 6)
 			cell.add_child(_keycap(str(pair[0]), size))
-			cell.add_child(_label(str(pair[1]), size, Color(0.75, 0.73, 0.66)))
+			cell.add_child(_label(str(pair[1]), size, INK_BODY))
 			h.add_child(cell)
 		v.add_child(h)
 	return v
@@ -486,33 +769,40 @@ func _menu_button(text: String) -> Button:
 	return b
 
 func _show_options() -> void:
-	_menu_box.visible = false
-	_stamp.visible = false
+	_hovered = ""
+	_refresh_highlights()
 	_options_scroll.visible = true
 	# game-ui-ux: satu kontrol fokus saat layar dibuka.
 	_master_slider.grab_focus()
 
 func _show_main() -> void:
 	_options_scroll.visible = false
-	_menu_box.visible = true
-	_stamp.visible = true
-	# game-ui-ux: fokus kembali ke tombol utama saat layar atas ditutup.
-	_start_btn.grab_focus()
+	_selected = 0
+	_refresh_highlights()
+	# v22: tidak ada lagi tombol Control di menu utama, jadi tidak
+	# ada grab_focus ke tombol — navigasi keyboard lewat _selected.
 
 func _refresh_continue() -> void:
-	if SaveGame.has_save():
-		_continue_btn.text = SaveGame.summary_text()
-		_continue_btn.disabled = false
-		# v19: lentera menyala di tombol lanjutkan — penanda ada
-		# shift yang belum selesai. Ikon diskalakan ke tinggi tombol.
-		_continue_btn.icon = SpriteRegistry.texture("lantern")
-		_continue_btn.expand_icon = true
-	else:
-		# Catatan buku jaga untuk shift yang tidak ada: tidak ada
-		# simpanan yang bisa dilanjutkan.
-		_continue_btn.text = "Continue - no record on file"
-		_continue_btn.disabled = true
-		_continue_btn.icon = null
+	# Baris Continue membawa info simpanan di sub-barisnya (bukan
+	# di label utama): "22:00, Sanity 100" kalau ada save,
+	# "no record on file" kalau tidak ada (dan baris dimatikan).
+	for row in _rows:
+		if str(row["name"]) != "Continue":
+			continue
+		var sub := row["sub"] as Label3D
+		if SaveGame.has_save():
+			row["enabled"] = true
+			(row["label"] as Label3D).modulate = INK
+			if sub != null:
+				sub.text = SaveGame.summary_text().replace("Continue - ", "")
+				sub.modulate = INK_BODY
+		else:
+			row["enabled"] = false
+			(row["label"] as Label3D).modulate = INK_DIM
+			if sub != null:
+				sub.text = "no record on file"
+				sub.modulate = INK_DIM
+		break
 
 func _on_new_game() -> void:
 	GameState.resume_data = {}

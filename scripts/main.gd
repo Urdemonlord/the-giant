@@ -74,12 +74,16 @@ func _setup_menu_backdrop() -> void:
 	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	var moon := get_node_or_null("MoonLight") as DirectionalLight3D
 	if env_node != null and env_node.environment != null and moon != null:
-		moon.light_energy = Balance.NIGHT_MOON_DEEP
-		env_node.environment.ambient_light_energy = Balance.NIGHT_AMBIENT_DEEP
+		# v22 (kritik #4): ambient lebih gelap, bulan dikuatkan jadi
+		# rim/back light dari selatan untuk Giant + pepohonan di luar
+		# jendela. Moon sudah datang dari selatan (lihat transform
+		# MoonLight di main.tscn), jadi tidak perlu lampu rim baru.
+		moon.light_energy = Balance.MENU_MOON_ENERGY
+		env_node.environment.ambient_light_energy = Balance.MENU_AMBIENT
 		if Balance.volumetric_active():
-			env_node.environment.volumetric_fog_density = Balance.NIGHT_VOL_DEEP
+			env_node.environment.volumetric_fog_density = Balance.MENU_VOL_DENSITY
 		else:
-			env_node.environment.fog_density = Balance.FOG_DENSITY + 0.01
+			env_node.environment.fog_density = Balance.MENU_FOG_DENSITY
 	GameState.set_generator(true)
 	GameState.fuel = Balance.MAX_FUEL
 	if not has_node("Ground"):
@@ -109,66 +113,85 @@ func _setup_menu_backdrop() -> void:
 		var ev := get_tree().get_first_node_in_group(g)
 		if ev != null:
 			ev.set_process(false)
-	# Kamera menu: dari jalan depan-KIRI (cermin dari percobaan
-	# pertama di kanan, yang menaruh billboard guard_front 1,8 m di
-	# depan lensa dan menelan sepertiga kanan frame). Dari kiri, pos
-	# di tengah-kanan frame, teks menu di kiri, dan guard_front
-	# (~53 derajat off-axis) tetap di luar frame selama sapuan.
-	# Sapuan pelan di menu_camera.gd.
+	# v22: properti kecil di atas meja yang TERTUTUP buku menu
+	# disembunyikan (koran, surat, meter, buku jaga kecil — semuanya
+	# di bawah buku 2,0 x 0,70 m). Radio + lentera TETAP: mereka
+	# berdiri di belakang buku sebagai benda fisik di meja.
+	# v25 ronde 3: radio IKUT disembunyikan — badannya yang tinggi
+	# menutupi baris Start + Continue dari sudut kamera meja
+	# (terbukti di screenshot v25). Di permainan radio tetap ada.
+	for n in ["Newspaper", "Permit", "Logbook", "Radio"]:
+		var prop := get_node_or_null(n) as Node3D
+		if prop != null:
+			prop.visible = false
+	# Meter getar tetap: ia berdiri di belakang buku (z 1,64, tepi
+	# belakang buku 1,63), jadi mengintip di atas buku seperti benda
+	# meja sungguhan, bukan tertutup.
+	# v22: lentera diredupkan di menu (0.6) supaya cahaya hangatnya
+	# tidak membakar tepi jauh buku jaga — tapi tetap jadi titik
+	# fokus hangat di meja (kritik #4). Default permainan 1.0.
+	var lantern_node := get_node_or_null("Lantern")
+	if lantern_node != null and "dim_factor" in lantern_node:
+		lantern_node.dim_factor = 0.6
+	# v22: kamera menu DI DALAM pos, di utara meja menghadap selatan
+	# (yaw 180 = menghadap +z). Buku di bawah frame, jendela selatan
+	# + hutan + Giant di atas frame. Dulu (v17-v21) kamera di luar
+	# pos memotret bangunan dari jalan — itu yang bikin menu terasa
+	# seperti kartu ditempel di atas foto. Sapuan pelan di menu_camera.gd.
 	var cam := Camera3D.new()
 	cam.name = "MenuCamera"
 	cam.set_script(load("res://scripts/menu_camera.gd"))
-	cam.position = Vector3(-4.5, 2.0, -8.0)
-	cam.rotation = Vector3(deg_to_rad(-2.0), deg_to_rad(209.0), 0.0)
-	cam.fov = Balance.FOV_BASE
+	cam.position = Balance.MENU_DESK_CAM_POS
+	cam.rotation = Vector3(
+		deg_to_rad(Balance.MENU_DESK_CAM_PITCH_DEG),
+		deg_to_rad(Balance.MENU_DESK_CAM_YAW_DEG), 0.0)
+	cam.fov = Balance.MENU_DESK_CAM_FOV
 	add_child(cam)
 	cam.current = true
-	_setup_menu_giant()
-	print("[Main] mode backdrop menu: kamera menu aktif")
+	_setup_menu_window_giant()
+	print("[Main] mode backdrop menu: kamera meja aktif")
 
-## v21: elemen menu — Giant di kabut + kaki raksasa + kabut tepi
-## panel. HANYA di backdrop menu; tidak ada di permainan (tidak
-## disentuh level_data / event). Alasan: kamera menu menghadap
-## selatan (yaw 209), sedangkan gajah level ada di utara (z -26..
-## -36, di belakang kamera) — dari menu mereka tidak pernah
-## kelihatan, itu sebabnya menu v20 terasa kosong dan kertasnya
-## mengambang seperti kartu tempel. Giant di sini hidup di scene
-## 3D yang sama (kabut + VHS + cahaya bulan yang sama), jadi ia
-## nyatu dengan backdrop, bukan hiasan UI.
-## Aturan Giant tetap: tidak pernah utuh — kabut dalam (menu pakai
-## NIGHT_VOL_DEEP / FOG_DENSITY+0.01) + pohon menelannya; yang
-## kelihatan siluet + kaki, bukan gajah jelas.
-func _setup_menu_giant() -> void:
-	# Siluet Giant di kabut selatan pos, di kanan frame, menjulang
-	# di atas atap pos. Posisi dihitung dari kamera menu
-	# (-4.5, 2, -8), forward (0.485, 0, 0.875), right
-	# (-0.875, 0, 0.485). Ronde 1 (d=28, tinggi 11 m, shaded,
-	# tint 0.38) GAGAL: tidak terbaca sama sekali di screenshot —
-	# ketelan kabut 0.07 + gelap bulan dalam. Ronde 2 (d=20, r=+13,
-	# tinggi 13 m, UNSHADED, tint 0.55) MUNCUL tapi dibaca sebagai
-	# BUKIT berkabut, bukan gajah: kakinya ketutup pos, yang kelihatan
-	# cuma punggung dome di atas atap. Ronde 3: geser kanan sampai
-	# kakinya lepas dari pos (d=20 m, r=+17 m -> (-9.7, 0, 17.7)),
-	# kepala (ujung kiri tekstur yang dibalik) di dekat pos, badan
-	# terpotong tepi kanan frame (aturan: Giant tidak pernah utuh).
-	# Tetap UNSHADED pale (yang memisahkannya dari langit hitam),
-	# kaki yang kelihatan yang membuatnya terbaca sebagai hewan.
-	_billboard(self, "menu_giant_v21", Vector3(-9.7, 0.0, 17.7), 0.095, Color(0.55, 0.6, 0.55, 0.9), true)
-	# Kilau mata di kepala siluet: DIHAPUS ronde 4. Ronde 3 membuktikan
-	# ia gagal: giant_eye adalah crop PERSEGI (kulit di seluruh
-	# kotak, bukan masker bulat), jadi di 20 m ia tampil sebagai
-	# kotak abu-abu kecil yang melayang di langit — terbaca seperti
-	# glitch, bukan mata. Gajah tanpa mata tetap terbaca sebagai
-	# hewan begitu kakinya kelihatan; tidak ada pengganti (jangan
-	# ramai).
-	# Kabut di tepi kanan kertas: dua puff dekat kamera (d=4-5 m),
-	# tepat di garis x=548 layar (tepi kanan panel), supaya tepi
-	# keras kertas bertemu kabut, bukan ruang kosong. Puff tidak
-	# pernah menutupi kertas (UI selalu di atas 3D) — ia melembutkan
-	# batasnya dari samping. Ronde 1 (shaded, alpha 0.4-0.45) terlalu
-	# redup sampai tidak kebaca; ronde 2: UNSHADED + alpha 0.5.
-	_billboard(self, "fog_puff", Vector3(-2.1, 1.8, -4.8), 0.02, Color(0.62, 0.68, 0.58, 0.5), true)
-	_billboard(self, "fog_puff", Vector3(-1.5, 0.6, -3.9), 0.022, Color(0.62, 0.68, 0.58, 0.5), true)
+## v22: Giant di balik JENDELA SELATAN, untuk kamera meja. HANYA di
+## backdrop menu; tidak ada di permainan. Kamera meja di (-1.3, 2.1,
+## 0.15) menghadap selatan: yang kelihatan lewat jendela (x -0,7..0,7,
+## y 1,30..2,20) adalah tanah + kaki Giant di 8 m, bukan langit —
+## garis pandang lewat jendela menukik ke tanah. Jadi yang masuk
+## frame jendela adalah telapak + kaki bawahnya, persis citra event
+## kaki 03:30 (telapak di band jendela). Aturan Giant tetap: tidak
+## pernah utuh — dinding + kabut + pohon menelannya; yang kelihatan
+## hanya sepotong kaki di jendela. Giant v21 di selatan pos (untuk
+## kamera luar v17-v21) DIHAPUS: kamera itu sudah tidak ada.
+## Kabut di kusen jendela: dua puff di luar jendela. Puff ketiga
+## (di dalam, di ambang bawah) DIHAPUS v25: ia menutupi kaca dari
+## dalam dan ikut menelan kaki Giant.
+## v25 ronde 3: Giant diganti dari siluet gajah utuh
+## (menu_giant_v21) ke KAKI RAKSASA (giant_foot, sprite yang sama
+## dengan event kaki 03:30). Siluet utuh gagal tiga kali: kakinya
+## tipis (beberapa piksel di tekstur 207 px) dan lewat kabut ia
+## terbaca sebagai batang pohon, bukan kaki. Kaki close-up 3,5 m
+## (120x218, kolom kaki + telapak di bawah) tidak ambigu: lewat
+## jendela kelihatan telapak + kaki bawahnya, dan ukurannya yang
+## tidak masuk akal (3,5 m untuk satu kaki) yang membuatnya Giant.
+## Tint diangkat (1,2) supaya kerut kulitnya kebaca — tekstur
+## aslinya sangat gelap, tanpa angkat ia jadi pilar hitam polos.
+## v25 ronde 4: puff kabut di kusen DIHAPUS — masing-masing ~5 m
+## lebar (pixel 0,02 x tekstur 256) dan tepat di garis pandang ke
+## kaki, jadi mereka yang menutupi Giant, bukan kabut volumetrik.
+## Kabut volumetrik + hutan sudah cukup untuk atmosfer jendela.
+## Tint kaki diangkat lagi (1,6) supaya terpisah dari hutan gelap
+## di belakangnya.
+## v25 ronde 5: kaki lebih dekat (6 m, dulu 8) + lebih besar
+## (4 m, dulu 3,5) + lebih terang (2,0, dulu 1,6). Di 8 m kaki
+## terbaca sebagai massa gelap, bukan kaki: telapaknya (seperempat
+## bawah tekstur) terlalu kecil di layar dan warnanya menyatu
+## dengan hutan gelap. Di 6 m telapaknya ~1 m di layar dan tint
+## terang memisahkannya dari pepohonan.
+## v25 ronde 6: kaki digeser barat (x 2,0, dulu 3,0) supaya di
+## tengah jendela, bukan di sepertiga kiri — kamera di x -1,3
+## menghadap selatan, jadi x yang lebih kecil = lebih ke tengah
+## layar.
+func _setup_menu_window_giant() -> void:
+	_billboard(self, "giant_foot", Vector3(2.0, 0.0, 6.0), 4.0 / 218.0, Color(2.0, 2.1, 2.0, 0.95), true)
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau

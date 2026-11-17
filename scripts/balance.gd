@@ -167,3 +167,36 @@ const VHS_VIGNETTE := 0.38 # gelap di tepi layar
 const VHS_FLICKER := 0.04 # kedip cahaya halus
 const VHS_TEAR_SECONDS := 0.15 # durasi tracking tear tiap kejadian
 const VHS_TEAR_SHIFT := 0.02 # seberapa jauh garis tear bergeser
+
+## --- Menu v22 Opsi B (meja pos jaga, diegetic) -------------------------------
+## Kamera menu pindah ke DALAM pos, di utara meja menghadap selatan:
+## buku di bawah, jendela + hutan + Giant di atas. Bukan lagi kamera
+## luar yang memotret pos dari jalan (v17-v21).
+const MENU_DESK_CAM_POS := Vector3(-1.30, 2.10, 0.15)
+const MENU_DESK_CAM_PITCH_DEG := -24.0
+const MENU_DESK_CAM_YAW_DEG := 180.0
+const MENU_DESK_CAM_FOV := 62.0
+## Pencahayaan menu (kritik #4): ambient lebih gelap dari malam game
+## (0.50 -> 0.30), bulan dikuatkan (0.55 -> 0.80) supaya jadi rim/back
+## light dari selatan untuk Giant + pepohonan di luar jendela.
+const MENU_AMBIENT := 0.30
+const MENU_MOON_ENERGY := 0.80
+## Kabut menu: lebih tipis dari malam permainan (0.036 -> 0.025
+## volumetrik, 0.06 -> 0.05 biasa). Kabut adalah alat, bukan tujuan:
+## di 0.036, Giant di 8-10 m terhisap kontrasnya sampai tidak kebaca
+## lewat jendela; di 0.025 ia berdiri dari kabut sementara hutan
+## tetap berkabut. Mood gelap menu datang dari ambient + lentera,
+## bukan dari kabut maksimal.
+const MENU_VOL_DENSITY := 0.025
+const MENU_FOG_DENSITY := 0.05
+## Grade menu: grain halus saja, BUKAN bingkai CCTV (kritik #3).
+## Scanline/tear/flicker dimatikan; desat + CA + vignette tipis.
+const MENU_GRADE_GRAIN := 0.05
+const MENU_GRADE_SCANLINE := 0.0
+const MENU_GRADE_CA := 0.003 # v25: 0.008 terlalu kuat, teks jadi
+# fringing merah-hijau-biru sampai tidak terbaca; 0.003 cukup
+# untuk nuansa lensa tua tanpa merusak huruf.
+const MENU_GRADE_DESAT := 0.15
+const MENU_GRADE_VIGNETTE := 0.32
+const MENU_GRADE_FLICKER := 0.0
+const MENU_GRADE_TEAR := 0.0
