@@ -33,6 +33,7 @@ extends Control
 
 var _menu_box: VBoxContainer
 var _options_scroll: ScrollContainer
+var _stamp: TextureRect
 var _start_btn: Button
 var _continue_btn: Button
 var _options_btn: Button
@@ -145,7 +146,7 @@ func _build_fx_and_stamp() -> void:
 	_ui_layer.add_child(rec_row)
 	var rec_dot := TextureRect.new()
 	rec_dot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	rec_dot.texture = SpriteRegistry.texture("menu_rec")
+	rec_dot.texture = SpriteRegistry.texture("menu_rec_v20")
 	rec_dot.custom_minimum_size = Vector2(22, 22)
 	rec_dot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	rec_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -165,7 +166,7 @@ func _build_fx_and_stamp() -> void:
 func _build_ledger() -> void:
 	var ledger := TextureRect.new()
 	ledger.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ledger.texture = SpriteRegistry.texture("menu_ledger")
+	ledger.texture = SpriteRegistry.texture("menu_ledger_v20")
 	ledger.set_anchors_preset(Control.PRESET_CENTER_LEFT)
 	ledger.offset_left = 88
 	ledger.offset_right = 548
@@ -174,6 +175,21 @@ func _build_ledger() -> void:
 	ledger.stretch_mode = TextureRect.STRETCH_SCALE
 	ledger.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui_layer.add_child(ledger)
+	# v20: cap basah POS 07 sebagai node terpisah di sudut bawah kanan
+	# kertas (bukan bagian dari tekstur ledger — di Options, teks
+	# instruksi yang di-scroll menimpa posisi stempel). Hanya tampil
+	# di menu utama; _show_options menyembunyikannya.
+	_stamp = TextureRect.new()
+	_stamp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_stamp.texture = SpriteRegistry.texture("menu_stamp_v20")
+	_stamp.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	_stamp.offset_left = 400
+	_stamp.offset_right = 510
+	_stamp.offset_top = 240
+	_stamp.offset_bottom = 290
+	_stamp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_layer.add_child(_stamp)
 
 func _build_menu_box() -> void:
 	# v18: kolom kiri yang sama dengan v17 (88..548, split
@@ -200,7 +216,7 @@ func _build_menu_box() -> void:
 	# bagian paling generik dari menu v18.
 	var logo := TextureRect.new()
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	logo.texture = SpriteRegistry.texture("menu_logo")
+	logo.texture = SpriteRegistry.texture("menu_logo_v20")
 	logo.custom_minimum_size = Vector2(460, 124)
 	logo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	logo.stretch_mode = TextureRect.STRETCH_SCALE
@@ -219,7 +235,7 @@ func _build_menu_box() -> void:
 	# kalimat sudah ada di game (subtitle pembuka shift), bukan
 	# karangan baru — dipindah ke kepala log supaya menu berbunyi
 	# seperti buku, bukan seperti halaman toko.
-	var sub := _label("Taman Nasional Malayunesia. Shift malam 22:00 - 06:00.\n\nJaga pos ini. Jangan biarkan mereka kembali.", 17, Color(0.75, 0.73, 0.66))
+	var sub := _label("Taman Nasional Malayunesia.\nShift malam 22:00 - 06:00.\n\nJaga pos ini. Jangan biarkan mereka kembali.", 17, Color(0.75, 0.73, 0.66))
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_menu_box.add_child(sub)
 
@@ -444,15 +460,15 @@ func _menu_button(text: String) -> Button:
 	# jelas), bukan StyleBoxFlat polos. Tombol default Godot sudah
 	# tidak ada lagi di menu utama.
 	var normal := StyleBoxTexture.new()
-	normal.texture = SpriteRegistry.texture("menu_btn")
+	normal.texture = SpriteRegistry.texture("menu_btn_v20")
 	normal.content_margin_left = 16
 	normal.content_margin_right = 16
 	var hover := StyleBoxTexture.new()
-	hover.texture = SpriteRegistry.texture("menu_btn_hover")
+	hover.texture = SpriteRegistry.texture("menu_btn_v20_hover")
 	hover.content_margin_left = 16
 	hover.content_margin_right = 16
 	var pressed := StyleBoxTexture.new()
-	pressed.texture = SpriteRegistry.texture("menu_btn_pressed")
+	pressed.texture = SpriteRegistry.texture("menu_btn_v20_pressed")
 	pressed.content_margin_left = 16
 	pressed.content_margin_right = 16
 	b.add_theme_stylebox_override("normal", normal)
@@ -468,6 +484,7 @@ func _menu_button(text: String) -> Button:
 
 func _show_options() -> void:
 	_menu_box.visible = false
+	_stamp.visible = false
 	_options_scroll.visible = true
 	# game-ui-ux: satu kontrol fokus saat layar dibuka.
 	_master_slider.grab_focus()
@@ -475,6 +492,7 @@ func _show_options() -> void:
 func _show_main() -> void:
 	_options_scroll.visible = false
 	_menu_box.visible = true
+	_stamp.visible = true
 	# game-ui-ux: fokus kembali ke tombol utama saat layar atas ditutup.
 	_start_btn.grab_focus()
 

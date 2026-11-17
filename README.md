@@ -477,6 +477,70 @@ masih kontrol default Godot (fungsional, belum di-skin); HUD di
 dalam game masih font default (menu saja yang diganti mono);
 sprite-sprite ini placeholder, art final butuh gambar tangan.
 
+## Menu utama: sprite Main UI REDO dari referensi asli (2026-11-18, v20)
+
+v19 dibuat prosedural dari nol tanpa referensi foto asli — melanggar
+langkah "start from a real reference" di skill game_asset_delivery.
+v20 menggambar ulang semuanya dari referensi yang sudah ada di ide
+THE GIANT (`tools/make_menu_sprites_v20.py`, referensi di
+`tools/ref/REFERENCES.md`):
+- `menu_logo_v20.png` (920x240): judul "THE GIANT" di Noto Sans
+  Black, grotesque berat yang sama dengan judul cover moodboard v3
+  hal. 1 + header storyboard v2 hal. 1. Garis Merah REC di bawah
+  judul (cover moodboard), ghost merah (chromatic aberration frame
+  VHS moodboard hal. 2), satu pita tracking tear yang menggeser
+  sebagian huruf (binding rule storyboard hal. 1: "tracking
+  robek"), grain dari high-pass area kabut foto hutan Sumatra
+  berkabut (foto asli National Geographic, cover moodboard).
+  Margin dalam 40px: logo tidak lagi terpotong di tepi kiri
+  portrait (bug v19).
+- `menu_ledger_v20.png` (460x600): FOTO kertas asli (Vecteezy free
+  photo 57329614, kertas perkamen kusut/bernoda/tepi sobek),
+  di-grade gelap ke palette kunci. Kerut, noda, dan tepi sobeknya
+  dari foto itu. Garis aturan + jahitan jilid meniru foto logbook
+  "Notes and Notams" (foto itu TIDAK dipakai sebagai tekstur:
+  tulisannya memuat nomor telepon asli). Glow lampu pojok kiri
+  atas (satu sumber cahaya).
+- `menu_btn_v20*.png` (460x64): foto kertas yang SAMA dengan
+  ledger, crop beda. Hover garis Kuning Lampu kiri, pressed lebih
+  gelap + garis bawah Merah REC.
+- `menu_stamp_v20.png`: cap basah "POS 07" sebagai node terpisah
+  (bukan di tekstur ledger): di Options, teks instruksi yang
+  di-scroll menimpa posisi stempel kalau stempel menempel di
+  kertas. Node hanya tampil di menu utama.
+- `menu_rec_v20.png`: dot REC mengikuti label REC moodboard.
+- Sub-teks dipecah jadi baris pendek eksplisit ("Taman Nasional
+  Malayunesia." / "Shift malam 22:00 - 06:00.") supaya tidak
+  membungkus di tengah frasa (bug v19).
+
+Dua bug ketemu dari screenshot v23: (1) Scanline di sprite +
+scanline shader VHS menu = garis padat seperti tirai di seluruh
+ledger/logo/tombol. Perbaiki: scanline dihapus dari sprite,
+shader menu yang memberi scanline. Grain sprite juga dikurangi
+separuh. (2) Stempel di tekstur ledger menimpa teks "Cara main"
+di Options — pindah jadi node terpisah yang disembunyikan saat
+Options dibuka.
+
+Terverifikasi lewat rig v23 + screenshot desktop 1280x720 dan
+portrait (`v23_menu_no_save`, `_options`, `_with_save`): logo utuh
+penuh di desktop dan portrait (zoom crop dicek), sub-teks satu
+baris per frasa, stempel terbaca penuh di menu utama dan hilang
+di Options, tombol tidak tumpang tindih. Mode verify PASS
+(registry 61, 0 missing). Mode playtest PASS fails=0 — TAPI hanya
+di Xvfb; di headless murni playtest flaky di langkah radio
+(fails 2-7, prompt radio kosong karena raycast belum update
+setelah aim). Flaky ini SUDAH ADA di kode v19 (dibuktikan: stash
+v20, playtest kode v19 murni juga fails=2) — bukan regresi v20,
+dan bukan urusan sprite menu. Perlu perbaikan rig/playtest
+terpisah (mis. tunggu physics frame setelah aim, bukan cuma 3
+frame proses). Batas jujur: sprite v20 masih kelas PLACEHOLDER
+(huruf/stempel typeset, kertas foto stok — tiap piksel tekstur
+dan kerusakan punya referensi foto asli, tapi art final tetap
+butuh gambar tangan); label kepala "Buku jaga, Pos 07" sedikit
+terpotong 1px di render portrait letterbox (artefak skala,
+di desktop utuh); slider + CheckButton Options dan HUD dalam
+game masih default (belum di-skin).
+
 Terverifikasi lewat screenshot Godot 4.3 Xvfb 1280x720, seri v9
 (`~/workspace/godot/shots/v9_*.png`, dilihat satu-satu, 4 ronde ulang
 untuk sudut yang ketutup pohon/dinding/gelap): `v9_desk_meter` (meter di
