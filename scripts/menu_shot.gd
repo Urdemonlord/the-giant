@@ -1,5 +1,5 @@
 extends Node
-## Uji menu utama headless (v21: tema buku jaga, 4 tombol, Options):
+## Uji menu utama headless (v22: tema buku jaga, 4 tombol, Options):
 ## fase A tanpa save: 4 tombol persis (Start/Continue/Options/Exit),
 ## Continue disabled, fokus di Start, tidak ada teks slop, backdrop
 ## 3D hidup + sapuan kamera; buka Options, uji tiap pengaturan
@@ -8,7 +8,7 @@ extends Node
 ## Continue aktif; pastikan wiring Exit. Transisi menu -> main
 ## TIDAK diuji dari sini (lihat menu_autostart=1); jalur keluar
 ## diuji terpisah (menu_test_exit=1, proses harus berhenti).
-## Log ke <shot_dir>/v21_results_menu.txt, screenshot v21_menu_*.png.
+## Log ke <shot_dir>/v22_results_menu.txt, screenshot v22_menu_*.png.
 ## Static _run_phase bertahan melewati reload_current_scene dalam
 ## satu proses, jadi fase tidak terulang.
 
@@ -20,7 +20,7 @@ var _log_path := ""
 var _menu: Control = null
 
 func _ready() -> void:
-	_log_path = SHOT_DIR + "v21_results_menu.txt"
+	_log_path = SHOT_DIR + "v22_results_menu.txt"
 	if _run_phase == 0:
 		var init := FileAccess.open(_log_path, FileAccess.WRITE)
 		if init:
@@ -221,6 +221,6 @@ func _shot(name: String) -> void:
 			n += 1
 	mean /= maxf(n, 1.0)
 	_log("shot " + name + " mean_lum=" + str(snappedf(mean, 0.001)) + " backdrop_lit=" + str(mean > 0.05))
-	var path := SHOT_DIR + "v21_" + name + ".png"
+	var path := SHOT_DIR + "v22_" + name + ".png"
 	var err := img.save_png(path)
 	_log("shot " + name + " err=" + str(err) + " path=" + path)

@@ -427,6 +427,56 @@ error. Batas jujur: isi Options lebih panjang dari layar — tombol
 Kembali ada di bawah lipatan scroll (navigasi keyboard auto-scroll);
 tombol Exit belum diuji klik di web (disembunyikan di sana).
 
+## Menu utama: sprite Main UI (2026-11-18, v19)
+
+Keluhan Arya: menu masih jelek banget. Yang generik di v18: judul
+"THE GIANT" Label font default Godot 64px, tombol StyleBoxFlat
+polos, teks melayang di atas backdrop tanpa permukaan. Sekarang menu
+punya sprite sendiri (`tools/make_menu_sprites.py`, bisa dijalankan
+ulang, seed tetap):
+- `menu_logo.png` (1000x280): judul huruf berat (Noto Serif Display
+  Black) warna Putih Tulang, ghost merah/lumut geser (tracking VHS),
+  satu pita tear, scanlines, debu.
+- `menu_ledger.png` (460x600): kertas buku jaga gelap — glow lampu
+  dari pojok kiri atas (satu sumber cahaya), garis aturan, noda
+  kopi + lembap, sudut terlipat, stempel "POS 07" merah di pojok
+  kanan atas. Seluruh kolom menu + Options duduk di atas kertas ini.
+- `menu_btn.png` / `menu_btn_hover.png` / `menu_btn_pressed.png`
+  (460x64): strip kertas berjahit putus-putus; hover ada garis
+  Kuning Lampu di tepi kiri, pressed lebih gelap + cap merah.
+- `menu_rec.png`: dot REC merah dengan glow, dipakai di samping
+  teks "REC   CAM 07".
+- Ikon lentera + jejak kaki TIDAK dibuat ulang: potongan sheet Arya
+  (`lantern.png`, `footprint.png`). Lentera jadi ikon tombol
+  Continue saat ada simpanan; jejak samar miring di bawah tombol Exit.
+- Font seluruh menu diganti ke DejaVu Sans Mono Bold
+  (`assets/fonts/`, lisensi bebas): suara UI kamera, sesuai design
+  read. Font default Godot sudah tidak ada lagi di menu utama.
+
+Semua sprite baru kelas PLACEHOLDER (aturan aset Arya: yang digambar
+prosedural itu placeholder, bukan art final). Registry naik 54 ke 60
+nama, 0 missing.
+
+Dua bug ketemu dari screenshot, bukan dari teori: (1) TextureRect
+Godot default `EXPAND_KEEP_SIZE` menggambar tekstur pada ukuran
+aslinya dan mengabaikan `custom_minimum_size` — ronde 1 logo 1000px
+meluber selebar layar dan lentera 311px. Perbaiki: semua TextureRect
+menu pakai `EXPAND_IGNORE_SIZE`. (2) Stempel "POS 07" di (358,96)
+tertutup huruf T logo dan terbaca "PUS 07" — pindah ke (395,42),
+di atas logo. Lentera kecil di baris kepala dihapus: pada 16x32 ia
+terbaca sebagai bintik debu, bukan lentera.
+
+Terverifikasi lewat rig v22 + screenshot 1280x720 dan portrait
+720x1280 (`v22_menu_no_save`, `_pan`, `_options`, `_with_save`,
+desktop + portrait): logo utuh, tombol tidak tumpang tindih, tidak
+ada elemen default yang lolos di menu utama, Continue aktif dengan
+ikon lentera saat ada save. Mode verify PASS (registry 60, 0
+missing, audit hitbox meja 0), mode playtest PASS fails=0 (5 tugas,
+Sanity 100). Batas jujur: slider volume + CheckButton di Options
+masih kontrol default Godot (fungsional, belum di-skin); HUD di
+dalam game masih font default (menu saja yang diganti mono);
+sprite-sprite ini placeholder, art final butuh gambar tangan.
+
 Terverifikasi lewat screenshot Godot 4.3 Xvfb 1280x720, seri v9
 (`~/workspace/godot/shots/v9_*.png`, dilihat satu-satu, 4 ronde ulang
 untuk sudut yang ketutup pohon/dinding/gelap): `v9_desk_meter` (meter di

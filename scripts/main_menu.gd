@@ -23,6 +23,13 @@ extends Control
 ## diminta; bukan pelanggaran sentence case, itu nama kanonik).
 ## v17: latar 3D hidup (scene main mode backdrop) tetap; sistem
 ## panel/tombol v15 tetap; stempel "● REC   CAM 07" tetap.
+## v19: sprite Main UI — logo "THE GIANT" rusak VHS, panel kertas
+## buku jaga (menu_ledger), tombol strip kertas (menu_btn*),
+## dot REC + ikon lentera/jejak dari sheet Arya. Semua sprite baru
+## digambar prosedural (tools/make_menu_sprites.py): PLACEHOLDER,
+## bukan art final. Tombol default Godot sudah tidak ada lagi di
+## menu utama; slider/check di Options masih default (dicatat di
+## README, bukan disembunyikan).
 
 var _menu_box: VBoxContainer
 var _options_scroll: ScrollContainer
@@ -36,6 +43,12 @@ var _fullscreen_check: CheckButton
 var _grain_check: CheckButton
 var _fx_mat: ShaderMaterial
 var _ui_layer: CanvasLayer
+
+## v22 ronde 2: font mono untuk seluruh menu (suara UI kamera,
+## sesuai design read). Font default Godot adalah bagian paling
+## generik kedua dari menu v18 setelah judul. DejaVu Sans Mono
+## Bold (lisensi bebas, ikut di repo di assets/fonts/).
+const MENU_FONT: Font = preload("res://assets/fonts/DejaVuSansMono-Bold.ttf")
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -62,6 +75,7 @@ func _ready() -> void:
 	_ui_layer.layer = 1
 	add_child(_ui_layer)
 	_build_fx_and_stamp()
+	_build_ledger()
 	_build_menu_box()
 	_build_options_box()
 	_show_main()
@@ -116,20 +130,50 @@ func _build_fx_and_stamp() -> void:
 	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui_layer.add_child(vig)
-	# v15: stempel yang sama dengan HUD ("● REC   CAM 07") — satu
-	# detail signature yang mengikat menu dan game. Bukan dekorasi
-	# baru, tapi identitas yang sudah ada dipakai konsisten.
+	# v19: stempel REC sebagai dot sprite + teks (dulu satu Label
+	# dengan karakter "●"). Satu detail signature yang mengikat
+	# menu dan game. Bukan dekorasi baru, tapi identitas yang
+	# sudah ada dipakai konsisten.
+	var rec_row := HBoxContainer.new()
+	rec_row.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	rec_row.offset_left = 18
+	rec_row.offset_right = 220
+	rec_row.offset_top = 12
+	rec_row.offset_bottom = 40
+	rec_row.add_theme_constant_override("separation", 8)
+	rec_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_layer.add_child(rec_row)
+	var rec_dot := TextureRect.new()
+	rec_dot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rec_dot.texture = SpriteRegistry.texture("menu_rec")
+	rec_dot.custom_minimum_size = Vector2(22, 22)
+	rec_dot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rec_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rec_row.add_child(rec_dot)
 	var rec := Label.new()
-	rec.text = "● REC   CAM 07"
+	rec.text = "REC   CAM 07"
+	rec.add_theme_font_override("font", MENU_FONT)
 	rec.add_theme_font_size_override("font_size", 16)
 	rec.add_theme_color_override("font_color", Color(0.85, 0.25, 0.15))
-	rec.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	rec.offset_left = 18
-	rec.offset_right = 220
-	rec.offset_top = 12
-	rec.offset_bottom = 40
 	rec.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui_layer.add_child(rec)
+	rec_row.add_child(rec)
+
+## v19: kertas buku jaga di belakang kolom menu (dan Options —
+## keduanya di kolom yang sama, jadi satu panel cukup). Panel
+## polos sudah tidak ada: teks menu sekarang duduk di atas kertas,
+## bukan melayang di atas backdrop 3D.
+func _build_ledger() -> void:
+	var ledger := TextureRect.new()
+	ledger.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ledger.texture = SpriteRegistry.texture("menu_ledger")
+	ledger.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	ledger.offset_left = 88
+	ledger.offset_right = 548
+	ledger.offset_top = -290
+	ledger.offset_bottom = 290
+	ledger.stretch_mode = TextureRect.STRETCH_SCALE
+	ledger.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui_layer.add_child(ledger)
 
 func _build_menu_box() -> void:
 	# v18: kolom kiri yang sama dengan v17 (88..548, split
@@ -139,21 +183,29 @@ func _build_menu_box() -> void:
 	_menu_box.set_anchors_preset(Control.PRESET_CENTER_LEFT)
 	_menu_box.offset_left = 88
 	_menu_box.offset_right = 548
-	_menu_box.offset_top = -280
-	_menu_box.offset_bottom = 280
+	_menu_box.offset_top = -290
+	_menu_box.offset_bottom = 290
 	_menu_box.add_theme_constant_override("separation", 14)
 	_ui_layer.add_child(_menu_box)
 
-	# Kepala buku jaga (label kecil, tanpa titik — bukan paragraf).
+	# Kepala buku jaga: label kecil, tanpa titik — bukan paragraf.
+	# (v22 ronde 2: lentera kecil di baris ini dihapus — pada 16x32
+	# ia terbaca sebagai bintik debu, bukan lentera. Lentera tetap
+	# ada sebagai ikon tombol Continue saat ada simpanan.)
 	var head := _label("Buku jaga, Pos 07", 14, Color(0.6, 0.58, 0.5))
 	_menu_box.add_child(head)
 
-	var title := Label.new()
-	title.text = "THE GIANT"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	title.add_theme_font_size_override("font_size", 64)
-	title.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
-	_menu_box.add_child(title)
+	# v19: logo judul sebagai sprite (huruf berat + rusak VHS),
+	# bukan Label font default. Font default Godot di judul adalah
+	# bagian paling generik dari menu v18.
+	var logo := TextureRect.new()
+	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo.texture = SpriteRegistry.texture("menu_logo")
+	logo.custom_minimum_size = Vector2(460, 124)
+	logo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	logo.stretch_mode = TextureRect.STRETCH_SCALE
+	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_box.add_child(logo)
 
 	# Garis aturan buku (ruled line): pembatas kepala dan isi log.
 	var rule := HSeparator.new()
@@ -194,6 +246,18 @@ func _build_menu_box() -> void:
 	_exit_btn.visible = not OS.has_feature("web")
 	_menu_box.add_child(_exit_btn)
 
+	# Jejak kaki dari sheet Arya di bawah tombol: penanda bahwa
+	# seseorang sudah lewat sini sebelum pemain. Samar, miring.
+	var track := TextureRect.new()
+	track.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	track.texture = SpriteRegistry.texture("footprint")
+	track.custom_minimum_size = Vector2(42, 38)
+	track.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	track.rotation = -0.3
+	track.modulate = Color(1, 1, 1, 0.5)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_box.add_child(track)
+
 func _build_options_box() -> void:
 	# v18: layar peralatan pos — pengaturan yang benar-benar jalan
 	# + cara main. Satu kolom yang sama dengan menu (88..548),
@@ -202,8 +266,8 @@ func _build_options_box() -> void:
 	_options_scroll.set_anchors_preset(Control.PRESET_CENTER_LEFT)
 	_options_scroll.offset_left = 88
 	_options_scroll.offset_right = 548
-	_options_scroll.offset_top = -280
-	_options_scroll.offset_bottom = 280
+	_options_scroll.offset_top = -290
+	_options_scroll.offset_bottom = 290
 	_options_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_options_scroll.visible = false
 	_ui_layer.add_child(_options_scroll)
@@ -264,6 +328,7 @@ func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	l.add_theme_font_override("font", MENU_FONT)
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -291,6 +356,7 @@ func _slider_row(box: VBoxContainer, label_text: String, min_v: float, max_v: fl
 	var val := Label.new()
 	val.custom_minimum_size = Vector2(52, 0)
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	val.add_theme_font_override("font", MENU_FONT)
 	val.add_theme_font_size_override("font_size", 16)
 	val.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
 	val.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -305,6 +371,7 @@ func _toggle_row(label_text: String, pressed: bool, on_change: Callable) -> Chec
 	var cb := CheckButton.new()
 	cb.text = label_text
 	cb.button_pressed = pressed
+	cb.add_theme_font_override("font", MENU_FONT)
 	cb.add_theme_font_size_override("font_size", 16)
 	cb.add_theme_color_override("font_color", Color(0.75, 0.73, 0.66))
 	cb.add_theme_stylebox_override("focus", _focus_style())
@@ -371,24 +438,31 @@ func _menu_button(text: String) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(0, 52)
+	b.add_theme_font_override("font", MENU_FONT)
 	b.add_theme_font_size_override("font_size", 20)
-	# v15: gaya tombol yang sama dengan panel HUD (gelap hangat,
-	# pinggir tipis, fokus kuning) supaya menu dan game satu bahasa.
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.14, 0.13, 0.11)
-	normal.border_color = Color(0.45, 0.42, 0.34)
-	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(2)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.2, 0.18, 0.14)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.1, 0.09, 0.08)
+	# v19: strip kertas dari sprite (normal/hover/pressed beda
+	# jelas), bukan StyleBoxFlat polos. Tombol default Godot sudah
+	# tidak ada lagi di menu utama.
+	var normal := StyleBoxTexture.new()
+	normal.texture = SpriteRegistry.texture("menu_btn")
+	normal.content_margin_left = 16
+	normal.content_margin_right = 16
+	var hover := StyleBoxTexture.new()
+	hover.texture = SpriteRegistry.texture("menu_btn_hover")
+	hover.content_margin_left = 16
+	hover.content_margin_right = 16
+	var pressed := StyleBoxTexture.new()
+	pressed.texture = SpriteRegistry.texture("menu_btn_pressed")
+	pressed.content_margin_left = 16
+	pressed.content_margin_right = 16
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("disabled", normal)
 	b.add_theme_stylebox_override("focus", _focus_style())
 	b.add_theme_color_override("font_color", Color(0.92, 0.88, 0.74))
 	b.add_theme_color_override("font_hover_color", Color(0.96, 0.92, 0.8))
+	b.add_theme_color_override("font_pressed_color", Color(0.85, 0.8, 0.66))
 	b.add_theme_color_override("font_disabled_color", Color(0.45, 0.43, 0.38))
 	return b
 
@@ -408,11 +482,16 @@ func _refresh_continue() -> void:
 	if SaveGame.has_save():
 		_continue_btn.text = SaveGame.summary_text()
 		_continue_btn.disabled = false
+		# v19: lentera menyala di tombol lanjutkan — penanda ada
+		# shift yang belum selesai. Ikon diskalakan ke tinggi tombol.
+		_continue_btn.icon = SpriteRegistry.texture("lantern")
+		_continue_btn.expand_icon = true
 	else:
 		# Catatan buku jaga untuk shift yang tidak ada: tidak ada
 		# simpanan yang bisa dilanjutkan.
 		_continue_btn.text = "Continue - no record on file"
 		_continue_btn.disabled = true
+		_continue_btn.icon = null
 
 func _on_new_game() -> void:
 	GameState.resume_data = {}
