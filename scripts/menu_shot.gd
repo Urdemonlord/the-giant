@@ -8,7 +8,7 @@ extends Node
 ## Continue aktif; pastikan wiring Exit. Transisi menu -> main
 ## TIDAK diuji dari sini (lihat menu_autostart=1); jalur keluar
 ## diuji terpisah (menu_test_exit=1, proses harus berhenti).
-## Log ke <shot_dir>/v23_results_menu.txt, screenshot v23_menu_*.png.
+## Log ke <shot_dir>/v24_results_menu.txt, screenshot v24_menu_*.png.
 ## Static _run_phase bertahan melewati reload_current_scene dalam
 ## satu proses, jadi fase tidak terulang.
 
@@ -20,7 +20,7 @@ var _log_path := ""
 var _menu: Control = null
 
 func _ready() -> void:
-	_log_path = SHOT_DIR + "v23_results_menu.txt"
+	_log_path = SHOT_DIR + "v24_results_menu.txt"
 	if _run_phase == 0:
 		var init := FileAccess.open(_log_path, FileAccess.WRITE)
 		if init:
@@ -221,6 +221,6 @@ func _shot(name: String) -> void:
 			n += 1
 	mean /= maxf(n, 1.0)
 	_log("shot " + name + " mean_lum=" + str(snappedf(mean, 0.001)) + " backdrop_lit=" + str(mean > 0.05))
-	var path := SHOT_DIR + "v23_" + name + ".png"
+	var path := SHOT_DIR + "v24_" + name + ".png"
 	var err := img.save_png(path)
 	_log("shot " + name + " err=" + str(err) + " path=" + path)

@@ -557,6 +557,46 @@ event 01:30; sudah terbukti visual di `v9_hunter2`). Jalur menang
 scripted masih lolos setelah perubahan ini (Sanity 84), headless 300
 frame tanpa script error (hanya warning dummy-renderer yang dikenal).
 
+## Menu utama: nyatu dengan background — Giant di kabut (2026-11-18, v21)
+
+Keluhan Arya: menu v20 3/10, "ga nyatu ama background nya". Diagnosis dari
+screenshot v23: kertas buku jaga fully opaque (alpha 255 di semua tepi)
+jadi tampil sebagai persegi keras yang ditempel; backdrop 3D tidak punya
+satu pun elemen gajah (kamera menu menghadap selatan, yaw 209, sedangkan
+gajah level ada di utara, di belakang kamera) — menu terasa kosong.
+Perbaikan, semua di scene 3D yang sama (kabut + VHS + cahaya bulan yang
+sama), bukan hiasan UI:
+- Siluet Giant di kabut selatan pos (`main.gd _setup_menu_giant()`,
+  HANYA di backdrop menu): `menu_giant_v21.png` = elephant_shadow dari
+  sheet Arya dibalik horizontal (kepala menghadap pos) + grade malam
+  (`tools/make_menu_giant_v21.py`). 13 m, di kanan frame, badan terpotong
+  tepi kanan (aturan: Giant tidak pernah utuh), kaki kelihatan di bawah
+  (itu yang membuatnya terbaca sebagai hewan, bukan bukit).
+- Kabut di tepi kanan kertas: dua fog_puff dekat kamera (d=4-5 m, UNSHADED,
+  alpha 0.5) di garis x=548, melembutkan batas kertas dari samping.
+- Kertas v21 (`tools/make_menu_sprites_v21.py`, dari foto yang sama):
+  tepi sobek alpha (22.175 px transparan) + cahaya hangat Kuning Lampu di
+  tepi kanan (lampu teras pos ada di kanan panel).
+- GAGAL dan dibuang: kaki raksasa (ronde 1 dibaca batang pohon, ronde 2
+  hilang); kilau mata giant_eye (crop persegi tampil sebagai kotak abu-abu
+  melayang di langit seperti glitch — dihapus ronde 4, tanpa pengganti).
+  Ronde gajah: 1) d=28 m shaded gelap = tidak kelihatan; 2) d=20 m unshaded
+  pale = muncul tapi dibaca bukit (kaki ketutup pos); 3) geser kanan
+  r=+17 m + mata = kaki kelihatan, mata gagal; 4) mata dihapus, final.
+
+Terverifikasi lewat screenshot Godot 4.3 Xvfb, seri v24 (dilihat satu-satu,
+4 ronde): desktop 1280x720 `v24_menu_with_save` + `_pan` (komposisi bertahan
+sepanjang sapuan kamera +-5 derajat), portrait 720x1280 `v24_portrait/` (gajah
++ kabut tetap kelihatan di letterbox). Rig menu PASS (4 tombol, slop 0,
+settings persist, Continue, Exit); mode verify PASS (registry 63, 0 missing);
+mode playtest PASS fails=0 (5 tugas, Sanity 100, Stability 100);
+menu_autostart=1 masuk scene main. Batas jujur: kepala/belalai Giant masih
+halus (yang membuat terbaca sebagai hewan terutama kakinya di tepi kanan);
+bank kabut tengah agak blobby dan menutupi sebagian kiri pos; tepi kanan
+kertas masih cukup lurus di tengah; label kepala terpotong 1px di portrait
+letterbox (bawaan v20); slider + CheckButton Options dan HUD dalam game
+masih default. Sprite menu tetap kelas PLACEHOLDER.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya

@@ -166,7 +166,10 @@ func _build_fx_and_stamp() -> void:
 func _build_ledger() -> void:
 	var ledger := TextureRect.new()
 	ledger.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ledger.texture = SpriteRegistry.texture("menu_ledger_v20")
+	# v21: tepi sobek alpha + cahaya hangat tepi kanan (lampu teras).
+	# v20 fully opaque = persegi keras yang ditempel; itu separuh
+	# alasan menu dinilai 3/10. Tekstur v21 dari foto yang sama.
+	ledger.texture = SpriteRegistry.texture("menu_ledger_v21")
 	ledger.set_anchors_preset(Control.PRESET_CENTER_LEFT)
 	ledger.offset_left = 88
 	ledger.offset_right = 548

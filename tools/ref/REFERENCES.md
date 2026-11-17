@@ -33,3 +33,18 @@ saat membangun sprite menu. Jangan hapus tanpa mengganti generatornya.
   (tracking tear, grain tebal) ditiru untuk logo, tapi frame-nya
   sendiri dibangun dari gambar generate, jadi TIDAK dipakai sebagai
   sumber piksel.
+
+## Menu v21: Giant di kabut + kertas sobek (2026-11-18)
+- `menu_giant_v21.png` — siluet Giant di backdrop menu: `elephant_shadow`
+  dari sheet Arya dibalik horizontal (kepala menghadap pos/pemain, karena
+  Sprite3D billboard tidak bisa flip) + grade malam 0.8 + desaturasi ke
+  Hijau Sakit (`tools/make_menu_giant_v21.py`). Bukan gambar baru.
+- `menu_ledger_v21.png` — dari `menu_ledger_v20.png` yang sama (foto
+  perkamen Vecteezy 57329614): tepi sobek alpha + cahaya hangat Kuning
+  Lampu di tepi kanan (lampu teras pos) + burned edge
+  (`tools/make_menu_sprites_v21.py`).
+- Penempatan Giant/kabut dihitung dari kamera menu (-4.5, 2, -8, yaw 209,
+  FOV 72) di `main.gd _setup_menu_giant()` — hanya backdrop menu, tidak
+  ada di permainan. Kaki raksasa + kilau mata dicoba dan DIBUANG (kaki
+  dibaca batang pohon/lalu hilang; mata tampil sebagai kotak abu-abu
+  melayang seperti glitch).

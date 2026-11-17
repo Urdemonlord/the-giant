@@ -123,7 +123,52 @@ func _setup_menu_backdrop() -> void:
 	cam.fov = Balance.FOV_BASE
 	add_child(cam)
 	cam.current = true
+	_setup_menu_giant()
 	print("[Main] mode backdrop menu: kamera menu aktif")
+
+## v21: elemen menu — Giant di kabut + kaki raksasa + kabut tepi
+## panel. HANYA di backdrop menu; tidak ada di permainan (tidak
+## disentuh level_data / event). Alasan: kamera menu menghadap
+## selatan (yaw 209), sedangkan gajah level ada di utara (z -26..
+## -36, di belakang kamera) — dari menu mereka tidak pernah
+## kelihatan, itu sebabnya menu v20 terasa kosong dan kertasnya
+## mengambang seperti kartu tempel. Giant di sini hidup di scene
+## 3D yang sama (kabut + VHS + cahaya bulan yang sama), jadi ia
+## nyatu dengan backdrop, bukan hiasan UI.
+## Aturan Giant tetap: tidak pernah utuh — kabut dalam (menu pakai
+## NIGHT_VOL_DEEP / FOG_DENSITY+0.01) + pohon menelannya; yang
+## kelihatan siluet + kaki, bukan gajah jelas.
+func _setup_menu_giant() -> void:
+	# Siluet Giant di kabut selatan pos, di kanan frame, menjulang
+	# di atas atap pos. Posisi dihitung dari kamera menu
+	# (-4.5, 2, -8), forward (0.485, 0, 0.875), right
+	# (-0.875, 0, 0.485). Ronde 1 (d=28, tinggi 11 m, shaded,
+	# tint 0.38) GAGAL: tidak terbaca sama sekali di screenshot —
+	# ketelan kabut 0.07 + gelap bulan dalam. Ronde 2 (d=20, r=+13,
+	# tinggi 13 m, UNSHADED, tint 0.55) MUNCUL tapi dibaca sebagai
+	# BUKIT berkabut, bukan gajah: kakinya ketutup pos, yang kelihatan
+	# cuma punggung dome di atas atap. Ronde 3: geser kanan sampai
+	# kakinya lepas dari pos (d=20 m, r=+17 m -> (-9.7, 0, 17.7)),
+	# kepala (ujung kiri tekstur yang dibalik) di dekat pos, badan
+	# terpotong tepi kanan frame (aturan: Giant tidak pernah utuh).
+	# Tetap UNSHADED pale (yang memisahkannya dari langit hitam),
+	# kaki yang kelihatan yang membuatnya terbaca sebagai hewan.
+	_billboard(self, "menu_giant_v21", Vector3(-9.7, 0.0, 17.7), 0.095, Color(0.55, 0.6, 0.55, 0.9), true)
+	# Kilau mata di kepala siluet: DIHAPUS ronde 4. Ronde 3 membuktikan
+	# ia gagal: giant_eye adalah crop PERSEGI (kulit di seluruh
+	# kotak, bukan masker bulat), jadi di 20 m ia tampil sebagai
+	# kotak abu-abu kecil yang melayang di langit — terbaca seperti
+	# glitch, bukan mata. Gajah tanpa mata tetap terbaca sebagai
+	# hewan begitu kakinya kelihatan; tidak ada pengganti (jangan
+	# ramai).
+	# Kabut di tepi kanan kertas: dua puff dekat kamera (d=4-5 m),
+	# tepat di garis x=548 layar (tepi kanan panel), supaya tepi
+	# keras kertas bertemu kabut, bukan ruang kosong. Puff tidak
+	# pernah menutupi kertas (UI selalu di atas 3D) — ia melembutkan
+	# batasnya dari samping. Ronde 1 (shaded, alpha 0.4-0.45) terlalu
+	# redup sampai tidak kebaca; ronde 2: UNSHADED + alpha 0.5.
+	_billboard(self, "fog_puff", Vector3(-2.1, 1.8, -4.8), 0.02, Color(0.62, 0.68, 0.58, 0.5), true)
+	_billboard(self, "fog_puff", Vector3(-1.5, 0.6, -3.9), 0.022, Color(0.62, 0.68, 0.58, 0.5), true)
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
