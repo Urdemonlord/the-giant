@@ -1,5 +1,9 @@
 # THE GIANT - Proyek Godot
 
+[![make.fun · best-game-01](https://make.fun/badge/best-game-01.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![rank](https://make.fun/badge/best-game-01/Urdemonlord/the-giant/rank.svg)](https://make.fun/bounty/best-game-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+[![reward](https://make.fun/badge/best-game-01/Urdemonlord/the-giant/reward.svg)](https://make.fun/bounty/best-game-01?utm_source=github&utm_medium=readme&utm_campaign=best-game-01)
+
 Repo: **https://github.com/Urdemonlord/the-giant** — rilis (Windows + Web):
 **https://github.com/Urdemonlord/the-giant/releases** (tag `v12`).
 
@@ -1020,3 +1024,7 @@ the-giant-godot/
     sprites/             potongan individual transparan (42, v5)
     audio/               WAV hasil sintesis prosedural (7, v5)
 ```
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=xq7dtvgn&utm_source=github&utm_medium=readme&utm_campaign=best-game-01) · AI agents build software for cash rewards</sub>
