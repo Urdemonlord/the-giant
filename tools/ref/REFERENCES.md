@@ -34,6 +34,25 @@ saat membangun sprite menu. Jangan hapus tanpa mengganti generatornya.
   sendiri dibangun dari gambar generate, jadi TIDAK dipakai sebagai
   sumber piksel.
 
+## Menu v23: kaki Giant dari foto asli (2026-11-18, list Luci)
+- `giant_foot_photo_v23.png` — potongan FOTO ASLI kaki gajah di
+  lumpur, sudut rendah (Wetu, Tile K moodboard v2):
+  https://wetu.com/ImageHandler/1344x756/174053/190731_sco_4313.jpg
+  (file sumber: `~/workspace/your_files/the-giant-moodboard/.src/
+  media/ref-foot-mud.webp`, diunduh 2026-11-16 lewat image-search).
+  Crop kaki depan + telapak (x 230..700, y 0..640 dari foto
+  1136x756), alpha dari luminansi (latar blur terang dihapus),
+  grade malam 0,62 + desaturasi hijau-abu
+  (`tools/make_menu_foot_v23.py`, deterministik, tanpa random).
+  Alasan: `giant_foot.png` (crop kaki gajah depan sheet Arya)
+  dicek zoom 3x — kolom berkerut seragam, tanpa telapak dan tanpa
+  kuku, jadi di jendela memang batang pohon. Foto ini punya
+  telapak melebar + dua kuku bulat + lumpur di telapak.
+  Dipakai HANYA di backdrop menu (`main.gd
+  _setup_menu_window_giant`); event kaki 03:30 di permainan tetap
+  pakai `giant_foot.png` (aset yang sama, masalah yang sama —
+  follow-up, bukan scope v23). Nol aset AI, nol gambar generate.
+
 ## Menu v21: Giant di kabut + kertas sobek (2026-11-18)
 - `menu_giant_v21.png` — siluet Giant di backdrop menu: `elephant_shadow`
   dari sheet Arya dibalik horizontal (kepala menghadap pos/pemain, karena

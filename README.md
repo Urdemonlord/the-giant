@@ -661,6 +661,90 @@ mulai; 4) cahaya datar, kabut merata, Giant kurang mengancam.
   (track gelap, grabber hangat), HUD dalam game masih font default.
   Sprite menu tetap kelas PLACEHOLDER.
 
+## Menu utama v23: perbaikan 4 kritik v22 dengan skill list Luci (2026-11-18)
+
+Perintah Arya 04:33 WIB: "iya pake list luci buat garap the giant".
+Skill yang dibaca dari `~/workspace/makefun/skills/` (list Luci langsung,
+BUKAN adaptasi custom-skills): router awesome-gamedev-agent-skills
+(klasifikasi: disiplin game-ui-ux, game-feel, camera-systems,
+create-game-assets + engine godot-ui-control); game-ui-ux (hierarki,
+kontras teks >= 4,5:1, sinyal bukan cuma warna, focus saat buka, sweep
+ukuran); game-feel (juice di event hook, kembali persis ke rest, jangan
+over-juice aksi rutin); camera-systems (kamera melayani framing, pisah
+look dari collision); create-game-assets (inspect dulu, target visual
+yang disetujui dipertahankan, produksi sebagai family, validasi di
+konteks ukuran native, provenance, nol aset AI); unslop (chrome diam,
+satu elemen terang, teks di ruang tenang, urutan perbaikan spacing dulu);
+anthropics frontend-design (tipografi bawa karakter, boldness di satu
+tempat, kritik dari screenshot). Dua skill dibaca tapi JUJUR tidak
+dipakai: canvas-design (untuk poster/statis, bukan menu Godot) dan
+webapp-testing (Playwright untuk web app; verifikasi Godot pakai rig +
+Xvfb sendiri).
+- 1) Kaki Giant kebaca batang pohon -> aset dipotong ulang dari sumber.
+  `giant_foot.png` (120x218) diperiksa 3x: kolom belang seragam tanpa
+  telapak/kuku, memang batang pohon secara visual. Sumber
+  `elephant_front.png` juga terpotong di tepi bawah, tidak ada kuku.
+  Aset baru `giant_foot_photo_v23.png` (470x640) dipotong dari FOTO ASLI
+  kaki gajah low-angle di lumpur (Wetu, tile K moodboard v2,
+  `tools/make_menu_foot_v23.py`, deterministik, tanpa random; alpha dari
+  luminance, grade malam; provenance di `tools/ref/REFERENCES.md`):
+  telapak melebar + dua kuku bulat + lumpur di dasar. Penempatan sama
+  (2.0, 0, 6.0), 4 m. Event kaki 03:30 dalam game masih pakai
+  `giant_foot.png` lama (masalah sama, follow-up di luar v23).
+- 2) CA bikin semua teks berpinggiran merah/biru -> `MENU_GRADE_CA`
+  0.003 -> **0.0** (`scripts/balance.gd`); grain 0.05 + desat 0.15 +
+  vignette 0.32 tetap sebagai grade foto. HUD dalam game TIDAK berubah
+  (VHS_CA sendiri). Diukur: CA 0.003 = ~2 px di tengah, ~7 px di sudut
+  pada 1280 lebar.
+- 3) Dasar lentera menutupi T di THE GIANT -> lentera menu SAJA geser
+  z 1.64 -> **1.72** (`main.gd _setup_menu_backdrop`); alas sprite kini
+  z 1.54, di belakang tepi jauh logo (z 1.48). Geser x ditolak (kanan
+  keluar meja, kiri tabrak meter). Game tidak berubah. Cek rig:
+  alas lentera 6 px di atas judul (proyeksi layar, bukan kira-kira).
+- 4) Continue mati hampir hilang -> tinta mati `INK_DIM` (0.38, ~2:1)
+  diganti `INK_DISABLED` (0.22, ~3,3:1), jelas lebih redup dari tinta
+  aktif INK (0.13, ~4,7:1) tapi terbaca; PLUS sinyal bukan-warna
+  (game-ui-ux): garis coret 0,80 x 0,012 m di atas teks, hanya saat
+  mati, seperti entri dibatalkan di buku jaga. Sub "no record on file"
+  pakai INK_BODY (0.22) supaya alasan terbaca.
+- game-feel: hover tetap highlight hangat saja (aksi rutin, over-juice
+  = mual). Tambah pop seleksi kecil di `main_menu.gd` (`_pop_selection`):
+  baris terpilih skala 1.0 -> 1.05 (TRANS_BACK, 0,09 dtk) -> 1.0
+  (TRANS_QUAD, 0,12 dtk), tween lama dimatikan saat retrigger, selalu
+  kembali persis 1.0. Tanpa SFX baru (proyek tidak punya tick UI).
+- Temuan ke-5 saat verifikasi (bukan dari 4 tugas, sudah ada di v22):
+  "Start" pucat di portrait — bar sorot kuning (transparan, alpha 0,45)
+  sempat ter-sort DI DEPAN teks di sudut kamera tertentu, jadi teks
+  tercuci kuning. Perbaiki deterministik: `render_priority = -1` pada
+  material bar sorot (selalu di belakang teks), `+1` pada coret (selalu
+  di atas teks). Cek piksel rig: luminansi tergelap teks Start 0,11 di
+  portrait (sebelumnya pucat), 0,21 di desktop.
+- Verifikasi (Xvfb + Vulkan Forward+, screenshot dibaca sendiri):
+  rig cepat v23 (`scripts/menu_check_v23.gd`, `scenes/menu_quick.tscn`,
+  10 cek: 4 perbaikan + baris + tanpa CCTV + CA + logo utuh + piksel
+  Start): desktop 1280x720 **10/10**, portrait 720x1280 **10/10**,
+  dengan save **9/9** (Continue hidup, sub "00:03, Sanity 80", tanpa
+  coret). Rig menu penuh v26 (`scripts/menu_shot.gd`): desktop **27/0
+  PASS**, portrait **27/0 PASS**. Mode verify DONE (registry 67 nama
+  missing=0, hitbox meja tumpang=0); mode playtest **PASS fails=0**
+  (5 tugas, Sanity 100); menu_autostart=1 masuk scene main (fog game
+  0.04/0.03). Catatan rig: `v26_menu_with_save.png` versi rig penuh
+  adalah frame DALAM GAME sesudah Continue ditekan (HUD + VHS game,
+  sesuai desain); menu dengan-save-nya dibuktikan screenshot quick
+  run yang sama.
+- Pelajaran sandbox: sesudah restart, Xvfb yang BARU distart kadang
+  membuat Godot nyangkut di init (scene tidak pernah load, CPU ~0);
+  Xvfb yang sudah hangat + satu run pemanasan (scene kosong) jalan
+  ~10 dtk. Jangan `pkill -f` dengan pola yang ada di command sendiri;
+  matikan Xvfb/Godot pakai PID persis. `muse.edit` bisa menulis escape
+  `\"` literal ke GDScript — selalu grep `\"` sesudah edit string.
+- Batas jujur: kuku kaki setengah terpotong kusen jendela (aturan
+  "tidak pernah utuh", sengaja); alas lentera cuma 6 px di atas judul
+  (tipis tapi terukur dan terbukti di screenshot); portrait tetap
+  letterbox 720x405 di layar 720x1280 (stretch aspect=keep, sudah
+  sejak v20); event kaki 03:30 dalam game masih aset batang-pohon lama.
+  Sprite menu tetap kelas PLACEHOLDER.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya

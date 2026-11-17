@@ -190,12 +190,16 @@ const MENU_MOON_ENERGY := 0.80
 const MENU_VOL_DENSITY := 0.025
 const MENU_FOG_DENSITY := 0.05
 ## Grade menu: grain halus saja, BUKAN bingkai CCTV (kritik #3).
-## Scanline/tear/flicker dimatikan; desat + CA + vignette tipis.
+## Scanline/tear/flicker dimatikan; desat + vignette tipis, CA 0.
 const MENU_GRADE_GRAIN := 0.05
 const MENU_GRADE_SCANLINE := 0.0
-const MENU_GRADE_CA := 0.003 # v25: 0.008 terlalu kuat, teks jadi
-# fringing merah-hijau-biru sampai tidak terbaca; 0.003 cukup
-# untuk nuansa lensa tua tanpa merusak huruf.
+const MENU_GRADE_CA := 0.0 # v23 (Luci: game-ui-ux + unslop):
+	# CA MATI di menu. Dulu 0.003 (v25: 0.008) — shader VHS
+	# menggeser kanal R/B sampai ~7 px di tepi dan ~2 px di tengah,
+	# jadi SEMUA teks menu berpinggiran merah/biru. Teks di atas
+	# kertas harus tajam dan bersih; grade foto (grain + desat +
+	# vignette) sudah cukup untuk suasana. HUD game tetap pakai
+	# VHS_CA sendiri, tidak ikut berubah.
 const MENU_GRADE_DESAT := 0.15
 const MENU_GRADE_VIGNETTE := 0.32
 const MENU_GRADE_FLICKER := 0.0

@@ -17,6 +17,7 @@ const ALL_NAMES: Array[String] = [
 	"elephant_back", "elephant_front", "elephant_shadow",
 	"elephant_side", "fence_barbed", "fence_wood", "fog_puff",
 	"footprint", "gate", "generator", "giant_eye", "giant_foot",
+	"giant_foot_photo_v23",
 	"guard_back", "guard_front", "guard_hut", "hunter",
 	"hunter_rifle", "lantern", "log", "logbook", "meter",
 	"menu_book_page_l", "menu_book_page_r", "menu_btn_v20",

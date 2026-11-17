@@ -58,7 +58,14 @@ const PAGE_Y := 1.130
 const HIGHLIGHT_Y := 1.133
 const TEXT_Y := 1.136
 const INK := Color(0.13, 0.10, 0.07) # tinta gelap (mesin tik)
-const INK_DIM := Color(0.38, 0.35, 0.30) # tinta redup (baris mati)
+const INK_DISABLED := Color(0.22, 0.19, 0.16) # v23 (Luci:
+	# game-ui-ux): tinta baris MATI. Dulu INK_DIM 0,38 — kontras
+	# ke kertas cuma ~2:1, "Continue" hilang di screenshot v25.
+	# 0,22 = ~3,3:1: jelas lebih redup dari tinta aktif (0,13,
+	# ~4,7:1) tapi tetap terbaca sebagai teks. Warna saja tidak
+	# cukup sebagai sinyal (game-ui-ux): baris mati juga DICORET —
+	# garis tipis menembus label, seperti entri dibatalkan di buku
+	# jaga — jadi bedanya dari baris aktif bukan cuma warna.
 const INK_BODY := Color(0.22, 0.19, 0.15) # tinta isi (sub-teks)
 const INK_RULE := Color(0.45, 0.13, 0.08) # garis merah (tinta)
 const HIGHLIGHT := Color(0.85, 0.66, 0.23, 0.30) # sorot hover
@@ -246,13 +253,38 @@ func _add_row(row_name: String, center: Vector3, half: Vector2,
 	hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	hm.albedo_color = HIGHLIGHT
 	hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# v23: render_priority -1 supaya bar sorot SELALU di belakang teks.
+	# Tanpa ini, sort transparan (jarak ke kamera) bisa membalik di
+	# sudut kamera tertentu dan bar kuning menutupi teks -> "Start"
+	# pucat di portrait (sama di v22, ketahuan dari v25p).
+	hm.render_priority = -1
 	hl.material_override = hm
 	hl.visible = false
 	backdrop.add_child(hl)
+	# v23: garis coret untuk baris mati (lihat INK_DISABLED).
+	# Quad tipis 0,80 x 0,012 di ATAS teks (y 1,1375 vs teks 1,136),
+	# tersembunyi kecuali baris dimatikan.
+	var strike := MeshInstance3D.new()
+	var sq := QuadMesh.new()
+	sq.size = Vector2(half.x * 2.0 - 0.06, 0.012)
+	strike.mesh = sq
+	strike.rotation = Vector3(-PI * 0.5, 0, 0)
+	strike.position = Vector3(center.x, 1.1375, center.z)
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.albedo_color = Color(INK.r, INK.g, INK.b, 0.85)
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# v23: render_priority 1 supaya coret SELALU di atas teks (kebalikan
+	# dari bar sorot); tanpa ini coret bisa tersembunyi di balik huruf.
+	sm.render_priority = 1
+	strike.material_override = sm
+	strike.visible = false
+	backdrop.add_child(strike)
 	var row := {
 		"name": row_name, "center": center, "half": half,
 		"label": label, "sub": null, "highlight": hl,
 		"material": hm, "action": action, "enabled": true,
+		"strike": strike,
 	}
 	_rows.append(row)
 	return row
@@ -407,6 +439,7 @@ func _click_at(screen_pos: Vector2) -> void:
 		return
 	_selected = _rows.find(row)
 	_refresh_highlights()
+	_pop_selection()
 	(row["action"] as Callable).call()
 
 func _move_selection(d: int) -> void:
@@ -418,6 +451,7 @@ func _move_selection(d: int) -> void:
 		if bool(_rows[_selected]["enabled"]):
 			break
 	_refresh_highlights()
+	_pop_selection()
 
 func _activate_selected() -> void:
 	if _rows.is_empty():
@@ -427,18 +461,46 @@ func _activate_selected() -> void:
 		return
 	(row["action"] as Callable).call()
 
+## v23 (Luci: game-feel): pop kecil saat pilihan BERPINDAH
+## (keyboard / klik), bukan saat hover — hover adalah aksi rutin,
+## di-juice berlebihan bikin mual (skill). Pop 1,0 -> 1,05 ->
+## 1,0, TRANS_BACK 0,18 dtk, tween lama di-kill supaya tidak
+## bertarung, dan SELALU kembali tepat ke 1,0 (juice yang tidak
+## kembali ke rest berhenti terbaca sebagai feedback).
+var _pop_tween: Tween
+
+func _pop_selection() -> void:
+	if _rows.is_empty():
+		return
+	var label := _rows[_selected]["label"] as Label3D
+	if label == null:
+		return
+	if _pop_tween != null and _pop_tween.is_valid():
+		_pop_tween.kill()
+	label.scale = Vector3.ONE
+	_pop_tween = label.create_tween()
+	_pop_tween.tween_property(label, "scale", Vector3(1.05, 1.05, 1.0), 0.09) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_pop_tween.tween_property(label, "scale", Vector3.ONE, 0.12) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
 func _refresh_highlights() -> void:
 	for i in range(_rows.size()):
 		var row: Dictionary = _rows[i]
 		var hl := row["highlight"] as MeshInstance3D
 		var hm := row["material"] as StandardMaterial3D
 		var label := row["label"] as Label3D
-		# Baris mati (Continue tanpa save) tetap redup: jangan
-		# ditimpa sorot/seleksi.
+		var strike := row.get("strike") as MeshInstance3D
+		# Baris mati (Continue tanpa save): tinta disabled (bukan
+		# INK_DIM yang hilang) + coret, tanpa sorot/seleksi.
 		if not bool(row["enabled"]):
 			hl.visible = false
-			label.modulate = INK_DIM
+			label.modulate = INK_DISABLED
+			if strike != null:
+				strike.visible = true
 			continue
+		if strike != null:
+			strike.visible = false
 		var active := str(row["name"]) == _hovered or i == _selected
 		hl.visible = active
 		hm.albedo_color = HIGHLIGHT_SEL if i == _selected else HIGHLIGHT
@@ -798,10 +860,12 @@ func _refresh_continue() -> void:
 				sub.modulate = INK_BODY
 		else:
 			row["enabled"] = false
-			(row["label"] as Label3D).modulate = INK_DIM
+			(row["label"] as Label3D).modulate = INK_DISABLED
 			if sub != null:
 				sub.text = "no record on file"
-				sub.modulate = INK_DIM
+				# v23: alasan mati tetap di INK_BODY (bukan INK_DIM):
+				# pemain harus bisa MEMBACA kenapa Continue mati.
+				sub.modulate = INK_BODY
 		break
 
 func _on_new_game() -> void:

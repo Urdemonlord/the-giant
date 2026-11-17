@@ -133,6 +133,16 @@ func _setup_menu_backdrop() -> void:
 	var lantern_node := get_node_or_null("Lantern")
 	if lantern_node != null and "dim_factor" in lantern_node:
 		lantern_node.dim_factor = 0.6
+	# v23 (Luci: camera-systems framing, menu saja — permainan
+	# tidak berubah): lentera digeser ke belakang (z 1,64 -> 1,72).
+	# Sprite lentera ada 0,18 m di utara node-nya, jadi alasnya
+	# pindah 1,46 -> 1,54 — di belakang tepi jauh logo (1,48),
+	# sehingga alas tidak lagi menutupi huruf judul. Sebelumnya
+	# alas di z 1,46, DI DALAM jangkauan z logo, dan dari kamera
+	# meja ia terproyeksi tepat di atas huruf judul.
+	if lantern_node != null:
+		lantern_node.position = Vector3(
+			lantern_node.position.x, lantern_node.position.y, 1.72)
 	# v22: kamera menu DI DALAM pos, di utara meja menghadap selatan
 	# (yaw 180 = menghadap +z). Buku di bawah frame, jendela selatan
 	# + hutan + Giant di atas frame. Dulu (v17-v21) kamera di luar
@@ -180,18 +190,27 @@ func _setup_menu_backdrop() -> void:
 ## Kabut volumetrik + hutan sudah cukup untuk atmosfer jendela.
 ## Tint kaki diangkat lagi (1,6) supaya terpisah dari hutan gelap
 ## di belakangnya.
-## v25 ronde 5: kaki lebih dekat (6 m, dulu 8) + lebih besar
-## (4 m, dulu 3,5) + lebih terang (2,0, dulu 1,6). Di 8 m kaki
-## terbaca sebagai massa gelap, bukan kaki: telapaknya (seperempat
-## bawah tekstur) terlalu kecil di layar dan warnanya menyatu
-## dengan hutan gelap. Di 6 m telapaknya ~1 m di layar dan tint
-## terang memisahkannya dari pepohonan.
-## v25 ronde 6: kaki digeser barat (x 2,0, dulu 3,0) supaya di
-## tengah jendela, bukan di sepertiga kiri — kamera di x -1,3
-## menghadap selatan, jadi x yang lebih kecil = lebih ke tengah
-## layar.
+## v23 (Luci: create-game-assets — inspect dulu, iterasi di aset
+## sumber, bukan kompensasi runtime): Giant di jendela DIGANTI dari
+## giant_foot.png ke giant_foot_photo_v23.png, potongan FOTO ASLI
+## kaki gajah di lumpur (Wetu, Tile K moodboard v2). giant_foot.png
+## adalah kolom kaki gajah depan sheet Arya yang dipotong lurus:
+## dicek di /tmp, zoom 3x ke separuh bawahnya — tidak ada telapak,
+## tidak ada kuku, lebar seragam dari atas ke bawah. Di jendela ia
+## memang batang pohon. Foto ini punya yang tidak dimiliki sprite
+## itu: telapak melebar + DUA KUKU bulat di depan bawah + lumpur di
+## telapak. Dipakai HANYA di backdrop menu; event kaki 03:30 di
+## permainan tetap pakai giant_foot.png (di luar scope v23, dicatat
+## sebagai follow-up: aset yang sama, masalah yang sama).
+## Penempatan sama (2,0, 0, 6,0; 4 m): telapak (seperempat bawah
+## tekstur, y 0..1 m) masuk band jendela (garis pandang lewat
+## ambang bawah jendela menyentuh tanah di y ~0,1 pada 6 m), kaki
+## terpotong kusen atas — tidak pernah utuh. Tint 1,5 (foto sudah
+## di-grade gelap 0,62 di tools/make_menu_foot_v23.py): kerut +
+## kuku terangkat dari hutan gelap di belakangnya tanpa jadi pilar
+## putih. Unshaded (aturan v14: siluet jauh shaded = hitam total).
 func _setup_menu_window_giant() -> void:
-	_billboard(self, "giant_foot", Vector3(2.0, 0.0, 6.0), 4.0 / 218.0, Color(2.0, 2.1, 2.0, 0.95), true)
+	_billboard(self, "giant_foot_photo_v23", Vector3(2.0, 0.0, 6.0), 4.0 / 640.0, Color(1.5, 1.55, 1.5, 0.95), true)
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
