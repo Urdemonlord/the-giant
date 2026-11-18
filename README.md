@@ -1515,6 +1515,131 @@ pos malam kini abu-abu, bukan massa hitam — kalau Arya mau
 hitamnya balik sambil kabut tetap pucat, itu butuh grade pos
 atau cahaya terpisah, bukan angka kabut.
 
+## v32: kabut NETRAL abu-abu ala Silent Hill (2026-11-18)
+
+Arya (20:05 WIB, memilih opsi "netralin ke abu-abu" atas "tetap
+hijau sakit"): kenapa screenshot v31 kelihatan hijau. Jawabannya:
+warnanya MEMANG hijau — palet Hijau Sakit / Abu Lumut, G paling
+tinggi (0.45, 0.53, 0.43). Selama kabut masih gelap, hijaunya
+tersembunyi di balik gelap; begitu dipucatin di v31, hijaunya
+kelihatan. Silent Hill pakai abu netral (R=G=B), makanya tidak
+hijau. Luci: router (Godot 4.3 pinned) → level-design (kabut
+sebagai framing/sightline) + camera-systems (keterbacaan via
+proyeksi + KESEIMBANGAN RGB per zona, bukan cuma luminance).
+create-game-assets: tidak dipakai (tidak ada aset baru, cuma
+grade ulang nilai yang ada).
+
+### Angka lama vs baru (ronde HUE, luminance + density TIDAK diubah)
+
+| Nilai | v31 | v32 final |
+|---|---|---|
+| FOG_LIGHT_COLOR | (0.45, 0.53, 0.43) | **(0.50, 0.50, 0.51)** |
+| FOG_LIGHT_COLOR luminance Rec709 | 0.506 | **0.501** |
+| FOG_LIGHT_ENERGY | 0.29 | **0.26** (koreksi, lihat bawah) |
+| Produk warna x energi | 0.147 | **0.130** |
+| VOL_FOG_ALBEDO | (0.45, 0.53, 0.43) | **(0.50, 0.50, 0.51)** |
+| VOL_FOG_EMISSION | (0.10, 0.12, 0.09) | **(0.11, 0.11, 0.115)** |
+| GRADE_FOG_TINT | (0.70, 0.76, 0.66) | **(0.72, 0.73, 0.74)** |
+| VHS shader desat target | vec3(0.92, 1.0, 0.88) | **vec3(0.99, 1.0, 1.01)** |
+| background_color (langit) | (0.045, 0.06, 0.05) | **(0.054, 0.055, 0.058)** |
+| FOG_DENSITY / MENU_FOG_DENSITY | 0.12 / 0.10 | tidak diubah |
+| Senter (SpotLight3D main.tscn) | 2.4 | **7.0** (koreksi, lihat bawah) |
+
+Sumber hijau kedua yang ditemukan di ronde ini: shader VHS
+`vhs.gdshader` mendesaturasi ke arah abu-hijau sakit
+`vec3(0.92, 1.0, 0.88)` dengan desat 0.45 in-game (0.15 menu) —
+itu meng-hijau-kan SELURUH frame termasuk kabut. Dinetralkan juga,
+kalau tidak screenshot tetap kelihatan hijau walau warna kabutnya
+sudah netral. Kepala PNG sendiri terbukti BUKAN hijau (grade-nya
+biru-dominan 0.85/0.92/1.02); hijaunya di screenshot datang dari
+veil kabut + shader. Satu warna netral untuk game + menu +
+ground fog + puff + volumetric (Forward+), default `.tscn` ikut
+disamakan. `.tscn` lama 0.23/0.27/0.22 sudah ketinggalan sejak v29.
+
+### Bukti netral (RGB per zona, v35 hijau vs v36 final)
+
+| Zona | v35 RGB | v36 RGB | Keterangan |
+|---|---|---|---|
+| Malam gelap, whole | (34.4, 39.4, 32.4) | **(40.4, 40.4, 40.6)** | G-R dulu +5.0, kini sebaran 0.2 |
+| Malam gelap, veil kiri | (45.4, 52.8, 43.0) | **(53.7, 53.9, 54.8)** | G-R dulu +7.4, kini 0.2 |
+| Malam gelap, pos | (50.4, 58.6, 47.7) | **(59.6, 59.8, 60.8)** | G-R dulu +8.2, kini 0.2 |
+| Menu, kabut jendela | (77.5, 78.7, 81.2) | **(72.4, 73.6, 76.1)** | B tertinggi (dingin tipis), bukan hijau |
+| Menu, veil | (53.5, 53.7, 54.9) | **(48.8, 49.0, 50.1)** | sebaran 1.3 |
+| Menu, lentera | (86.7, 62.4, 45.8) | **(79.4, 55.7, 40.6)** | R>G>B, hangat TETAP |
+| Menu, buku | (114.7, 101.6, 87.9) | **(115.1, 101.8, 87.9)** | kertas hangat TETAP |
+
+Menu sendiri sudah hampir netral di v35 (grade menu cuma 0.15);
+yang hijau jelas adalah kabut IN-GAME. Kini semua zona kabut
+netral dengan B sedikit di atas R (dingin tipis ala Silent Hill),
+tidak pernah lagi G tertinggi.
+
+### Dua koreksi yang dipaksa pengukuran (bukan rencana awal)
+
+**1. Malam gelap naik, delta senter jatuh.** Netralisasi hue
+saja menaikkan malam gelap pos 22.0 -> 24.8 (dua sampel v36/v36b)
+dan delta senter jatuh +4.6 -> ~+1.6 — guardrail v31 tidak
+terpenuhi. Mekanismenya: veil netral lebih terang di R dan B
+daripada veil hijau (G 0.53 menekan R/B di shader lama), jadi
+beam hangat lama tidak lagi menonjol di atasnya. Koreksi energi
+0.29 -> 0.26 (v36c) memotong gelap 24.8 -> 23.5 TAPI senter ikut
+turun -0.95: energi menggerakkan gelap dan senter BERSAMA, jadi
+delta tidak pulih lewat energi. Pelajaran v32: jangan kejar delta
+senter lewat energi kabut.
+
+**2. Senter dikuatkan 2.4 -> 5.0 -> 7.0.** Satu-satunya tuas
+asimetris adalah beam itu sendiri. Beam 5.0: delta +3.4 (satu
+sampel). Beam 7.0: delta **rerata +4.6 dari 3 sampel (+5.1,
++4.9, +3.9)** — guardrail v31 terpenuhi. Jalan ke generator
+delta +11.4 (tengah 17.3 -> 28.7), dinding tidak blowout
+(tengah L 30, masih abu gelap hangat, bukan putih). Catatan
+pengukuran: zona bergerak ±0.7-0.9 antar run (flicker/grain
+shader), jadi delta dilaporkan dari beberapa sampel, bukan satu.
+Angka +4.6 v31 sendiri satu sampel dengan baseline gelap 22.0 —
+sampel gelap terendah yang pernah terukur.
+
+### Guardrail akhir (final v36, E=0.26, beam 7.0)
+
+- Kepala Zunisha tetap kebaca: delta kubah-veil 23.8 - 19.2 =
+  **+4.6** (>= 4, sama seperti v31).
+- Senter tembus dan berguna: delta rerata **+4.6** (3 sampel),
+  jalan +11.4.
+- Lentera menu tetap titik fokus hangat: RGB (79.4, 55.7, 40.6),
+  buku hangat (115.1, 101.8, 87.9).
+- Pos malam tetap massa gelap di dalam kabut: pos 23.4 vs veil
+  21.1 (+2.3, sama seperti v31 +2.2), langit tetap 4.8.
+- Prompt/interactable kebaca: quick rig 14/0 x3, menu rig
+  32/32 x2, verify DONE, playtest PASS fails=0, shots27 DONE
+  (Sanity gelap 88.5 < 95.2, drain kegelapan jalan),
+  menu_autostart masuk main 22:00, fog_density=0.12 di log.
+- Palet lain TIDAK disentuh (Kuning Lampu, Merah REC, Putih
+  Tulang tetap). Catatan palet: Hijau Sakit KELUAR dari kabut
+  atas pilihan Arya; hijau kini cuma tersisa di bar Sanity dan
+  sprite pohon yang ter-desaturasi — identitas "kabut sakit"
+  sudah diganti "kabut abu Silent Hill".
+
+### Penilaian jujur
+
+Ini terasa Silent Hill TAPI tetap THE GIANT: kabut abu dingin,
+kepala gajah hantu tetap kebaca di jendela, lentera hangat
+menjadi satu-satunya warna hangat di menu, dan beam senter
+kini benar-benar terasa seperti senter (bukan lagi cahaya lembut
+yang nyaris tidak kelihatan). Yang hilang dari hijau sakit:
+nuansa "sakit" yang membedakan kabut ini dari kabut horor
+generik — kabut netral lebih dingin dan lebih anonim. Kalau
+nanti terasa terlalu datar, yang dikembalikan bukan hijau ke
+kabut (Arya sudah menolak), melainkan aksen hijau di elemen
+lain (mis. Sanity bar, lumut di kayu pos). Skala kepala masih
+masalah lama yang belum berubah (~5.2 m, setinggi pohon palem,
+bukan Zunisha) — pilihan v26 (kecilkan pohon jendela vs
+terima kubah sedikit terpotong) masih terbuka dan belum dijawab.
+
+Sisa: garis pelangi diagonal tipis shader VHS di shot malam
+(makin kentara karena kabut lebih terang, belum diselidiki);
+`ERR_CANT_OPEN` di awal rig menu (settings.json, sejak v20);
+bake tekstur kaki 03:30 masih hijau (make_menu_foot_v23.py pola
+0.92/1.0 yang sama) — hanya kelihatan saat event kaki, bukan
+di shot standar; portrait menu tetap letterbox 720x405.
+
 ## v30: kabut HARUS kelihatan bedanya (2026-11-18)
 
 Arya (18:15 WIB, setelah v29): "gada bedanya". Dia benar: di

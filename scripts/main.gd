@@ -313,7 +313,7 @@ func _apply_fog() -> void:
 	env.fog_light_color = Balance.FOG_LIGHT_COLOR
 	env.fog_light_energy = Balance.FOG_LIGHT_ENERGY
 	env.fog_sky_affect = Balance.FOG_SKY_AFFECT
-	env.background_color = Color(0.045, 0.06, 0.05, 1) # langit = kabut gelap
+	env.background_color = Color(0.054, 0.055, 0.058, 1) # langit = kabut gelap, netral (v32: dulu hijau 0.045/0.06/0.05)
 	env.volumetric_fog_enabled = volumetric
 	if volumetric:
 		env.volumetric_fog_density = Balance.VOL_FOG_DENSITY

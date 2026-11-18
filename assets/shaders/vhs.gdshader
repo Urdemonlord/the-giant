@@ -32,9 +32,11 @@ void fragment() {
 	col.r = texture(screen_texture, uv + off).r;
 	col.g = texture(screen_texture, uv).g;
 	col.b = texture(screen_texture, uv - off).b;
-	// Desaturasi ke hijau-abu sakit (palet moodboard).
+	// Desaturasi ke abu netral (v32: dulu hijau-abu sakit (0.92, 1.0,
+	// 0.88) — itu sumber hijau KEDUA di screenshot, selain warna
+	// kabut; dinetralkan bareng kabut atas pilihan Arya 20:05 WIB).
 	float lum = dot(col, vec3(0.299, 0.587, 0.114));
-	vec3 sick = vec3(lum) * vec3(0.92, 1.0, 0.88);
+	vec3 sick = vec3(lum) * vec3(0.99, 1.0, 1.01);
 	col = mix(col, sick, desat);
 	// Scanlines.
 	col *= 1.0 - scanline * (0.5 + 0.5 * sin(uv.y * 2262.0));
