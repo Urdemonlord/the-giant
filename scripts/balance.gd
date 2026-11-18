@@ -74,6 +74,25 @@ const FOG_PUFF_ALPHA := 0.34 # v6: 0.42; diturunkan karena volumetric fog menamb
 const GROUND_FOG_COUNT := 18 # lapisan kabut rendah di permukaan tanah
 const GROUND_FOG_ALPHA := 0.38 # v6: 0.45, alasan sama seperti FOG_PUFF_ALPHA
 
+## --- Grade keluarga sprite (v28) -------------------------------------------
+## SATU grade untuk semua sprite — dulu tint tersebar sebagai literal
+## di tiap call site (kepala 1.2-1.3, papan 0.9, puff 0.62/0.68/0.58,
+## wajah papan 0.55, pohon 0.8, props 0.85, darah 1.6) + grade PNG
+## v26 yang mencerahkan kepala 2.2-2.7x. Hasilnya di screenshot v29:
+## kabut L36, pohon L19, kepala L71-96 — kepala 35-60 poin lebih
+## terang dari kabutnya sendiri, terbaca seperti gambar ditempel.
+## Semua sprite di game ini UNSHADED (SpriteRegistry.billboard tidak
+## menyalakan shaded; cahaya scene tidak menyentuh sprite), jadi
+## tint + grade PNG INILAH pencahayaannya. Keluarga malam, diukur
+## dari v29: jauh = dingin redup (menempel di kabut, bukan di atasnya),
+## tengah = 0.8, papan = 0.55, kabut = abu kehijauan sakit.
+## Darah TIDAK masuk keluarga (aksen merah, satu-satunya, v11).
+const GRADE_FAR_TINT := Color(0.95, 0.98, 1.0, 1.0) # siluet jauh unshaded: kepala, gerbang, gajah, pemburu
+const GRADE_TREE_TINT := Color(0.8, 0.85, 0.85, 1.0) # pohon (dulu literal sama di _make_tree)
+const GRADE_PROP_TINT := Color(0.85, 0.85, 0.85, 0.95) # props + decal tanah (dulu literal di _scatter_prop/_ground_decal)
+const GRADE_SIGN_TINT := Color(0.55, 0.58, 0.55, 1.0) # wajah papan tanda (dulu literal di _make_sign)
+const GRADE_FOG_TINT := Color(0.62, 0.68, 0.58, 1.0) # gumpalan + ground fog (dulu literal 0.62/0.68/0.58)
+
 ## --- Kabut volumetrik (Forward+ saja) ---------------------------------------
 ## Godot 4.3: volumetric fog HANYA jalan di renderer Forward+; di
 ## Compatibility (Web/Android) properti ini diabaikan diam-diam dan game

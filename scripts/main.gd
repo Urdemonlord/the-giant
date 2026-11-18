@@ -246,7 +246,27 @@ func _setup_menu_window_giant() -> void:
 	# (ramai; menara sudah ada di level permainan). Aset kelas
 	# PLACEHOLDER (gambar Arya kelihatan AI-generated) — lihat
 	# tools/ref/REFERENCES.md.
-	_billboard(self, "giant_head_zunisha_v26", Vector3(2.0, 0.0, 12.5), 5.2 / 270.0, Color(1.2, 1.25, 1.3, 0.98), true)
+	# v28 (Luci: create-game-assets — SATU grade keluarga): kepala
+	# v28 dari tools/grade_family_v28.py — grade DIBALIK dari v26
+	# (pengali zona 1.1/1.1/1.3/1.35, bukan 2.2/2.2/2.7/2.55):
+	# target akhir kubah ~48, telinga ~44, belalai ~52, gading ~68
+	# (kabut L36, pohon L19 di v29 — kepala v26 L71-96 = ditempel).
+	# Runtime tint 1.2-1.3 -> GRADE_FAR_TINT: PNG-lah grade-nya.
+	# PNG 700x540 (upscale Lanczos 2x, haluskan tepi, bukan detail
+	# baru — sumber tetap 350 px), jadi pixel_size 5.2/540.0.
+	_billboard(self, "giant_head_zunisha_v28", Vector3(2.0, 0.0, 12.5), 5.2 / 540.0, Balance.GRADE_FAR_TINT, true)
+	# v28: kabut di PANGKAL kepala — 3 puff DI DEPAN ujung belalai
+	# (z 10.5-11, antara kamera dan kepala) supaya ujung belalai
+	# larut ke kabut, bukan berakhir di udara di atas pita kabut
+	# tanah yang tepinya keras (itu yang bikin kepala v26 melayang).
+	# Puff eksplisit di sini (bukan _build_forest): koridor jendela
+	# di sana memang dikosongkan supaya puff acak tidak menutupi
+	# kepala; yang ini ditempatkan dengan sengaja di pangkalnya.
+	for fp in [Vector3(0.5, 0.6, 10.5), Vector3(2.0, 0.8, 11.0),
+			Vector3(3.5, 0.5, 10.5)]:
+		var fc := Balance.GRADE_FOG_TINT
+		fc.a = 0.38
+		_billboard(self, "fog_puff", fp, 0.022, fc)
 	# Kuburan gajah: PANEL DIHAPUS dari menu (ronde 8) — bukan
 	# karena asetnya jelek (kerangka + gading terbaca jelas di
 	# ronde 4-6), tapi karena kepala 20 m menutupi SELURUH lebar
@@ -266,7 +286,8 @@ func _setup_menu_window_giant() -> void:
 	# menara sudah ada di level permainan, terlihat dari jendela
 	# dalam game). Aset kelas PLACEHOLDER (gambar Arya kelihatan
 	# AI-generated) — lihat tools/ref/REFERENCES.md.
-	_billboard(self, "menu_sign_graveyard_v25", Vector3(-3.5, 0.0, 9.0), 2.0 / 200.0, Color(0.9, 0.9, 0.9, 1.0), true)
+	# v28: papan v28 (PNG di-grade x0.85 + feather) + GRADE_FAR_TINT.
+	_billboard(self, "menu_sign_graveyard_v28", Vector3(-3.5, 0.0, 9.0), 2.0 / 200.0, Balance.GRADE_FAR_TINT, true)
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
@@ -526,13 +547,12 @@ func _make_sign(parent: Node, pos: Vector3, sprite_name: String, color: Color) -
 	if sprite_name != "":
 		var spr := SpriteRegistry.billboard(sprite_name, 0.004)
 		if spr != null:
-			# v11: papan menghadap jalan (sisi +z, dari arah pos): dulu
-			# -0,12 di sisi jauh, ketutup papan dari arah jalan.
-			# v14: wajah papan unshaded + tint redup (0.55) supaya
+			# v14: wajah papan unshaded + tint redup supaya
 			# tulisannya kebaca samar di gelap tanpa senter — dengan
 			# senter tetap terbaca seperti dulu (shots16 sign_park).
+			# v28: tint literal -> GRADE_SIGN_TINT (satu keluarga).
 			spr.shaded = false
-			spr.modulate = Color(0.55, 0.58, 0.55, 1.0)
+			spr.modulate = Balance.GRADE_SIGN_TINT
 			spr.position = Vector3(0, 1.55, 0.05)
 			root.add_child(spr)
 
@@ -604,7 +624,10 @@ func _build_forest() -> void:
 			continue
 		var depth_k := clampf((r - 9.0) / (26.0 - 9.0), 0.0, 1.0)
 		var puff_alpha := lerpf(0.38, 0.26, depth_k)
-		_billboard(forest, "fog_puff", Vector3(fp.x, _rng.randf_range(0.4, 1.4), fp.z), _rng.randf_range(0.015, 0.024), Color(0.62, 0.68, 0.58, puff_alpha))
+		# v28: tint literal -> GRADE_FOG_TINT (satu keluarga).
+		var fc := Balance.GRADE_FOG_TINT
+		fc.a = puff_alpha
+		_billboard(forest, "fog_puff", Vector3(fp.x, _rng.randf_range(0.4, 1.4), fp.z), _rng.randf_range(0.015, 0.024), fc)
 	# Gumpalan tetap di mid-ground (10-12 m), supaya selalu ada
 	# struktur kabut yang kebaca dari pos dan gerbang. Ronde 1 pakai
 	# tint GELAP untuk yang selatan — lewat jendela cuma jadi noda
@@ -619,7 +642,10 @@ func _build_forest() -> void:
 	# koridor jendela.
 	for fp in [Vector3(-5.0, 0.8, 11.0), Vector3(6.0, 0.9, 10.0),
 			Vector3(-7.0, 0.8, -11.0), Vector3(8.0, 1.0, -12.0)]:
-		_billboard(forest, "fog_puff", fp, 0.022, Color(0.62, 0.68, 0.58, 0.34))
+		# v28: tint literal -> GRADE_FOG_TINT (satu keluarga).
+		var fc2 := Balance.GRADE_FOG_TINT
+		fc2.a = 0.34
+		_billboard(forest, "fog_puff", fp, 0.022, fc2)
 	# Ground fog: lapisan kabut rendah merayap di permukaan tanah,
 	# rapat di sekitar pos + jalan + gerbang, supaya tanah tidak bersih.
 	for i in range(Balance.GROUND_FOG_COUNT):
@@ -634,7 +660,34 @@ func _build_forest() -> void:
 			continue
 		var gdepth_k := clampf((gr - 6.0) / (13.0 - 6.0), 0.0, 1.0)
 		var ground_alpha := lerpf(0.42, 0.32, gdepth_k)
-		_billboard(forest, "fog_puff", Vector3(gp.x, _rng.randf_range(0.15, 0.45), gp.z), _rng.randf_range(0.018, 0.026), Color(0.62, 0.68, 0.58, ground_alpha))
+		# v28: tint literal -> GRADE_FOG_TINT (satu keluarga).
+		var gc := Balance.GRADE_FOG_TINT
+		gc.a = ground_alpha
+		_billboard(forest, "fog_puff", Vector3(gp.x, _rng.randf_range(0.15, 0.45), gp.z), _rng.randf_range(0.018, 0.026), gc)
+	# v28 (grade keluarga — elemen MENEMPEL ke dunia): kabut tanah
+	# DETERMINISTIK di kaki elemen besar. Yang acak di atas (seeded)
+	# sering tidak jatuh di tempat yang penting — di shot
+	# v30_path_dark tanah di sekitar generator hitam polos, generator
+	# + chainsaw + barel melayang di atasnya. Puff ini selalu ada di
+	# kaki generator, papan tanda, gerbang, dan jalan. Area selatan
+	# (koridor jendela menu) TIDAK disentuh — kabut pangkal kepala
+	# sudah dipasang eksplisit di _setup_menu_window_giant.
+	for fp in [Vector3(3.6, 0.3, -1.2), Vector3(4.4, 0.3, -2.5),
+			Vector3(0.0, 0.3, -15.7), Vector3(1.0, 0.35, -9.0),
+			Vector3(-1.0, 0.35, -12.0)]:
+		var dc := Balance.GRADE_FOG_TINT
+		dc.a = 0.4
+		_billboard(forest, "fog_puff", fp, 0.02, dc)
+	# Bayangan kontak di bawah generator + papan + gerbang: elips
+	# gelap datar (contact_shadow.png) supaya benda tidak melayang
+	# saat tanah diterangi (senter / lampu teras). Di gelap total
+	# ia tidak kelihatan — dan memang tidak ada yang kelihatan di
+	# gelap total; kabut tanah di atas yang bekerja di sana.
+	_contact_shadow(forest, Vector3(3.9, 0.06, -1.8), Vector2(2.2, 1.4))
+	_contact_shadow(forest, Vector3(0.0, 0.06, -15.7), Vector2(3.0, 1.2))
+	for sp in [LevelData.SIGN_PARK_POS, LevelData.SIGN_NO_LOGGING_POS,
+			LevelData.SIGN_NO_ELEPHANT_POS]:
+		_contact_shadow(forest, Vector3(sp.x, 0.06, sp.z), Vector2(1.2, 0.8))
 
 ## v14 (polish #6): sosok jauh yang harus kebaca sebagai siluet di
 ## kabut (gerbang, pemburu, gajah) dibuat UNSHADED — shaded membuat
@@ -670,6 +723,21 @@ func _billboard(parent: Node, sprite_name: String, pos: Vector3, pixel_size: flo
 	spr.position = pos + Vector3(0, tex.get_height() * pixel_size * 0.5, 0)
 	parent.add_child(spr)
 
+# Bayangan kontak (v28): elips gelap datar di bawah benda besar
+# supaya alasnya menapak di tanah saat tanah diterangi. Sprite
+# flat (bukan billboard), unshaded, alpha dari tekstur radial.
+func _contact_shadow(parent: Node, pos: Vector3, size_m: Vector2) -> void:
+	var tex := SpriteRegistry.texture("contact_shadow")
+	if tex == null:
+		return
+	var spr := Sprite3D.new()
+	spr.texture = tex
+	spr.pixel_size = size_m.x / float(tex.get_width())
+	spr.rotation = Vector3(-PI * 0.5, 0, 0)
+	spr.position = pos
+	spr.modulate = Color(1, 1, 1, 0.9)
+	parent.add_child(spr)
+
 func _make_tree(parent: Node, pos: Vector3, _trunk_mat: Material, _leaf_mat: Material) -> void:
 	# Pohon BUKAN bola di atas silinder lagi: sprite pohon dari sheet
 	# (tinggi, palem, atau mati), dipilih bergiliran supaya hutan tidak seragam.
@@ -684,7 +752,8 @@ func _make_tree(parent: Node, pos: Vector3, _trunk_mat: Material, _leaf_mat: Mat
 	spr.texture = tex
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.pixel_size = pixel_size
-	spr.modulate = Color(0.8, 0.85, 0.85, 1.0)
+	# v28: tint literal -> GRADE_TREE_TINT (satu keluarga).
+	spr.modulate = Balance.GRADE_TREE_TINT
 	spr.position = pos + Vector3(0, h * 0.5, 0)
 	parent.add_child(spr)
 	var body := StaticBody3D.new()
@@ -703,7 +772,8 @@ func _make_tree(parent: Node, pos: Vector3, _trunk_mat: Material, _leaf_mat: Mat
 	parent.add_child(body)
 
 func _scatter_prop(parent: Node, sprite_name: String, pos: Vector3, pixel_size: float) -> void:
-	var spr := SpriteRegistry.billboard(sprite_name, pixel_size, Color(0.85, 0.85, 0.85, 0.95))
+	# v28: tint literal -> GRADE_PROP_TINT (satu keluarga).
+	var spr := SpriteRegistry.billboard(sprite_name, pixel_size, Balance.GRADE_PROP_TINT)
 	if spr == null:
 		return
 	spr.position = pos
@@ -722,5 +792,7 @@ func _ground_decal(parent: Node, sprite_name: String, pos: Vector3, pixel_size: 
 	spr.position = pos
 	# v11: darah didongkrak merah supaya kebaca di tanah gelap;
 	# decal lain (jejak, jerat) netral, jangan ikut merah.
-	spr.modulate = Color(1.6, 1.0, 1.0, 1.0) if sprite_name == "blood" else Color(0.85, 0.85, 0.85, 0.95)
+	# v28: non-darah -> GRADE_PROP_TINT (satu keluarga); darah
+	# tetap aksen merah (satu-satunya yang boleh keluar keluarga).
+	spr.modulate = Color(1.6, 1.0, 1.0, 1.0) if sprite_name == "blood" else Balance.GRADE_PROP_TINT
 	parent.add_child(spr)

@@ -159,3 +159,38 @@ skala kolosalnya tetap placeholder.
   Papan `menu_sign_graveyard_v25.png` dipindah ke x -3,5 (utuh,
   tidak terpotong kusen). `giant_head_zunisha_v25.png` tetap di
   disk + registry, tidak dipakai. Nol gambar generate baru.
+
+## Menu + dalam game v28: grade keluarga (2026-11-18)
+STATUS: PLACEHOLDER — grade diseragamkan, tapi sumbernya tetap foto
+sheet Arya + gambar tempat yang kelihatan AI-generated; bukan art final.
+- `giant_head_zunisha_v28.png` (700x540) — grade DIBALIK dari v26:
+  pengali zona kubah/telinga/belalai/gading 1,3/1,3/1,5/1,55 (v26:
+  2,2/2,2/2,7/2,55), tint runtime 1,2-1,3 -> `GRADE_FAR_TINT`
+  (0,95, 0,98, 1,0). Zona PNG: kubah L64, telinga L52, belalai L64,
+  gading L79. Upscale Lanczos 2x dari crop 350x270 + feather tepi
+  2 px. SUMBER: `elephant_front.png` 366x398 (sel sheet Arya
+  1536x1024) — TIDAK ADA sumber lebih besar; upscale hanya
+  menghaluskan tepi, bukan detail baru. Dipakai di backdrop menu,
+  5,2 m di (x 2,0, z 12,5) (`main.gd _setup_menu_window_giant`,
+  `pixel_size` 5,2/540,0). Generator `tools/grade_family_v28.py`
+  (deterministik; TUNING: pengali pertama 1,1/1,1/1,3/1,35 terlalu
+  gelap di screenshot v31 — kubah L39 = kabut L36 — naik +0,2).
+  `giant_head_zunisha_v26.png` tetap di disk + registry, tidak dipakai.
+- `menu_sign_graveyard_v28.png` (200x169) — PNG v25 x0,85 + geser
+  dingin + feather tepi 2 px (L50 -> ~44). Dipakai di backdrop menu,
+  2 m di x -3,5, z 9, tint `GRADE_FAR_TINT`.
+- `contact_shadow.png` (256x128) — elips radial gelap baru untuk
+  bayangan kontak (`main.gd _contact_shadow`): di bawah generator,
+  gerbang, dan 3 papan tanda.
+- Pohon di-grade DI TEMPAT (feather tepi saja, kecerahan tidak
+  diubah): tree_tall, tree_palm, tree_dead, tree_big. Props area
+  generator di-grade DI TEMPAT (x0,72 + desat dingin):
+  generator 40 -> 22, chainsaw 49 -> 29, barrels 37 -> 23,
+  sacks 43 -> 26, crate_low 37 -> 22, crate_tall 34 -> 20 (mean L).
+  PERINGATAN: tool TIDAK idempotent untuk props/pohon — restore dari
+  git dulu sebelum run ulang (`tools/grade_family_v28.py`).
+- Konstanta grade (`scripts/balance.gd`): `GRADE_FAR_TINT`,
+  `GRADE_TREE_TINT`, `GRADE_PROP_TINT`, `GRADE_SIGN_TINT`,
+  `GRADE_FOG_TINT` — menggantikan semua literal tint di `main.gd`,
+  `generator.gd`, dan tabel `BILLBOARDS` (`level_data.gd`).
+  Darah tidak masuk keluarga (aksen merah, satu-satunya).

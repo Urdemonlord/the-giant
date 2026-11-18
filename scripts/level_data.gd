@@ -121,18 +121,21 @@ const GROUND_DECALS: Array = [
 ## Billboard statis: [nama sprite, posisi, pixel_size, tint].
 ## Pisang, bangunan jauh, gajah di kabut, pemburu liar, kabut rendah
 ## (kabut dibuat acak di main.gd, bukan dari tabel ini).
+## v28 (grade keluarga): tint RGB digeser dingin (R turun, B naik)
+## supaya satu keluarga kabut malam; NILAI + ALPHA dipertahankan —
+## itu cue jarak (jauh = lebih gelap + lebih transparan), bukan acak.
 const BILLBOARDS: Array = [
 	["banana", Vector3(5.5, 0.0, -15.5), 0.0114, Color(0.8, 0.85, 0.8, 1.0)],
 	["banana", Vector3(-9.0, 0.0, -14.5), 0.0114, Color(0.75, 0.8, 0.75, 1.0)],
-	["watchtower", Vector3(-14.0, 0.0, -24.0), 0.03, Color(0.75, 0.75, 0.75, 1.0)],
-	["guard_hut", Vector3(15.0, 0.0, -19.0), 0.03, Color(0.8, 0.8, 0.8, 1.0)],
-	["tower_tall", Vector3(22.0, 0.0, -30.0), 0.035, Color(0.6, 0.6, 0.6, 1.0)],
-	["gate", Vector3(0, 0, -15.7), 0.016, Color(1.0, 1.0, 1.0, 1.0)],
-	["guard_front", Vector3(3.0, 0, -7.0), 0.0073, Color(0.7, 0.7, 0.7, 1.0)],
-	["elephant_shadow", Vector3(7.0, 0.0, -36.0), 0.055, Color(0.4, 0.4, 0.45, 0.55)],
-	["elephant_side", Vector3(-20.0, 0.0, -26.0), 0.02, Color(0.55, 0.55, 0.55, 0.8)],
-	["elephant_front", Vector3(-10.0, 0.0, -30.0), 0.0176, Color(0.5, 0.5, 0.55, 0.8)],
-	["poacher_mask", Vector3(0, 0, -15.5), 0.0071, Color(0.65, 0.6, 0.6, 0.95)],
+	["watchtower", Vector3(-14.0, 0.0, -24.0), 0.03, Color(0.75, 0.78, 0.8, 1.0)],
+	["guard_hut", Vector3(15.0, 0.0, -19.0), 0.03, Color(0.8, 0.83, 0.85, 1.0)],
+	["tower_tall", Vector3(22.0, 0.0, -30.0), 0.035, Color(0.6, 0.63, 0.65, 1.0)],
+	["gate", Vector3(0, 0, -15.7), 0.016, Color(0.85, 0.88, 0.9, 1.0)],
+	["guard_front", Vector3(3.0, 0, -7.0), 0.0073, Color(0.7, 0.72, 0.74, 1.0)],
+	["elephant_shadow", Vector3(7.0, 0.0, -36.0), 0.055, Color(0.42, 0.45, 0.48, 0.55)],
+	["elephant_side", Vector3(-20.0, 0.0, -26.0), 0.02, Color(0.55, 0.58, 0.6, 0.8)],
+	["elephant_front", Vector3(-10.0, 0.0, -30.0), 0.0176, Color(0.5, 0.53, 0.56, 0.8)],
+	["poacher_mask", Vector3(0, 0, -15.5), 0.0071, Color(0.62, 0.62, 0.65, 0.95)],
 	["poacher_ghost", Vector3(-13.0, 0, -22.0), 0.0079, Color(0.85, 0.85, 0.9, 0.75)],
 	# v16: 5 billboard baru dari sheet dunia. Gajah belakang di kabut
 	# utara (gajah biasa dari jauh, BUKAN Giant — Giant tidak pernah
@@ -140,11 +143,11 @@ const BILLBOARDS: Array = [
 	# radio di barat-utara mengimbangi tower_tall di timur; dua pagar
 	# sprite sebagai sisa perimeter di sisi barat/timur halaman
 	# (pagar mesh prosedural cuma ada di depan, z -16).
-	["elephant_back", Vector3(14.0, 0.0, -34.0), 0.02, Color(0.6, 0.6, 0.65, 0.85)],
-	["guard_back", Vector3(12.5, 0.0, -17.5), 0.0073, Color(0.65, 0.65, 0.65, 1.0)],
-	["radio_tower", Vector3(-25.0, 0.0, -30.0), 0.056, Color(0.6, 0.6, 0.6, 1.0)],
-	["fence_wood", Vector3(-14.0, 0.0, -8.0), 0.0132, Color(0.85, 0.85, 0.85, 1.0)],
-	["fence_barbed", Vector3(14.0, 0.0, -10.0), 0.0113, Color(0.85, 0.85, 0.85, 1.0)],
+	["elephant_back", Vector3(14.0, 0.0, -34.0), 0.02, Color(0.6, 0.62, 0.66, 0.85)],
+	["guard_back", Vector3(12.5, 0.0, -17.5), 0.0073, Color(0.65, 0.67, 0.7, 1.0)],
+	["radio_tower", Vector3(-25.0, 0.0, -30.0), 0.056, Color(0.6, 0.63, 0.65, 1.0)],
+	["fence_wood", Vector3(-14.0, 0.0, -8.0), 0.0132, Color(0.85, 0.87, 0.88, 1.0)],
+	["fence_barbed", Vector3(14.0, 0.0, -10.0), 0.0113, Color(0.85, 0.87, 0.88, 1.0)],
 ]
 
 ## --- Event: posisi spawn ------------------------------------------------------

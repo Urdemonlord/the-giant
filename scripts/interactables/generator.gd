@@ -56,7 +56,10 @@ func _build_visual() -> void:
 	_add_sprite()
 
 func _add_sprite() -> void:
-	var spr := SpriteRegistry.billboard(sprite_name, 0.0035, Color(1, 1, 1, 0.92))
+	# v28: tint (1,1,1,0.92) -> GRADE_PROP_TINT (satu keluarga) +
+	# PNG di-grade x0.72 di tools/grade_family_v28.py. Dulu sprite
+	# ini menyala samar di gelap (unshaded + PNG terang + tint 1.0).
+	var spr := SpriteRegistry.billboard(sprite_name, 0.0035, Balance.GRADE_PROP_TINT)
 	if spr == null:
 		return
 	spr.position = Vector3(0, 0.55, -0.45)

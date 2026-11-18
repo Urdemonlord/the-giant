@@ -28,10 +28,10 @@ extends Node
 ## (garis besar kasar) saat `_ready` selesai; ambil screenshot
 ## beberapa frame kemudian supaya hasilnya stabil.
 
-## v29: prefix "v29" untuk desktop, "v29p" untuk portrait — supaya
+## v31: prefix "v31" untuk desktop, "v31p" untuk portrait — supaya
 ## screenshot portrait tidak menimpa desktop (keduanya jalan di
 ## rig yang sama, beda --resolution).
-var _prefix := "v29"
+var _prefix := "v31"
 const SHOT_DIR := "/home/hatch/workspace/godot/shots"
 const RES_PATH := "res://scenes/menu.tscn"
 
@@ -60,9 +60,9 @@ func _ready() -> void:
 	# ukuran base stretch (1280x720) di kedua orientasi, jadi run
 	# portrait pertama menimpa file desktop.
 	if get_tree().root.size.y > get_tree().root.size.x:
-		_prefix = "v29p"
+		_prefix = "v31p"
 	_log = FileAccess.open(SHOT_DIR + "/" + _prefix + "_results_menu.txt", FileAccess.WRITE)
-	_log.store_line("[MENU-RIG] " + _prefix + " menu v26 (Luci list)")
+	_log.store_line("[MENU-RIG] " + _prefix + " menu v28 (Luci list)")
 	_log.store_line("mode: menu")
 	_log.store_line("time: " + Time.get_datetime_string_from_system())
 	_log.store_line("start")
@@ -333,21 +333,34 @@ func _test_giant_window() -> void:
 	if backdrop == null:
 		_fail("backdrop tidak ada")
 		return
-	# v26: kepala Zunisha UTUH (bukan kaki lagi) di luar jendela
-	# selatan — aset baru giant_head_zunisha_v26 (v25 sudah tidak
-	# dipakai lagi). Aturan tidak-pernah-utuh DICABUT, jadi yang
-	# dicek di sini hanya kepalanya ada, bukan "sebagian saja".
-	if _find_sprite_with(backdrop, "giant_head_zunisha_v26"):
-		_pass("Kepala Zunisha UTUH di luar jendela selatan ada")
+	# v28: kepala Zunisha UTUH di luar jendela selatan — aset baru
+	# giant_head_zunisha_v28 (grade DIBALIK dari v26 + tepi feather).
+	# Aturan tidak-pernah-utuh DICABUT, jadi yang dicek di sini
+	# hanya kepalanya ada, bukan "sebagian saja".
+	if _find_sprite_with(backdrop, "giant_head_zunisha_v28"):
+		_pass("Kepala Zunisha v28 di luar jendela selatan ada")
 	else:
-		_fail("Kepala Zunisha di luar jendela selatan tidak ada")
+		_fail("Kepala Zunisha v28 di luar jendela selatan tidak ada")
+	# v28: kabut pangkal kepala — puff di depan ujung belalai.
+	var wraps := 0
+	for n in backdrop.get_children():
+		if n is Sprite3D:
+			var t := (n as Sprite3D).texture
+			if t != null and "fog_puff" in t.resource_path:
+				var pp := (n as Sprite3D).position
+				if pp.z > 10.0 and pp.z < 11.5 and pp.x > 0.0 and pp.x < 4.0:
+					wraps += 1
+	if wraps >= 3:
+		_pass("kabut pangkal kepala: %d puff di depan belalai" % wraps)
+	else:
+		_fail("kabut pangkal kepala: %d puff (harus >= 3)" % wraps)
 	# v25: elemen tempat dari gambar 2 — papan kuburan (panel
 	# kerangka SENGAJA dipotong dari menu ronde 8: kepala 20 m
 	# menutupi seluruh jendela; panel tetap aset untuk dalam game).
-	if _find_sprite_with(backdrop, "menu_sign_graveyard_v25"):
-		_pass("elemen tempat menu_sign_graveyard_v25 ada")
+	if _find_sprite_with(backdrop, "menu_sign_graveyard_v28"):
+		_pass("elemen tempat menu_sign_graveyard_v28 ada")
 	else:
-		_fail("elemen tempat menu_sign_graveyard_v25 tidak ada")
+		_fail("elemen tempat menu_sign_graveyard_v28 tidak ada")
 	if _find_sprite_with(backdrop, "menu_skeleton_v25"):
 		_fail("panel kerangka masih di menu (seharusnya dipotong ronde 8)")
 	else:

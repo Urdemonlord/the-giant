@@ -1224,6 +1224,121 @@ game Godot).
   placeholder (v26). Video gameplay v8 masih build lama; rekaman
   ulang di build baru belum dibuat (rig video sudah hold-aware).
 
+## v28: grade keluarga flat — sprite menempel di kabut, bukan ditempel (2026-11-18)
+
+Arya: tekstur elemen-elemen kelihatan placeholder, belum utuh /
+belum 3D. Diagnosis parent (disetujui Arya, opsi "Gas rapiin gaya
+flat-nya" atas 3D low-poly): yang bikin placeholder BUKAN 2D-nya,
+tapi campur aduknya — foto cutout, prosedural, grade beda-beda,
+tepi keras, tidak ada bayangan/kabut yang menempelkan elemen ke
+tanah. Referensi benar: No I'm Not a Human — flat dan kaku itu
+justru horornya. 3D low-poly butuh pipeline modeler/Blender
+(mingguan) dan low-poly jelek lebih parah dari billboard rapi.
+Skill dari list Luci (`~/workspace/makefun/skills/`, BUKAN
+adaptasi): router awesome-gamedev-agent-skills (Godot 4.3 pinned,
+disiplin create-game-assets + game-feel ringan + unslop +
+frontend-design); create-game-assets (inspect dulu, family,
+normalisasi deterministik, provenance, validasi di ukuran native,
+nol aset AI baru); unslop (chrome diam, satu aksen, teks di ruang
+tenang, spacing dulu); frontend-design anthropics (grounding di
+subject matter, kritik dari screenshot, tipografi membawa
+karakter); game-feel HANYA ringan (juice di hook event, kembali ke
+rest — tidak ada parallax/juice baru di ronde ini, sengaja:
+perubahan grade tidak butuh gerak). canvas-design + webapp-testing
+dibaca dan DILAPORKAN tidak dipakai (poster/statis dan Playwright
+web, bukan game Godot).
+
+- Diagnosis terukur (screenshot menu v29, 1280x720): kabut di
+  jendela L36, pohon L19, papan L50, kepala Zunisha L71-96.
+  Kepala 35-60 poin LEBIH TERANG dari kabutnya sendiri — itu yang
+  bikin ia terbaca seperti gambar ditempel, bukan siluet di kabut.
+  Penyebab: tint runtime tersebar sebagai literal (kepala 1,2-1,3,
+  papan 0,9, puff 0,62/0,68/0,58, wajah papan 0,55, pohon 0,8,
+  props 0,85, darah 1,6) + grade PNG v26 yang mencerahkan kepala
+  2,2-2,7x. Semua sprite UNSHADED (`SpriteRegistry.billboard`
+  tidak menyalakan `shaded`; cahaya scene tidak menyentuh sprite),
+  jadi tint + grade PNG INILAH pencahayaannya.
+- GRADE TERPADU (`scripts/balance.gd`, konstanta `GRADE_*`):
+  `GRADE_FAR_TINT` (0,95, 0,98, 1,0) untuk siluet jauh (kepala,
+  gerbang, gajah, pemburu), `GRADE_TREE_TINT` (0,8, 0,85, 0,85),
+  `GRADE_PROP_TINT` (0,85, 0,85, 0,85, 0,95), `GRADE_SIGN_TINT`
+  (0,55, 0,58, 0,55), `GRADE_FOG_TINT` (0,62, 0,68, 0,58).
+  Semua literal di `main.gd` (`_make_tree`, `_make_sign`, puff
+  acak/tetap, ground fog, `_scatter_prop`, `_ground_decal`),
+  `generator.gd`, dan tabel `BILLBOARDS` di `level_data.gd`
+  (RGB digeser dingin, NILAI + ALPHA dipertahankan sebagai cue
+  jarak) diganti konstanta ini. Darah TIDAK masuk keluarga
+  (aksen merah, satu-satunya).
+- KEPALA v28 (`tools/grade_family_v28.py`, deterministik):
+  grade DIBALIK dari v26 — pengali zona kubah/telinga/belalai/
+  gading 1,3/1,3/1,5/1,55 (v26: 2,2/2,2/2,7/2,55); tint runtime
+  1,2-1,3 -> `GRADE_FAR_TINT`; PNG 700x540 (upscale Lanczos 2x +
+  feather tepi 2 px); `pixel_size` di `main.gd` disesuaikan
+  (5,2/540,0) supaya tinggi dunia tetap 5,2 m. TUNING SEKALI:
+  pengali pertama (1,1/1,1/1,3/1,35) terlalu gelap di screenshot
+  v31 (kubah L39, belalai L36 = kabut L36, kepala hampir tenggelam,
+  ujung belalai hilang) — naik +0,2. Hasil akhir menu v31: kubah
+  L44, telinga L41, belalai L40, gading L44, lawan kabut L36 dan
+  pohon L19 — kepala kini 4-8 poin di atas kabutnya (satu keluarga,
+  bukan 35-60 poin seperti v29), belalai bawah larut ke kabut.
+- SUMBER KEPALA, JUJUR: `elephant_front.png` 366x398, sel dari
+  sheet Arya (1536x1024); crop v26 350x270 sudah hampir selebar
+  selnya, TIDAK ADA sumber yang lebih besar. Upscale 2x Lanczos
+  hanya menghaluskan tepi, BUKAN menambah detail — batas resolusi
+  ini dicatat, bukan dikarang.
+- TEPI DILEMBUTKAN: `feather_alpha` (blur Gaussian alpha +
+  bleed warna tepi anti-halo) di kepala v28, papan v28, dan keempat
+  pohon di tempat (tree_tall/palm/dead/big, kecerahan TIDAK diubah,
+  PNG-nya sudah gelap).
+- ELEMEN MENEMPEL KE DUNIA: 3 puff kabut DI DEPAN pangkal kepala
+  (z 10,5-11, antara kamera dan kepala) supaya ujung belalai larut
+  ke kabut, bukan berakhir di udara; 5 puff kabut tanah
+  DETERMINISTIK di kaki generator, papan, gerbang, jalan (yang
+  acak seeded sering tidak jatuh di tempat penting); helper
+  `_contact_shadow` (elips gelap datar `contact_shadow.png`) di
+  bawah generator, gerbang, dan 3 papan tanda. Papan kuburan v28
+  (PNG v25 x0,85 + geser dingin + feather, L50 -> ~44).
+- PROPS AREA GENERATOR di-grade di tempat (x0,72 + desat dingin):
+  generator mean L 40 -> 22, chainsaw 49 -> 29, barrels 37 -> 23,
+  sacks 43 -> 26, crate_low 37 -> 22, crate_tall 34 -> 20.
+  PERINGATAN: tool ini TIDAK idempotent untuk props/pohon (grade
+  ulang = x0,72 kedua kali). Kalau `make_v16_sprites.py` di-run
+  ulang, restore dulu dari git (`git checkout -- assets/sprites/…`)
+  baru jalankan `grade_family_v28.py` sekali.
+- Gameplay v27 TIDAK disentuh (hold, kurva malam, Sanity gelap,
+  event kaki/mata/hunter) kecuali grading visual di atas.
+  Komposisi menu v26 dipertahankan (jendela lebar, buku, lentera
+  kanan, meter tengah, teks di-bake, Start bar merah + segitiga
+  play, CA menu 0,0, diegetic Opsi B).
+- Verifikasi (Xvfb, `--rendering-driver opengl3` karena Vulkan
+  hilang pasca-reset sandbox; `project.godot` NO-DIFF): quick rig
+  v28 desktop **13 pass, 0 fail**, portrait **13/0**, with-save
+  **13/0** (cek baru: tint kepala = GRADE_FAR_TINT, 3 puff kabut
+  pangkal kepala); rig menu penuh **32 pass, 0 fail** desktop +
+  **32/0** portrait (v27: 31 — tambah 1 cek kabut pangkal);
+  mode verify DONE (registry **81**, missing=0 — tambah 3 nama:
+  `giant_head_zunisha_v28`, `menu_sign_graveyard_v28`,
+  `contact_shadow`); mode playtest **PASS fails=0**; mode
+  shots27 (prefix v31) selesai; menu_autostart masuk main
+  (22:00, game fog). Screenshot dibaca sendiri: `v31_menu_no_save`
+  (desktop + portrait), `v31_night_dark/flash`,
+  `v31_path_dark/flash`. Dalam game malam: area generator L23
+  (v30: L24) — tidak lagi menyala; pita kabut tanah L16 (v30: L14),
+  terlihat sebagai lapisan horizontal di kaki pohon/pos.
+- Batas jujur: kepala kini menempel di kabut, tapi di ujung gelap
+  spektrumnya — belalai bawah hampir hilang di kabut (itu niatnya:
+  larut, bukan terpotong), dan di layar HP redup kepala bisa
+  terbaca samar; satu tuning sudah dipakai, tidak diutak-atik lagi
+  ronde ini. Di shot jauh (7 m) perubahan props hampir tidak
+  terukur angkanya (L23 lawan L24) karena props-nya kecil di frame
+  dan zona didominasi latar — bukti "tidak menyala" adalah visual
+  + angka PNG-nya, bukan selisih zona jauh. Garis pelangi diagonal
+  tipis dari shader VHS di shot malam MASIH ADA (belum diselidiki,
+  di luar scope v28). Menu masih placeholder (foto + grade, bukan
+  art final). `ERR_CANT_OPEN` di awal rig menu masih muncul
+  (kemungkinan settings.json hilang, belum diselidiki, sudah ada
+  sejak v20).
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya
