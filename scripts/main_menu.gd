@@ -82,8 +82,8 @@ const INK_RULE := Color(0.45, 0.13, 0.08) # garis merah (tinta)
 ## dengan garis merah di bawah judul (INK_RULE), alpha 0,35 hover /
 ## 0,70 pilihan. Teks di-bake ke halaman (lihat header), jadi
 ## tidak ada lagi label yang perlu di-sorot.
-const OUTLINE_HOVER := 0.35
-const OUTLINE_SEL := 0.70
+const BAR_HOVER := 0.70
+const BAR_SEL := 1.0
 ## Halaman kanan, disimpan supaya _refresh_continue bisa menukar
 ## teksturnya antara varian aktif / mati (Continue di-bake di
 ## tekstur, bukan Label3D lagi).
@@ -211,7 +211,7 @@ func _build_book() -> void:
 	# kiri (judul) ada di x -0,81, halaman kanan (baris menu) di
 	# x -1,79. Sebelumnya terbalik (buku terbaca judul di kanan).
 	for side in ["l", "r"]:
-		var page := SpriteRegistry.flat("menu_book_page_" + side + "_v24", 0.96 / 1024.0)
+		var page := SpriteRegistry.flat("menu_book_page_" + side + "_v25", 0.96 / 1024.0)
 		if page == null:
 			continue
 		if side == "r":
@@ -254,59 +254,44 @@ func _book_label(text: String, font_size: int, pixel: float, color: Color) -> La
 	l.rotation = Vector3(-PI * 0.5, 0, PI)
 	return l
 
-## Satu baris menu: outline tinta merah + (opsional) sub-baris
-## dinamis. v24: tidak ada lagi label — teks baris ("Start",
-## "Continue", "Options", "Exit") sudah DI-BAKE ke tekstur halaman
-## kanan (tools/make_menu_book_v24.py, tinta gelap multiply).
-## Baris adalah data, bukan Button — klik/hover lewat raycast
+## Satu baris menu: bar merah pilihan + (opsional) sub-baris
+## dinamis. v25 (mockup Arya): teks baris ("Start", "Continue",
+## "Options", "Exit") tetap DI-BAKE ke tekstur halaman kanan
+## (tools/make_menu_book_v25.py, tinta gelap multiply) — baris
+## adalah data, bukan Button; klik/hover lewat raycast
 ## (_ray_to_book), keyboard lewat ui_up/ui_down/ui_accept.
-## Outline: 4 quad tipis (atas/bawah/kiri/kanan) membentuk bingkai
-## di sekeliling baris, 0,05 m lebih besar dari rect baris supaya
-## tidak menimpa huruf. Satu material per outline (alpha diubah
-## sekali di _refresh_highlights). render_priority -1: outline
-## digambar SEBELUM sub-teks Label3D (y 1,136) supaya tidak pernah
-## menutupi tulisan — pelajaran v22/v23 soal sort transparan.
+## Baris terpilih/hover DITUTUPI sprite bar merah
+## (menu_bar_<row>_v25.png, 900x150): bar tinta merah + teks
+## TERANG di posisi yang sama persis dengan teks bake gelap +
+## segitiga play di Start — menggantikan outline tinta merah v24
+## (bingkai 4 quad). Bar: SpriteRegistry.flat (rotasi sama dengan
+## halaman), squash z 0,6875 yang sama, y 1,133 di atas halaman
+## 1,130, unshaded (merah mockup konstan, tidak ikut lentera),
+## alpha blending (bukan DISCARD) supaya hover 0,70 vs terpilih
+## 1,0 benar-benar beda. render_priority default: baris terpilih
+## tidak pernah menutupi sub-teks dinamis Continue (z 1,245,
+## di luar bar z 1,272..1,368).
 func _add_row(row_name: String, center: Vector3, half: Vector2,
 		action: Callable) -> Dictionary:
 	var backdrop := get_node_or_null("Backdrop") as Node3D
-	var outline := Node3D.new()
-	outline.position = Vector3(center.x, HIGHLIGHT_Y, center.z)
-	var om := StandardMaterial3D.new()
-	om.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	om.albedo_color = Color(INK_RULE.r, INK_RULE.g, INK_RULE.b, OUTLINE_HOVER)
-	om.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	om.render_priority = -1
-	var ow := half.x + 0.05
-	var oh := half.y + 0.05
-	var thick := 0.012
-	var quads: Array = [
-		[Vector2(ow * 2.0, thick), Vector3(0, 0, -oh)],
-		[Vector2(ow * 2.0, thick), Vector3(0, 0, oh)],
-		[Vector2(thick, oh * 2.0), Vector3(-ow, 0, 0)],
-		[Vector2(thick, oh * 2.0), Vector3(ow, 0, 0)],
-	]
-	for q in quads:
-		var m := MeshInstance3D.new()
-		var qm := QuadMesh.new()
-		qm.size = q[0] as Vector2
-		m.mesh = qm
-		m.rotation = Vector3(-PI * 0.5, 0, 0)
-		m.position = q[1] as Vector3
-		m.material_override = om
-		outline.add_child(m)
-	outline.visible = false
-	backdrop.add_child(outline)
+	var bar := SpriteRegistry.flat("menu_bar_" + row_name.to_lower() + "_v25", 0.96 / 1024.0)
+	if bar != null:
+		bar.scale = Vector3(1.0, 0.6875, 1.0)
+		bar.position = Vector3(center.x, HIGHLIGHT_Y, center.z)
+		bar.shaded = false
+		bar.visible = false
+		backdrop.add_child(bar)
 	var row := {
 		"name": row_name, "center": center, "half": half,
-		"sub": null, "outline": outline,
-		"material": om, "action": action, "enabled": true,
+		"sub": null, "bar": bar,
+		"action": action, "enabled": true,
 	}
 	_rows.append(row)
 	return row
 
 ## Sub-baris DINAMIS (hanya Continue): ringkasan save, baru ada
 ## kalau pemain punya save. Dibuat kosong — _refresh_continue
-## yang mengisi/mengosongkannya. Teks statis "no record on file"
+## yang mengisi/mengosongkannya. Teks statis "no record on this slot"
 ## TIDAK lagi di sini: ia di-bake ke varian halaman mati.
 func _add_sub(row: Dictionary, z: float) -> void:
 	var backdrop := get_node_or_null("Backdrop") as Node3D
@@ -319,12 +304,13 @@ func _build_book_text() -> void:
 	var backdrop := get_node_or_null("Backdrop") as Node3D
 	if backdrop == null:
 		return
-	# v24: halaman kiri (logo THE GIANT, "Buku jaga, Pos 07",
-	# garis merah, "Taman Nasional Malayunesia.") semuanya
-	# DI-BAKE ke tekstur menu_book_page_l_v24 — tidak ada lagi
-	# Label3D/logo/rule di sini. Halaman kanan: empat baris menu
-	# di-bake ke tekstur; yang dibangun di sini hanya data baris
-	# (rect klik/hover + outline) dan sub dinamis Continue.
+	# v25: halaman kiri (logo THE GIANT + siluet kepala gajah,
+	# "Buku jaga, Pos 07", garis merah, "Taman Nasional
+	# Malayunesia.") semuanya DI-BAKE ke tekstur
+	# menu_book_page_l_v25 — tidak ada lagi Label3D/logo/rule di
+	# sini. Halaman kanan: empat baris menu di-bake ke tekstur;
+	# yang dibangun di sini hanya data baris (rect klik/hover +
+	# BAR MERAH pilihan) dan sub dinamis Continue.
 	# Urutan baca atas-bawah = jauh-dekat: Start 1,48 / Continue
 	# 1,32 (+ sub 1,245) / Options 1,16 / Exit 1,02. Batas rect
 	# saling menempel tanpa tumpang tindih.
@@ -445,33 +431,36 @@ var _pop_tween: Tween
 func _pop_selection() -> void:
 	if _rows.is_empty():
 		return
-	var outline := _rows[_selected]["outline"] as Node3D
-	if outline == null:
+	var bar := _rows[_selected]["bar"] as Node3D
+	if bar == null:
 		return
 	if _pop_tween != null and _pop_tween.is_valid():
 		_pop_tween.kill()
-	outline.scale = Vector3.ONE
-	_pop_tween = outline.create_tween()
-	_pop_tween.tween_property(outline, "scale", Vector3(1.05, 1.05, 1.0), 0.09) \
+	bar.scale = Vector3(1.0, 0.6875, 1.0)
+	_pop_tween = bar.create_tween()
+	_pop_tween.tween_property(bar, "scale", Vector3(1.05, 0.7219, 1.0), 0.09) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_pop_tween.tween_property(outline, "scale", Vector3.ONE, 0.12) \
+	_pop_tween.tween_property(bar, "scale", Vector3(1.0, 0.6875, 1.0), 0.12) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _refresh_highlights() -> void:
 	for i in range(_rows.size()):
 		var row: Dictionary = _rows[i]
-		var outline := row["outline"] as Node3D
-		var om := row["material"] as StandardMaterial3D
-		# Baris mati (Continue tanpa save): tanpa outline — coret
+		var bar := row["bar"] as Sprite3D
+		# Baris mati (Continue tanpa save): tanpa bar — coret
 		# + tinta redup SUDAH di-bake ke varian halaman mati,
 		# bukan sinyal runtime lagi.
 		if not bool(row["enabled"]):
-			outline.visible = false
+			if bar != null:
+				bar.visible = false
 			continue
 		var active := str(row["name"]) == _hovered or i == _selected
-		outline.visible = active
-		om.albedo_color = Color(INK_RULE.r, INK_RULE.g, INK_RULE.b,
-			OUTLINE_SEL if i == _selected else OUTLINE_HOVER)
+		if bar == null:
+			continue
+		bar.visible = active
+		# v25: hover 0,70 (bar merah tembus pandang ringan),
+		# terpilih 1,0 (bar penuh seperti mockup).
+		bar.modulate = Color(1, 1, 1, BAR_SEL if i == _selected else BAR_HOVER)
 
 ## --- API untuk rig -----------------------------------------------------------
 func row_names() -> Array[String]:
@@ -504,7 +493,7 @@ func row_sub(row_name: String) -> String:
 			# mati, bukan Label3D lagi — tapi kontrak API rig
 			# tetap: baris mati mengembalikan teks itu.
 			if not bool(row["enabled"]):
-				return "no record on file"
+				return "no record on this slot"
 			return ""
 	return ""
 
@@ -821,12 +810,12 @@ func _show_main() -> void:
 	# ada grab_focus ke tombol — navigasi keyboard lewat _selected.
 
 func _refresh_continue() -> void:
-	# v24: baris Continue membawa info simpanan di DUA tempat —
+	# v25: baris Continue membawa info simpanan di DUA tempat —
 	# tekstur halaman kanan (varian aktif vs mati) + sub Label3D
 	# dinamis (ringkasan save). Kalau ada save: halaman aktif +
 	# sub "22:00, Sanity 100". Kalau tidak ada: halaman mati
-	# (Continue tinta redup + coret + "no record on file" di-bake)
-	# + sub kosong.
+	# (Continue tinta redup + coret + "no record on this slot"
+	# di-bake) + sub kosong.
 	for row in _rows:
 		if str(row["name"]) != "Continue":
 			continue
@@ -834,14 +823,14 @@ func _refresh_continue() -> void:
 		if SaveGame.has_save():
 			row["enabled"] = true
 			if _page_right != null:
-				_page_right.texture = SpriteRegistry.texture("menu_book_page_r_v24")
+				_page_right.texture = SpriteRegistry.texture("menu_book_page_r_v25")
 			if sub != null:
 				sub.text = SaveGame.summary_text().replace("Continue - ", "")
 				sub.modulate = INK_BODY
 		else:
 			row["enabled"] = false
 			if _page_right != null:
-				_page_right.texture = SpriteRegistry.texture("menu_book_page_r_disabled_v24")
+				_page_right.texture = SpriteRegistry.texture("menu_book_page_r_disabled_v25")
 			if sub != null:
 				sub.text = ""
 		break

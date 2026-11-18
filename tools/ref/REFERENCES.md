@@ -88,3 +88,51 @@ saat membangun sprite menu. Jangan hapus tanpa mengganti generatornya.
   normal lalu di-stretch vertikal, bukan font lebih besar (itu
   melebarkan teks dan memotong tepi). Font DejaVu Sans Mono Bold.
   Nol aset AI, nol gambar generate.
+
+## Menu v25: mockup Arya + kepala Zunisha + bar merah (2026-11-18)
+STATUS: PLACEHOLDER — dua gambar referensi Arya (mockup main UI +
+sheet elemen tempat, 2026-11-18 14:34 WIB, file
+`workspace/user/files/1000488175_5_s0qi.png` dan
+`1000488176_6_n0hn.png`) kelihatan seperti concept art AI-generated.
+Semua aset yang dipotong dari sana kelas placeholder, bukan art final.
+Kepala gajahnya sendiri dari sheet Arya (aset asli), tapi grade +
+skala kolosalnya tetap placeholder.
+- `giant_head_zunisha_v25.png` (330x270) — crop kepala (10, 0, 340,
+  270) dari `elephant_front.png` sheet Arya (kepala + telinga +
+  belalai + gading). Grade kabut pucat (desat 0,55, brightness 1,45,
+  dingin 0,82/0,90/1,02), pipi digelapkan 0,5, kolom belalai (|x-155|
+  < 32) diangkat x3,0, zona gading x2,5 (`tools/make_menu_head_v25.py`,
+  deterministik). Dipakai di backdrop menu, 20 m di z 12
+  (`main.gd _setup_menu_window_giant`, tint 1,2/1,25/1,3, unshaded).
+  Siluet kera di mockup TIDAK dipakai. Yang kelihatan lewat jendela
+  hanya belalai + gading (kubah + telinga di atas frame — geometri
+  kusen, lihat README v25). Nol gambar generate baru; sumbernya
+  sprite sheet Arya.
+- `menu_book_page_l_v25.png`, `menu_book_page_r_v25.png`,
+  `menu_book_page_r_disabled_v25.png` (1024x1024) — foto perkamen
+  asli yang SAMA dengan v20/v22/v24 (Vecteezy 57329614, crop
+  (300,250,1324,1274), grade darken 0,88, green 1,02). Siluet kepala
+  gajah kecil di atas judul (mask alpha kepala Zunisha, tinta gelap,
+  150 px, V 100); sub Continue mati kini "no record on this slot"
+  (bahasa mockup). Generator `tools/make_menu_book_v25.py` (seed 25).
+  Logo `menu_logo_v20.png` sebagai sumber generator dipulihkan dari
+  git (aba5263) ke `tools/ref/menu_logo_v20.png` — v24 menghapusnya
+  dari `assets/` tapi generator membutuhkannya; ia sumber build saja,
+  bukan sprite runtime.
+- `menu_bar_{start,continue,options,exit}_v25.png` (900x150) — bar
+  tinta merah INK_RULE + teks terang (235,228,210) di posisi yang
+  sama dengan teks bake gelap + segitiga play hanya di Start
+  (`tools/make_menu_book_v25.py`, `make_bar_textures()`).
+- `menu_sign_graveyard_v25.png` (200x169) — crop papan + kaki
+  (545, 772, 745, 941) dari gambar tempat Arya (1000488176_6_n0hn.png,
+  1672x941), alpha dari luminansi (checkerboard terang -> hilang),
+  grade malam 0,85 (`tools/make_menu_head_v25.py`). Dipakai di
+  backdrop menu, 2 m di x 5,5, z 9. PLACEHOLDER (gambar sumber
+  kelihatan AI-generated).
+- `menu_skeleton_v25.png` (390x200) — crop kerangka (80, 500, 470,
+  700) dari gambar tempat Arya yang sama; langit checkerboard di
+  sumber diganti kabut halus (piksel L>190 -> kabut), tepi
+  di-feather, grade malam 0,8 (`tools/make_menu_head_v25.py`).
+  DIPOTONG dari menu ronde 8 (kepala 20 m menutupi seluruh jendela)
+  — aset tetap ada untuk penempatan DALAM permainan nanti.
+  PLACEHOLDER (gambar sumber kelihatan AI-generated).

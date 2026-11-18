@@ -8,7 +8,7 @@ class_name SpriteRegistry
 ## Audit: jalankan test rig mode=verify, ia memanggil validate() dan
 ## mencatat sprite yang hilang; game tetap jalan (fallback kotak).
 
-## Semua sprite yang dipakai game (67). Satu nama = satu file
+## Semua sprite yang dipakai game (77). Satu nama = satu file
 ## res://assets/sprites/<nama>.png. Jangan tambah sprite baru tanpa
 ## mendaftarkannya di sini.
 const ALL_NAMES: Array[String] = [
@@ -17,15 +17,21 @@ const ALL_NAMES: Array[String] = [
 	"elephant_back", "elephant_front", "elephant_shadow",
 	"elephant_side", "fence_barbed", "fence_wood", "fog_puff",
 	"footprint", "gate", "generator", "giant_eye", "giant_foot",
-	"giant_foot_photo_v23",
+	"giant_foot_photo_v23", "giant_head_zunisha_v25",
 	"guard_back", "guard_front", "guard_hut", "hunter",
 	"hunter_rifle", "lantern", "log", "logbook", "meter",
+	"menu_bar_continue_v25", "menu_bar_exit_v25",
+	"menu_bar_options_v25", "menu_bar_start_v25",
 	"menu_book_page_l_v24", "menu_book_page_r_v24",
-	"menu_book_page_r_disabled_v24", "menu_btn_v20",
+	"menu_book_page_r_disabled_v24",
+	"menu_book_page_l_v25", "menu_book_page_r_v25",
+	"menu_book_page_r_disabled_v25",
+	"menu_btn_v20",
 	"menu_btn_v20_hover", "menu_btn_v20_pressed",
 	"menu_form_page",
 	"menu_giant_v21",
 	"menu_ledger_v20", "menu_ledger_v21", "menu_rec_v20",
+	"menu_sign_graveyard_v25", "menu_skeleton_v25",
 	"menu_stamp_v20",
 	"poacher_ghost", "poacher_mask", "radio", "radio_tower", "rocks",
 	"sacks", "shovel", "sign_no_elephant", "sign_no_elephant2",

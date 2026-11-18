@@ -214,20 +214,53 @@ func _setup_menu_backdrop() -> void:
 ## kuku terangkat dari hutan gelap di belakangnya tanpa jadi pilar
 ## putih. Unshaded (aturan v14: siluet jauh shaded = hitam total).
 func _setup_menu_window_giant() -> void:
-	_billboard(self, "giant_foot_photo_v23", Vector3(2.0, 0.0, 6.0), 4.0 / 640.0, Color(1.5, 1.55, 1.5, 0.95), true)
-	# v24 (kritik #4): siluet Giant jauh DICOBA dua ronde lalu
-	# DIHAPUS — bukan dipaksa. Ronde 1 (x 3,5, z 11, tint pucat):
-	# melebur dengan hutan berkabut. Ronde 2 (x 5,0, z 9, 12 m,
-	# tint gelap 0,45): tetap tidak terbaca sebagai gajah di
-	# screenshot v27 — lewat jendela rendah hanya kelihatan
-	# irisan bawah 2,4 m (kaki-kaki tipis) yang di kabut + di
-	# antara pepohonan tidak bisa dibedakan dari batang pohon.
-	# Itu mode gagal yang sama dengan v21 (siluet 13 m terbaca
-	# bukit). Kritik membolehkan salah satu: "siluet hutan
-	# berkabut ATAU bayangan Giant" — yang membawa poin #4
-	# sekarang adalah hutan berkabut yang TERBUKA LEBAR lewat
-	# jendela (kamera baru) + kaki close-up 6 m sebagai ancaman
-	# Giant-nya. Kaki tetap di bawah ini.
+	# v25 (mockup Arya 2026-11-18 + kepala Zunisha): kaki foto
+	# DIGANTI kepala gajah raksasa. Kepala dari elephant_front
+	# sheet Arya (crop kepala + telinga + belalai + gading,
+	# tools/make_menu_head_v25.py), lebar 20 m di z 12 — kubah +
+	# telinga + belalai jatuh di pita pandang jendela, jauh lebih
+	# besar dari pohon. Siluet kera di mockup TIDAK dipakai.
+	# GEOMETRI JUJUR (ronde 1-2): yang kelihatan lewat jendela
+	# HANYA pita bawah kepala — belalai + gading + rahang bawah.
+	# Kubah + telinga TIDAK BISA masuk frame: kusen jendela
+	# (y 1,3..2,2 di dinding z ~2,5) membatasi garis pandang ke
+	# y 0..2,5 m di segala jarak; kubah 12 m tidak akan pernah
+	# terlihat dari kursi meja. Itu konsisten dengan aturan Giant
+	# (tidak pernah utuh): yang terlihat adalah belalai 3 m +
+	# gading putih — skalanya yang bilang Zunisha.
+	# KEGAGALAN RONDE 1-2 (diukur, bukan ditebak): (a) puff kabut
+	# TETAP di (1,5, 0,6, 12,0) tepat di depan belalai — 5,6 m
+	# lebar, alpha 0,34; (b) kepala di z 28 = 75% kabut;
+	# (c) grade GELAP ronde 2 kontras NOL lawan kabut L~50.
+	# Ronde 3: kepala di z 12 (45% kabut, 55% terbaca — batas
+	# jujur v14: billboard di 10-14 m cuma ~40-55% kebaca),
+	# grade PUCAT kembali (terang lawan kabut gelap), koridor
+	# pandang jendela (x -1..8, z 2..20) dikosongkan dari puff
+	# acak + ground fog, puff tetap (1,5, 12) DIHAPUS. Tint
+	# terang di sini (unshaded).
+	# v24 (kritik #4): siluet jauh dicoba 2 ronde lalu dihapus —
+	# v25 membawanya kembali sebagai KEPALA (bukan badan utuh).
+	_billboard(self, "giant_head_zunisha_v25", Vector3(1.0, 0.0, 12.0), 20.0 / 330.0, Color(1.2, 1.25, 1.3, 0.98), true)
+	# Kuburan gajah: PANEL DIHAPUS dari menu (ronde 8) — bukan
+	# karena asetnya jelek (kerangka + gading terbaca jelas di
+	# ronde 4-6), tapi karena kepala 20 m menutupi SELURUH lebar
+	# jendela: panel di z 12 ditutupi kepala yang lebih dekat,
+	# panel di z 18 tenggelam di belakang siluet kepala. Jendela
+	# hanya 7 m lebar di z 12 — kepala dan panel tidak muat
+	# berdua. Yang membawa "kuburan gajah" di menu adalah papan
+	# "KAWASAN KUBURAN GAJAH" (z 9, terbaca jelas). Panel
+	# menu_skeleton_v25 TETAP ada (aset + registry + generator)
+	# untuk penempatan DALAM permainan nanti (pemain berjalan ke
+	# kuburan) — jangan hapus filenya.
+	# _billboard(self, "menu_skeleton_v25", Vector3(5.0, 0.0, 18.0), 6.0 / 390.0, Color(1.0, 1.0, 1.0, 0.95), true)
+	# Papan "KAWASAN KUBURAN GAJAH" di x 5,5, z 9 (tepi kiri
+	# jendela, setengah terpotong kusen seperti ronde 1 — di x 4,0
+	# ronde 3 ia menutupi kerangka). Di-grade malam di aset.
+	# Menara pengawas + checkpoint TIDAK dipasang di menu (ramai;
+	# menara sudah ada di level permainan, terlihat dari jendela
+	# dalam game). Aset kelas PLACEHOLDER (gambar Arya kelihatan
+	# AI-generated) — lihat tools/ref/REFERENCES.md.
+	_billboard(self, "menu_sign_graveyard_v25", Vector3(5.5, 0.0, 9.0), 2.0 / 200.0, Color(0.9, 0.9, 0.9, 1.0), true)
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
@@ -484,6 +517,12 @@ func _build_forest() -> void:
 		var pos := Vector3(cos(angle) * radius, 0, sin(angle) * radius)
 		if absf(pos.x) < 4.0 and pos.z < 0.0:
 			continue # jangan halangi jalan ke gerbang
+		# v25: koridor pandang jendela selatan (x -1..8, z 2..20)
+		# dikosongkan juga — satu pohon dekat (seed tetap) berdiri
+		# tepat di depan belalai Zunisha (ronde 4: kolom gelap
+		# pohon menutupi belalai, hanya gading yang mengintip).
+		if pos.z > 2.0 and pos.z < 20.0 and pos.x > -1.0 and pos.x < 8.0:
+			continue
 		_make_tree(forest, pos, trunk_mat, leaf_mat)
 	# Properti berserakan + decal tanah, semua dari tabel LevelData.
 	for entry in LevelData.SCATTER_PROPS:
@@ -508,6 +547,13 @@ func _build_forest() -> void:
 		var fp := Vector3(cos(a) * r, 0, sin(a) * r)
 		if absf(fp.x) < 3.5 and fp.z > -16.0 and fp.z < 2.0:
 			continue
+		# v25: koridor pandang jendela selatan (x -1..8, z 2..20)
+		# dikosongkan juga — puff di sini menutupi kepala Zunisha
+		# + panel kuburan di menu (ronde 1-2: puff tetap di
+		# (1,5, 12) tepat di depan belalai). Koridor gerbang utara
+		# di atas sudah ada sejak lama dengan alasan sama.
+		if fp.z > 2.0 and fp.z < 20.0 and fp.x > -1.0 and fp.x < 8.0:
+			continue
 		var depth_k := clampf((r - 9.0) / (26.0 - 9.0), 0.0, 1.0)
 		var puff_alpha := lerpf(0.38, 0.26, depth_k)
 		_billboard(forest, "fog_puff", Vector3(fp.x, _rng.randf_range(0.4, 1.4), fp.z), _rng.randf_range(0.015, 0.024), Color(0.62, 0.68, 0.58, puff_alpha))
@@ -519,7 +565,11 @@ func _build_forest() -> void:
 	# seperti gumpalan lain. Jendela belakang tetap dinding kabut:
 	# pada 0,07/m, billboard apa pun di 10-14 m cuma ~40% kebaca
 	# dengan latar kabut sewarna + desaturasi VHS. Batas jujur v14.
-	for fp in [Vector3(-5.0, 0.8, 11.0), Vector3(1.5, 0.6, 12.0), Vector3(6.0, 0.9, 10.0),
+	# v25: gumpalan (1,5, 0,6, 12,0) DIHAPUS — ia tepat di depan
+	# belalai Zunisha (kepala menu di x 1,0, z 12) dan menutupi
+	# kepala di ronde 1-2. Yang selatan tinggal dua di luar
+	# koridor jendela.
+	for fp in [Vector3(-5.0, 0.8, 11.0), Vector3(6.0, 0.9, 10.0),
 			Vector3(-7.0, 0.8, -11.0), Vector3(8.0, 1.0, -12.0)]:
 		_billboard(forest, "fog_puff", fp, 0.022, Color(0.62, 0.68, 0.58, 0.34))
 	# Ground fog: lapisan kabut rendah merayap di permukaan tanah,
@@ -529,6 +579,10 @@ func _build_forest() -> void:
 		var gr := _rng.randf_range(6.0, 13.0)
 		var gp := Vector3(cos(ga) * gr, 0, sin(ga) * gr)
 		if absf(gp.x) < 3.5 and gp.z > -16.0 and gp.z < 2.0:
+			continue
+		# v25: koridor pandang jendela selatan dikosongkan juga
+		# (alasan sama seperti puff acak di atas).
+		if gp.z > 2.0 and gp.z < 20.0 and gp.x > -1.0 and gp.x < 8.0:
 			continue
 		var gdepth_k := clampf((gr - 6.0) / (13.0 - 6.0), 0.0, 1.0)
 		var ground_alpha := lerpf(0.42, 0.32, gdepth_k)

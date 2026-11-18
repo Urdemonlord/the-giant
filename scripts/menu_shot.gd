@@ -28,10 +28,10 @@ extends Node
 ## (garis besar kasar) saat `_ready` selesai; ambil screenshot
 ## beberapa frame kemudian supaya hasilnya stabil.
 
-## v27: prefix "v27" untuk desktop, "v27p" untuk portrait — supaya
+## v28: prefix "v28" untuk desktop, "v28p" untuk portrait — supaya
 ## screenshot portrait tidak menimpa desktop (keduanya jalan di
 ## rig yang sama, beda --resolution).
-var _prefix := "v27"
+var _prefix := "v28"
 const SHOT_DIR := "/home/hatch/workspace/godot/shots"
 const RES_PATH := "res://scenes/menu.tscn"
 
@@ -60,9 +60,9 @@ func _ready() -> void:
 	# ukuran base stretch (1280x720) di kedua orientasi, jadi run
 	# portrait pertama menimpa file desktop.
 	if get_tree().root.size.y > get_tree().root.size.x:
-		_prefix = "v27p"
+		_prefix = "v28p"
 	_log = FileAccess.open(SHOT_DIR + "/" + _prefix + "_results_menu.txt", FileAccess.WRITE)
-	_log.store_line("[MENU-RIG] " + _prefix + " menu v24 (Luci list)")
+	_log.store_line("[MENU-RIG] " + _prefix + " menu v25 (Luci list)")
 	_log.store_line("mode: menu")
 	_log.store_line("time: " + Time.get_datetime_string_from_system())
 	_log.store_line("start")
@@ -237,17 +237,24 @@ func _test_book_pages() -> void:
 	if backdrop == null:
 		_fail("backdrop tidak ada")
 		return
-	# v24: halaman dari tekstur v24 (teks di-bake). Rig ini jalan
-	# tanpa save, jadi halaman kanan harus varian MATI.
-	if _find_sprite_with(backdrop, "menu_book_page_l_v24"):
-		_pass("halaman kiri buku v24 ada")
+	# v25: halaman dari tekstur v25 (teks di-bake + siluet kepala
+	# gajah di atas judul). Rig ini jalan tanpa save, jadi halaman
+	# kanan harus varian MATI.
+	if _find_sprite_with(backdrop, "menu_book_page_l_v25"):
+		_pass("halaman kiri buku v25 ada")
 	else:
-		_fail("halaman kiri buku v24 tidak ada")
-	if _find_sprite_with(backdrop, "menu_book_page_r_disabled_v24"):
-		_pass("halaman kanan buku v24 (varian mati, tanpa save) ada")
+		_fail("halaman kiri buku v25 tidak ada")
+	if _find_sprite_with(backdrop, "menu_book_page_r_disabled_v25"):
+		_pass("halaman kanan buku v25 (varian mati, tanpa save) ada")
 	else:
-		_fail("halaman kanan buku v24 mati tidak ada")
-	# v24: logo + header bukan lagi node terpisah — mereka di-bake
+		_fail("halaman kanan buku v25 mati tidak ada")
+	# v25: bar merah pilihan (bukan outline v24) harus ada di
+	# baris Start (terpilih default).
+	if _find_sprite_with(backdrop, "menu_bar_start_v25"):
+		_pass("bar merah Start v25 ada")
+	else:
+		_fail("bar merah Start v25 tidak ada")
+	# v25: logo + header + siluet kepala bukan lagi node terpisah — mereka di-bake
 	# ke tekstur halaman kiri. Kalau sprite/logo Label3D-nya masih
 	# ada, refactor tidak bersih.
 	if _find_sprite_with(backdrop, "menu_logo_v20"):
@@ -303,8 +310,8 @@ func _test_menu_no_save() -> void:
 		_pass("Continue mati tanpa save")
 	else:
 		_fail("Continue hidup padahal tidak ada save")
-	if _menu.row_sub("Continue") == "no record on file":
-		_pass("sub-baris Continue: 'no record on file'")
+	if _menu.row_sub("Continue") == "no record on this slot":
+		_pass("sub-baris Continue: 'no record on this slot'")
 	else:
 		_fail("sub-baris Continue: '" + _menu.row_sub("Continue") + "'")
 	# Kritik #3: TIDAK ADA sisa CCTV di menu.
@@ -326,25 +333,33 @@ func _test_giant_window() -> void:
 	if backdrop == null:
 		_fail("backdrop tidak ada")
 		return
-	if _find_sprite_with(backdrop, "giant_foot"):
-		_pass("Kaki Giant di luar jendela selatan ada")
+	# v25: kepala Zunisha (bukan kaki lagi) di luar jendela selatan.
+	if _find_sprite_with(backdrop, "giant_head_zunisha_v25"):
+		_pass("Kepala Zunisha di luar jendela selatan ada")
 	else:
-		_fail("Kaki Giant di luar jendela selatan tidak ada")
-	# v24 (kritik #4): siluet jauh MENU dicoba dua ronde lalu
-	# DIHAPUS dengan sengaja — dua-duanya tidak terbaca sebagai
-	# gajah di screenshot (irisan bawah 2,4 m lewat jendela rendah
-	# = kaki tipis di kabut, tidak beda dari batang pohon; mode
-	# gagal yang sama dengan v21). Yang membawa poin #4 sekarang:
-	# hutan berkabut yang terbuka lebar + kaki close-up. Hati-hati:
-	# level permainan SENDIRI punya elephant_shadow di kabut utara
-	# (7, 0, -36) — itu bukan siluet menu; yang dicek di sini
-	# hanya siluet di sisi selatan (z > 0, arah jendela).
+		_fail("Kepala Zunisha di luar jendela selatan tidak ada")
+	# v25: elemen tempat dari gambar 2 — papan kuburan (panel
+	# kerangka SENGAJA dipotong dari menu ronde 8: kepala 20 m
+	# menutupi seluruh jendela; panel tetap aset untuk dalam game).
+	if _find_sprite_with(backdrop, "menu_sign_graveyard_v25"):
+		_pass("elemen tempat menu_sign_graveyard_v25 ada")
+	else:
+		_fail("elemen tempat menu_sign_graveyard_v25 tidak ada")
+	if _find_sprite_with(backdrop, "menu_skeleton_v25"):
+		_fail("panel kerangka masih di menu (seharusnya dipotong ronde 8)")
+	else:
+		_pass("panel kerangka tidak di menu (dipotong sengaja, aset tetap ada)")
+	# v25: siluet BADAN UTUH v21 (elephant_shadow) TIDAK BOLEH
+	# kembali (gagal 3x). Yang boleh di selatan sekarang hanya
+	# KEPALA Zunisha (di atas). Hati-hati: level permainan SENDIRI
+	# punya elephant_shadow di kabut utara (7, 0, -36) — itu bukan
+	# siluet menu; yang dicek di sini hanya sisi selatan (z > 0).
 	var sil := _find_menu_silhouette(backdrop)
 	if sil != null:
-		_fail("siluet jauh menu masih ada di " + str(sil.position) + " (seharusnya dihapus setelah 2 ronde gagal)")
+		_fail("siluet badan utuh v21 masih ada di " + str(sil.position) + " (seharusnya dihapus)")
 	else:
-		_pass("siluet jauh menu tidak ada (dihapus sengaja, hutan berkabut yang membawa poin #4)")
-	# v25 ronde 4: puff kabut di kusen dihapus (menutupi kaki) —
+		_pass("siluet badan utuh v21 tidak ada di menu selatan")
+	# Puff kabut di kusen dihapus sejak v24 (menutupi Giant) —
 	# kabut jendela sekarang hanya volumetrik + hutan, dicek lewat
 	# screenshot, bukan lewat node.
 
@@ -492,7 +507,7 @@ func _test_menu_with_save() -> void:
 	else:
 		_fail("Continue mati padahal ada save")
 	var sub: String = _menu.row_sub("Continue")
-	if sub != "" and sub != "no record on file":
+	if sub != "" and sub != "no record on this slot":
 		_pass("sub-baris Continue membawa info: '" + sub + "'")
 	else:
 		_fail("sub-baris Continue kosong/tidak membawa info: '" + sub + "'")

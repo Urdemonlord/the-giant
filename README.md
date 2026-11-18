@@ -886,6 +886,123 @@ pakai rig sendiri + Xvfb).
   game masih kontrol/font default Godot. Aset menu tetap kelas
   PLACEHOLDER.
 
+## Menu utama v25: mockup Arya + kepala Zunisha + bar merah (2026-11-18)
+
+Arya kirim dua gambar referensi (14:34 WIB): (1) mockup target main
+UI — meja kayu, buku jaga terbuka, lentera kanan, alat ukur tengah,
+cahaya hangat miring dari jendela, jendela lebar menampilkan siluet
+raksasa di kabut; (2) sheet elemen tempat — pos panggung + menara,
+jalan hutan berkabut, kuburan gajah (kerangka + siluet gajah),
+checkpoint logging, papan "KAWASAN KUBURAN GAJAH", pagar, lampu.
+**CATATAN JUJUR: kedua gambar kelihatan seperti concept art
+AI-generated, jadi semua aset yang dipotong dari sana kelas
+PLACEHOLDER, bukan art final.** Dipakai sebagai target/referensi,
+seperti sheet Arya sebelumnya.
+Skill dari list Luci (`~/workspace/makefun/skills/`, BUKAN adaptasi):
+router awesome-gamedev-agent-skills (Godot 4.3 pinned, disiplin
+game-ui-ux + game-feel + camera-systems + create-game-assets);
+game-ui-ux (kontras >= 4,5:1, warna bukan satu-satunya sinyal —
+Continue mati juga dicoret, bukan cuma diredupkan; fokus saat layar
+dibuka, sweep ukuran desktop + portrait); game-feel (pop hanya saat
+pilihan BERPINDAH, 1,0 -> 1,05 -> 1,0, tween lama di-kill, selalu
+kembali tepat ke rest; hover = bar 0,70, bukan juice); camera-systems
+(kamera melayani framing, verifikasi framing lewat proyeksi layar,
+bukan tebak-tebakan — begitu ketahuan proyeksi rig meleset ~60 px
+karena billboard miring); create-game-assets (inspect dulu, kunci
+satu target visual, produksi sebagai family, normalisasi
+deterministik, validasi di konteks ukuran native, provenance,
+gotcha fake-transparency + teks generate); unslop (satu elemen
+terang — belalai; chrome diam; teks di ruang tenang; spacing dulu;
+satu aksen merah); frontend-design anthropics (grounding di materi
+subjek, tipografi membawa kepribadian, kritik dari screenshot).
+canvas-design + webapp-testing dibaca dan DILAPORKAN tidak dipakai
+(canvas-design untuk poster/statis, bukan menu Godot; webapp-testing
+Playwright untuk web, verifikasi Godot pakai rig sendiri + Xvfb).
+
+- Komposisi = mockup: jendela lebar tengah-atas, meja kayu, buku
+  terbuka, lentera kanan, alat ukur tengah, cahaya hangat miring ke
+  dinding kanan. Buku tetap diegetic (teks di-bake seperti v24,
+  tinta multiply, CA menu tetap 0,0, tanpa REC/scanline/CCTV).
+  Start pakai BAR MERAH + segitiga play seperti mockup: 4 tekstur
+  bar 900x150 (`menu_bar_<row>_v25.png`,
+  `tools/make_menu_book_v25.py`) — bar tinta merah INK_RULE, teks
+  terang (235,228,210) di posisi yang SAMA persis dengan teks bake
+  gelap (mask yang sama), segitiga play hanya di Start; sprite bar
+  ditampilkan di atas baris aktif/hover (`main_menu.gd`, alpha 1,0
+  terpilih / 0,70 hover, unshaded, squash z 0,6875 yang sama),
+  menggantikan outline tinta merah v24. Continue mati tetap terbaca
+  + coret, sub kini "no record on this slot" (bahasa mockup, dulu
+  "no record on file"). Logo kecil di atas judul: siluet KEPALA
+  GAJAH (mask alpha kepala Zunisha, tinta gelap, 150 px) — bukan
+  kera seperti di mockup.
+- Siluet jendela DIGANTI: bukan siluet kera mockup, bukan kaki foto
+  v23/v24, tapi KEPALA GAJAH GEDE kayak Zunisha — kepala dari
+  `elephant_front.png` sheet Arya (crop kepala + telinga + belalai
+  + gading, `tools/make_menu_head_v25.py`), lebar 20 m di z 12,
+  grade kabut pucat + belalai diangkat x3,0 + gading x2,5 (satu
+  elemen terang), tint (1,2, 1,25, 1,3), unshaded.
+  **Geometri jujur: yang kelihatan lewat jendela HANYA pita bawah
+  kepala — belalai + gading + rahang bawah.** Kubah + telinga TIDAK
+  BISA masuk frame: kusen jendela (y 1,3..2,2 di dinding z ~2,5)
+  membatasi garis pandang ke y 0..2,5 m di segala jarak. Itu
+  konsisten dengan aturan Giant (tidak pernah utuh): yang terlihat
+  adalah belalai 3 m + gading putih — skalanya yang bilang Zunisha.
+  Yang terbaca di screenshot: gading putih besar menyapu diagonal
+  + kolom belalai pucat di tengah jendela — langsung kebaca gajah
+  raksasa, bukan pohon/bukit.
+- Elemen tempat dari gambar 2: papan "KAWASAN KUBURAN GAJAH"
+  (crop papan + kaki dari gambar tempat, alpha dari luminansi,
+  `menu_sign_graveyard_v25.png`) di x 5,5, z 9 — tepi kiri jendela,
+  setengah terpotong kusen, terbaca jelas. Panel kuburan gajah
+  (kerangka + gading + siluet gajah jauh, `menu_skeleton_v25.png`,
+  checkerboard langit diganti kabut halus) DICOBA lalu DIPOTONG
+  dari menu dengan sengaja: di z 12 panel yang lebih dekat menutupi
+  belalai, di z 18 panel tenggelam di belakang siluet kepala 20 m
+  (kepala menutupi seluruh lebar jendela) — jendela hanya 7 m lebar
+  di z 12, kepala dan panel tidak muat berdua. Panel tetap ada
+  (aset + registry + generator) untuk penempatan DALAM permainan
+  nanti (pemain berjalan ke kuburan). Menara pengawas + checkpoint
+  TIDAK dipasang (ramai; menara sudah ada di level permainan).
+- Enam ronde iterasi, semua diukur dari screenshot (bukan ditebak):
+  ronde 1 — kepala pucat di z 28 hilang total (75% kabut + puff
+  tetap (1,5, 12) tepat di depan belalai + kerangka di luar jendela
+  (x -3,0)); ronde 2 — grade GELAP kontras NOL lawan kabut L~50
+  (diukur: strip belalai = kabut, lum 50 = 50); ronde 3 — kepala
+  didekatkan z 12 + koridor pandang dikosongkan dari puff, belalai
+  muncul tapi melebur jadi blob (pipi sama terang); ronde 4 —
+  pipi digelapkan, belalai jadi kolom, TAPI pohon dekat (seed tetap)
+  berdiri tepat di depan belalai; ronde 5 — pohon di koridor
+  dihapus, belalai tetap tidak kelihatan; ronde 6 — tes tekstur
+  3-warna membuktikan kepala MERENDER (merah di layar x 220-460,
+  hijau 440-600) dan belalai di foto sumbernya GELAP (L~34, lum
+  49 setelah grade = kabut, preview latar hitam menipu) —
+  belalai diangkat x3,0 (lum 158), gading x2,5, preview diganti
+  latar kabut; ronde 7 — tes panel dimatikan membuktikan panel
+  yang menutupi belalai (render setelah kepala); ronde 8 — panel
+  dipindah z 18 (tetap tenggelam di belakang kepala) lalu DIPOTONG.
+  Perbaikan sistemik: koridor pandang jendela selatan (x -1..8,
+  z 2..20) dikosongkan dari puff acak + ground fog + pohon dekat
+  (`main.gd`, seperti koridor gerbang utara sejak lama); puff tetap
+  (1,5, 12) dihapus.
+- Verifikasi (Xvfb, `--rendering-driver opengl3`; `project.godot`
+  NO-DIFF): rig cepat v25 (`scripts/menu_check_v25.gd`, prefix
+  v28) desktop **11/11**, portrait **11/11**, dengan save **11/11**;
+  rig menu penuh (`scripts/menu_shot.gd`, prefix v28) desktop
+  **31 pass, 0 fail, RESULT MENU PASS**, portrait **31 pass, 0 fail, RESULT MENU PASS**;
+  mode verify DONE (registry 77, missing=0); mode playtest
+  **PASS fails=0**; `menu_autostart=1` masuk main (jam 22:00,
+  "[Main] scene main siap").
+  Screenshot dibaca sendiri: `v28_menu_no_save.png` (desktop),
+  `v28p_menu_no_save.png` (portrait), `v28_menu_with_save.png`
+  (Continue hidup + sub "00:03, Sanity 80").
+- Batas jujur: belalai agak lunak (sumber 330 px di 20 m + kabut)
+  — terbaca sebagai kolom pucat, bukan belalai tajam; kubah +
+  telinga di atas frame (sengaja + geometri, lihat di atas); menu
+  di portrait masih letterbox 720x405 (sejak v20); slider volume +
+  CheckButton di Options dan HUD dalam game masih kontrol/font
+  default Godot. Aset menu tetap kelas PLACEHOLDER. Event dalam
+  game (kaki 03:30, mata 04:45, hunter 01:30) TIDAK disentuh.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya
