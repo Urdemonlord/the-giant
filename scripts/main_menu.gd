@@ -1,5 +1,5 @@
 extends Control
-## Menu utama THE GIANT v22 — Opsi B (diegetic, meja pos jaga).
+## Menu utama THE GIANT v24 — Opsi B (diegetic, meja pos jaga).
 ## Rebuild konsep (bukan poles) atas kritik desain 2026-11-18:
 ## menu v17-v21 mencampur dua arah visual (layar CCTV REC CAM 07 +
 ## kertas fisik ditempel rata) dan kertasnya mengambang di atas
@@ -9,6 +9,22 @@ extends Control
 ## di sampingnya, hutan gelap + Giant di luar jendela. Buku itu
 ## sendiri adalah menu-nya: klik baris tulisan di halaman untuk
 ## memilih. Lentera sudah ada sebagai benda di meja, bukan ikon.
+##
+## v24 (kritik kedua 2026-11-18, list Luci: game-ui-ux,
+## create-game-assets, unslop): SEMUA teks statis sekarang DI-BAKE
+## ke tekstur halaman (tools/make_menu_book_v24.py, multiply tinta
+## gelap di atas foto perkamen asli) — bukan lagi Label3D yang
+## ditempel rata di atas kertas. Tiga alasan: (1) lipatan gelap
+## diagonal di halaman kanan sudah tidak menabrak Continue/Options
+## (zona teks diratakan dulu di generator); (2) teks menyatu dengan
+## serat kertas (ink blend), bukan teks UI digital; (3) CA yang
+## tersisa dari sprite logo v20 ikut hilang (warnanya tidak dipakai
+## lagi, hanya mask alpha-nya). Satu-satunya Label3D yang tersisa
+## adalah sub Continue yang DINAMIS (ringkasan save, baru ada kalau
+## pemain punya save) — teks statis "no record on file" ikut
+## di-bake ke varian halaman mati. Bar sorot kuning solid DIGANTI
+## outline tinta merah (4 quad tipis di sekeliling baris) — sorot
+## pilihan sekarang coretan tinta, bukan bar UI.
 ##
 ## Yang dihapus dari menu (bukan disembunyikan): label REC CAM 07 +
 ## dot REC, overlay scanline/tear CCTV, ikon lentera di tombol
@@ -24,10 +40,10 @@ extends Control
 ## CCTV; (4) ambient lebih gelap + bulan dikuatkan jadi rim light
 ## (di main.gd, bukan di sini).
 ##
-## Cara kerja: teks menu adalah Label3D yang tergeletak di atas
-## halaman buku 3D (cover + 2 halaman dari foto perkamen asli v20).
-## Klik/hover dihitung dari raycast kamera menu ke bidang meja
-## (lihat _ray_to_book) — bukan tombol Control. Keyboard tetap jalan
+## Cara kerja: teks menu adalah tinta di tekstur halaman buku 3D
+## (cover + 2 halaman dari foto perkamen asli v20). Klik/hover
+## dihitung dari raycast kamera menu ke bidang meja (lihat
+## _ray_to_book) — bukan tombol Control. Keyboard tetap jalan
 ## (atas/bawah + Enter). Layar Options tetap formulir Control (lembar
 ## formulir di atas meja) supaya slider/toggle tetap bisa dipakai;
 ## ia memakai tekstur kertas yang sama + tinta gelap.
@@ -58,18 +74,20 @@ const PAGE_Y := 1.130
 const HIGHLIGHT_Y := 1.133
 const TEXT_Y := 1.136
 const INK := Color(0.13, 0.10, 0.07) # tinta gelap (mesin tik)
-const INK_DISABLED := Color(0.22, 0.19, 0.16) # v23 (Luci:
-	# game-ui-ux): tinta baris MATI. Dulu INK_DIM 0,38 — kontras
-	# ke kertas cuma ~2:1, "Continue" hilang di screenshot v25.
-	# 0,22 = ~3,3:1: jelas lebih redup dari tinta aktif (0,13,
-	# ~4,7:1) tapi tetap terbaca sebagai teks. Warna saja tidak
-	# cukup sebagai sinyal (game-ui-ux): baris mati juga DICORET —
-	# garis tipis menembus label, seperti entri dibatalkan di buku
-	# jaga — jadi bedanya dari baris aktif bukan cuma warna.
 const INK_BODY := Color(0.22, 0.19, 0.15) # tinta isi (sub-teks)
 const INK_RULE := Color(0.45, 0.13, 0.08) # garis merah (tinta)
-const HIGHLIGHT := Color(0.85, 0.66, 0.23, 0.30) # sorot hover
-const HIGHLIGHT_SEL := Color(0.85, 0.66, 0.23, 0.45) # sorot pilihan
+## v24: bar sorot kuning solid (v22-v23) DIGANTI outline tinta
+## merah: 4 quad tipis membentuk bingkai di sekeliling baris yang
+## di-hover/dipilih — coretan tinta, bukan bar UI. Warna sama
+## dengan garis merah di bawah judul (INK_RULE), alpha 0,35 hover /
+## 0,70 pilihan. Teks di-bake ke halaman (lihat header), jadi
+## tidak ada lagi label yang perlu di-sorot.
+const OUTLINE_HOVER := 0.35
+const OUTLINE_SEL := 0.70
+## Halaman kanan, disimpan supaya _refresh_continue bisa menukar
+## teksturnya antara varian aktif / mati (Continue di-bake di
+## tekstur, bukan Label3D lagi).
+var _page_right: Sprite3D
 
 ## Baris menu: nama, pusat (x, z di bidang meja), setengah ukuran
 ## (x, z), aksi. Kiri-kanan halaman kanan (x -1,27..-0,35).
@@ -193,9 +211,11 @@ func _build_book() -> void:
 	# kiri (judul) ada di x -0,81, halaman kanan (baris menu) di
 	# x -1,79. Sebelumnya terbalik (buku terbaca judul di kanan).
 	for side in ["l", "r"]:
-		var page := SpriteRegistry.flat("menu_book_page_" + side, 0.96 / 1024.0)
+		var page := SpriteRegistry.flat("menu_book_page_" + side + "_v24", 0.96 / 1024.0)
 		if page == null:
 			continue
+		if side == "r":
+			_page_right = page
 		page.shaded = true
 		# v25 ronde 2: alpha_cut DISCARD, bukan blending transparan.
 		# Sprite3D transparan di-sort berdasarkan jarak dari kamera:
@@ -234,64 +254,63 @@ func _book_label(text: String, font_size: int, pixel: float, color: Color) -> La
 	l.rotation = Vector3(-PI * 0.5, 0, PI)
 	return l
 
-## Satu baris menu: label + (opsional) sub-baris + quad sorot.
+## Satu baris menu: outline tinta merah + (opsional) sub-baris
+## dinamis. v24: tidak ada lagi label — teks baris ("Start",
+## "Continue", "Options", "Exit") sudah DI-BAKE ke tekstur halaman
+## kanan (tools/make_menu_book_v24.py, tinta gelap multiply).
 ## Baris adalah data, bukan Button — klik/hover lewat raycast
 ## (_ray_to_book), keyboard lewat ui_up/ui_down/ui_accept.
+## Outline: 4 quad tipis (atas/bawah/kiri/kanan) membentuk bingkai
+## di sekeliling baris, 0,05 m lebih besar dari rect baris supaya
+## tidak menimpa huruf. Satu material per outline (alpha diubah
+## sekali di _refresh_highlights). render_priority -1: outline
+## digambar SEBELUM sub-teks Label3D (y 1,136) supaya tidak pernah
+## menutupi tulisan — pelajaran v22/v23 soal sort transparan.
 func _add_row(row_name: String, center: Vector3, half: Vector2,
-		font_size: int, action: Callable) -> Dictionary:
+		action: Callable) -> Dictionary:
 	var backdrop := get_node_or_null("Backdrop") as Node3D
-	var label := _book_label(row_name, font_size, 0.0022, INK)
-	label.position = Vector3(center.x, TEXT_Y, center.z)
-	backdrop.add_child(label)
-	var hl := MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2(half.x * 2.0, half.y * 2.0)
-	hl.mesh = q
-	hl.rotation = Vector3(-PI * 0.5, 0, 0)
-	hl.position = Vector3(center.x, HIGHLIGHT_Y, center.z)
-	var hm := StandardMaterial3D.new()
-	hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	hm.albedo_color = HIGHLIGHT
-	hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	# v23: render_priority -1 supaya bar sorot SELALU di belakang teks.
-	# Tanpa ini, sort transparan (jarak ke kamera) bisa membalik di
-	# sudut kamera tertentu dan bar kuning menutupi teks -> "Start"
-	# pucat di portrait (sama di v22, ketahuan dari v25p).
-	hm.render_priority = -1
-	hl.material_override = hm
-	hl.visible = false
-	backdrop.add_child(hl)
-	# v23: garis coret untuk baris mati (lihat INK_DISABLED).
-	# Quad tipis 0,80 x 0,012 di ATAS teks (y 1,1375 vs teks 1,136),
-	# tersembunyi kecuali baris dimatikan.
-	var strike := MeshInstance3D.new()
-	var sq := QuadMesh.new()
-	sq.size = Vector2(half.x * 2.0 - 0.06, 0.012)
-	strike.mesh = sq
-	strike.rotation = Vector3(-PI * 0.5, 0, 0)
-	strike.position = Vector3(center.x, 1.1375, center.z)
-	var sm := StandardMaterial3D.new()
-	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	sm.albedo_color = Color(INK.r, INK.g, INK.b, 0.85)
-	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	# v23: render_priority 1 supaya coret SELALU di atas teks (kebalikan
-	# dari bar sorot); tanpa ini coret bisa tersembunyi di balik huruf.
-	sm.render_priority = 1
-	strike.material_override = sm
-	strike.visible = false
-	backdrop.add_child(strike)
+	var outline := Node3D.new()
+	outline.position = Vector3(center.x, HIGHLIGHT_Y, center.z)
+	var om := StandardMaterial3D.new()
+	om.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	om.albedo_color = Color(INK_RULE.r, INK_RULE.g, INK_RULE.b, OUTLINE_HOVER)
+	om.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	om.render_priority = -1
+	var ow := half.x + 0.05
+	var oh := half.y + 0.05
+	var thick := 0.012
+	var quads: Array = [
+		[Vector2(ow * 2.0, thick), Vector3(0, 0, -oh)],
+		[Vector2(ow * 2.0, thick), Vector3(0, 0, oh)],
+		[Vector2(thick, oh * 2.0), Vector3(-ow, 0, 0)],
+		[Vector2(thick, oh * 2.0), Vector3(ow, 0, 0)],
+	]
+	for q in quads:
+		var m := MeshInstance3D.new()
+		var qm := QuadMesh.new()
+		qm.size = q[0] as Vector2
+		m.mesh = qm
+		m.rotation = Vector3(-PI * 0.5, 0, 0)
+		m.position = q[1] as Vector3
+		m.material_override = om
+		outline.add_child(m)
+	outline.visible = false
+	backdrop.add_child(outline)
 	var row := {
 		"name": row_name, "center": center, "half": half,
-		"label": label, "sub": null, "highlight": hl,
-		"material": hm, "action": action, "enabled": true,
-		"strike": strike,
+		"sub": null, "outline": outline,
+		"material": om, "action": action, "enabled": true,
 	}
 	_rows.append(row)
 	return row
 
-func _add_sub(row: Dictionary, text: String, z: float) -> void:
+## Sub-baris DINAMIS (hanya Continue): ringkasan save, baru ada
+## kalau pemain punya save. Dibuat kosong — _refresh_continue
+## yang mengisi/mengosongkannya. Teks statis "no record on file"
+## TIDAK lagi di sini: ia di-bake ke varian halaman mati.
+func _add_sub(row: Dictionary, z: float) -> void:
 	var backdrop := get_node_or_null("Backdrop") as Node3D
-	var sub := _book_label(text, 22, 0.0022, INK_BODY)
+	var sub := _book_label("", 22, 0.0022, INK_BODY)
 	sub.position = Vector3((row["center"] as Vector3).x, TEXT_Y, z)
 	backdrop.add_child(sub)
 	row["sub"] = sub
@@ -300,66 +319,20 @@ func _build_book_text() -> void:
 	var backdrop := get_node_or_null("Backdrop") as Node3D
 	if backdrop == null:
 		return
-	# --- Halaman kiri: kepala buku + judul + catatan dinas. ---
-	# v25 ronde 4: susunan dibalik — LOGO di atas, "Buku jaga,
-	# Pos 07" jadi subtitle di bawah logo. Header di paling atas
-	# (z 1,54, lalu 1,50) selalu nempel bayangan dasar lentera yang
-	# berdiri tepat di belakang tepi jauh halaman — "Bu" tidak
-	# terbaca di tiga screenshot. Di bawah logo (z 1,24) header
-	# jauh dari lentera dan terbaca penuh. Tetap di dalam kertas
-	# dengan tinta gelap (kritik #2). Baris "Shift malam 22:00 -
-	# 06:00." DIHAPUS dari menu: jam shift sudah ada di intro +
-	# jam HUD; halaman jadi lega, bukan dipadatkan.
-	var head := _book_label("Buku jaga, Pos 07", 30, 0.0022, INK)
-	head.position = Vector3(-0.81, TEXT_Y, 1.21)
-	backdrop.add_child(head)
-	# Logo judul sebagai quad di halaman (sprite v20, alpha): huruf
-	# berat + rusak VHS. Padding lega: logo 0,86 m di halaman 0,96 m.
-	# v25: logo v20 adalah teks TERANG untuk latar gelap — di atas
-	# kertas terang ia hilang. Di-tint tinta gelap (modulate INK)
-	# supaya terbaca sebagai cap judul di halaman.
-	var logo := SpriteRegistry.flat("menu_logo_v20", 0.86 / 920.0)
-	if logo != null:
-		# v25: unshaded juga (alasan sama dengan _book_label:
-		# di bawah lentera, logo yang di-shade ikut terbakar).
-		# Discard juga (alasan sama dengan halaman: logo transparan
-		# di-sort setelah teks di bawahnya kalau tidak di-discard).
-		logo.shaded = false
-		logo.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-		logo.modulate = INK
-		logo.position = Vector3(-0.81, 1.133, 1.37)
-		backdrop.add_child(logo)
-	# Garis merah di bawah judul, DIBERI JARAK (kritik #2): 0,06 m
-	# dari bawah logo, bukan mepet. Tipis, tinta — bukan garis UI.
-	var rule := MeshInstance3D.new()
-	var rq := QuadMesh.new()
-	rq.size = Vector2(0.86, 0.014)
-	rule.mesh = rq
-	rule.rotation = Vector3(-PI * 0.5, 0, 0)
-	rule.position = Vector3(-0.81, 1.1335, 1.14)
-	var rm := StandardMaterial3D.new()
-	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	rm.albedo_color = INK_RULE
-	rule.material_override = rm
-	backdrop.add_child(rule)
-	# Catatan dinas, baris pendek (tulisan mesin tik, bukan paragraf):
-	# tiap baris muat di halaman tanpa membungkus.
-	var sub_lines: Array = [
-		["Taman Nasional", 1.06], ["Malayunesia.", 0.99],
-	]
-	for pair in sub_lines:
-		var l := _book_label(str(pair[0]), 30 if str(pair[0]).length() < 20 else 24, 0.0022, INK_BODY)
-		l.position = Vector3(-0.81, TEXT_Y, float(pair[1]))
-		backdrop.add_child(l)
-	# --- Halaman kanan: empat baris menu. ---
+	# v24: halaman kiri (logo THE GIANT, "Buku jaga, Pos 07",
+	# garis merah, "Taman Nasional Malayunesia.") semuanya
+	# DI-BAKE ke tekstur menu_book_page_l_v24 — tidak ada lagi
+	# Label3D/logo/rule di sini. Halaman kanan: empat baris menu
+	# di-bake ke tekstur; yang dibangun di sini hanya data baris
+	# (rect klik/hover + outline) dan sub dinamis Continue.
 	# Urutan baca atas-bawah = jauh-dekat: Start 1,48 / Continue
 	# 1,32 (+ sub 1,245) / Options 1,16 / Exit 1,02. Batas rect
 	# saling menempel tanpa tumpang tindih.
-	_add_row("Start", Vector3(-1.79, TEXT_Y, 1.48), Vector2(0.46, 0.06), 40, _on_new_game)
-	var cont := _add_row("Continue", Vector3(-1.79, TEXT_Y, 1.32), Vector2(0.46, 0.10), 40, _on_continue)
-	_add_sub(cont, "no record on file", 1.245)
-	_add_row("Options", Vector3(-1.79, TEXT_Y, 1.16), Vector2(0.46, 0.06), 40, _show_options)
-	_add_row("Exit", Vector3(-1.79, TEXT_Y, 1.02), Vector2(0.46, 0.06), 40, _on_exit)
+	_add_row("Start", Vector3(-1.79, TEXT_Y, 1.48), Vector2(0.46, 0.06), _on_new_game)
+	var cont := _add_row("Continue", Vector3(-1.79, TEXT_Y, 1.32), Vector2(0.46, 0.10), _on_continue)
+	_add_sub(cont, 1.245)
+	_add_row("Options", Vector3(-1.79, TEXT_Y, 1.16), Vector2(0.46, 0.06), _show_options)
+	_add_row("Exit", Vector3(-1.79, TEXT_Y, 1.02), Vector2(0.46, 0.06), _on_exit)
 	_refresh_continue()
 
 ## --- Input: raycast ke bidang meja -----------------------------------------
@@ -472,39 +445,33 @@ var _pop_tween: Tween
 func _pop_selection() -> void:
 	if _rows.is_empty():
 		return
-	var label := _rows[_selected]["label"] as Label3D
-	if label == null:
+	var outline := _rows[_selected]["outline"] as Node3D
+	if outline == null:
 		return
 	if _pop_tween != null and _pop_tween.is_valid():
 		_pop_tween.kill()
-	label.scale = Vector3.ONE
-	_pop_tween = label.create_tween()
-	_pop_tween.tween_property(label, "scale", Vector3(1.05, 1.05, 1.0), 0.09) \
+	outline.scale = Vector3.ONE
+	_pop_tween = outline.create_tween()
+	_pop_tween.tween_property(outline, "scale", Vector3(1.05, 1.05, 1.0), 0.09) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_pop_tween.tween_property(label, "scale", Vector3.ONE, 0.12) \
+	_pop_tween.tween_property(outline, "scale", Vector3.ONE, 0.12) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _refresh_highlights() -> void:
 	for i in range(_rows.size()):
 		var row: Dictionary = _rows[i]
-		var hl := row["highlight"] as MeshInstance3D
-		var hm := row["material"] as StandardMaterial3D
-		var label := row["label"] as Label3D
-		var strike := row.get("strike") as MeshInstance3D
-		# Baris mati (Continue tanpa save): tinta disabled (bukan
-		# INK_DIM yang hilang) + coret, tanpa sorot/seleksi.
+		var outline := row["outline"] as Node3D
+		var om := row["material"] as StandardMaterial3D
+		# Baris mati (Continue tanpa save): tanpa outline — coret
+		# + tinta redup SUDAH di-bake ke varian halaman mati,
+		# bukan sinyal runtime lagi.
 		if not bool(row["enabled"]):
-			hl.visible = false
-			label.modulate = INK_DISABLED
-			if strike != null:
-				strike.visible = true
+			outline.visible = false
 			continue
-		if strike != null:
-			strike.visible = false
 		var active := str(row["name"]) == _hovered or i == _selected
-		hl.visible = active
-		hm.albedo_color = HIGHLIGHT_SEL if i == _selected else HIGHLIGHT
-		label.modulate = Color(0.25, 0.21, 0.17) if active else INK
+		outline.visible = active
+		om.albedo_color = Color(INK_RULE.r, INK_RULE.g, INK_RULE.b,
+			OUTLINE_SEL if i == _selected else OUTLINE_HOVER)
 
 ## --- API untuk rig -----------------------------------------------------------
 func row_names() -> Array[String]:
@@ -514,9 +481,11 @@ func row_names() -> Array[String]:
 	return out
 
 func row_label(row_name: String) -> String:
+	# v24: teks baris di-bake ke tekstur halaman — teks yang
+	# terbaca SAMA dengan nama barisnya.
 	for row in _rows:
 		if str(row["name"]) == row_name:
-			return str((row["label"] as Label3D).text)
+			return str(row["name"])
 	return ""
 
 func row_enabled(row_name: String) -> bool:
@@ -529,7 +498,14 @@ func row_sub(row_name: String) -> String:
 	for row in _rows:
 		if str(row["name"]) == row_name:
 			var sub := row["sub"] as Label3D
-			return "" if sub == null else str(sub.text)
+			if sub != null and str(sub.text) != "":
+				return str(sub.text)
+			# v24: "no record on file" di-bake ke varian halaman
+			# mati, bukan Label3D lagi — tapi kontrak API rig
+			# tetap: baris mati mengembalikan teks itu.
+			if not bool(row["enabled"]):
+				return "no record on file"
+			return ""
 	return ""
 
 func screen_pos_for_row(row_name: String) -> Vector2:
@@ -845,27 +821,29 @@ func _show_main() -> void:
 	# ada grab_focus ke tombol — navigasi keyboard lewat _selected.
 
 func _refresh_continue() -> void:
-	# Baris Continue membawa info simpanan di sub-barisnya (bukan
-	# di label utama): "22:00, Sanity 100" kalau ada save,
-	# "no record on file" kalau tidak ada (dan baris dimatikan).
+	# v24: baris Continue membawa info simpanan di DUA tempat —
+	# tekstur halaman kanan (varian aktif vs mati) + sub Label3D
+	# dinamis (ringkasan save). Kalau ada save: halaman aktif +
+	# sub "22:00, Sanity 100". Kalau tidak ada: halaman mati
+	# (Continue tinta redup + coret + "no record on file" di-bake)
+	# + sub kosong.
 	for row in _rows:
 		if str(row["name"]) != "Continue":
 			continue
 		var sub := row["sub"] as Label3D
 		if SaveGame.has_save():
 			row["enabled"] = true
-			(row["label"] as Label3D).modulate = INK
+			if _page_right != null:
+				_page_right.texture = SpriteRegistry.texture("menu_book_page_r_v24")
 			if sub != null:
 				sub.text = SaveGame.summary_text().replace("Continue - ", "")
 				sub.modulate = INK_BODY
 		else:
 			row["enabled"] = false
-			(row["label"] as Label3D).modulate = INK_DISABLED
+			if _page_right != null:
+				_page_right.texture = SpriteRegistry.texture("menu_book_page_r_disabled_v24")
 			if sub != null:
-				sub.text = "no record on file"
-				# v23: alasan mati tetap di INK_BODY (bukan INK_DIM):
-				# pemain harus bisa MEMBACA kenapa Continue mati.
-				sub.modulate = INK_BODY
+				sub.text = ""
 		break
 
 func _on_new_game() -> void:

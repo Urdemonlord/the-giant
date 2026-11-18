@@ -172,10 +172,19 @@ const VHS_TEAR_SHIFT := 0.02 # seberapa jauh garis tear bergeser
 ## Kamera menu pindah ke DALAM pos, di utara meja menghadap selatan:
 ## buku di bawah, jendela + hutan + Giant di atas. Bukan lagi kamera
 ## luar yang memotret pos dari jalan (v17-v21).
-const MENU_DESK_CAM_POS := Vector3(-1.30, 2.10, 0.15)
-const MENU_DESK_CAM_PITCH_DEG := -24.0
+## v24 (kritik #4, Luci: camera-systems framing): kamera digeser
+## ke kanan (+0,50 x) + sedikit mundur/naik, FOV 62 -> 66, pitch
+## -24 -> -25. Efeknya: buku bergeser ke kiri bingkai, jendela
+## selatan yang tadinya kecil di kiri atas sekarang TERBUKA LEBAR
+## di tengah-atas layar, dan dinding kayu kosong di kanan tidak lagi
+## mendominasi. Angka dihitung dari geometri garis pandang (lihat
+## catatan v24 di main.gd), lalu dibuktikan dari screenshot — bukan
+## ditebak. Buku tetap utuh di frame (tepi kiri halaman baris
+## -1,47 m dari sumbu pandang vs setengah lebar pandang 1,73 m).
+const MENU_DESK_CAM_POS := Vector3(-0.80, 2.15, 0.10)
+const MENU_DESK_CAM_PITCH_DEG := -25.0
 const MENU_DESK_CAM_YAW_DEG := 180.0
-const MENU_DESK_CAM_FOV := 62.0
+const MENU_DESK_CAM_FOV := 66.0
 ## Pencahayaan menu (kritik #4): ambient lebih gelap dari malam game
 ## (0.50 -> 0.30), bulan dikuatkan (0.55 -> 0.80) supaya jadi rim/back
 ## light dari selatan untuk Giant + pepohonan di luar jendela.

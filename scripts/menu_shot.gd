@@ -28,10 +28,10 @@ extends Node
 ## (garis besar kasar) saat `_ready` selesai; ambil screenshot
 ## beberapa frame kemudian supaya hasilnya stabil.
 
-## v26: prefix "v26" untuk desktop, "v26p" untuk portrait — supaya
+## v27: prefix "v27" untuk desktop, "v27p" untuk portrait — supaya
 ## screenshot portrait tidak menimpa desktop (keduanya jalan di
 ## rig yang sama, beda --resolution).
-var _prefix := "v26"
+var _prefix := "v27"
 const SHOT_DIR := "/home/hatch/workspace/godot/shots"
 const RES_PATH := "res://scenes/menu.tscn"
 
@@ -60,9 +60,9 @@ func _ready() -> void:
 	# ukuran base stretch (1280x720) di kedua orientasi, jadi run
 	# portrait pertama menimpa file desktop.
 	if get_tree().root.size.y > get_tree().root.size.x:
-		_prefix = "v26p"
+		_prefix = "v27p"
 	_log = FileAccess.open(SHOT_DIR + "/" + _prefix + "_results_menu.txt", FileAccess.WRITE)
-	_log.store_line("[MENU-RIG] " + _prefix + " menu v23 (Luci list)")
+	_log.store_line("[MENU-RIG] " + _prefix + " menu v24 (Luci list)")
 	_log.store_line("mode: menu")
 	_log.store_line("time: " + Time.get_datetime_string_from_system())
 	_log.store_line("start")
@@ -207,6 +207,22 @@ func _find_sprite_with(root: Node, needle: String) -> bool:
 			return true
 	return false
 
+func _find_menu_silhouette(root: Node) -> Sprite3D:
+	# Siluet menu (kalau ada) berdiri di sisi SELATAN (z > 0, arah
+	# jendela). Level permainan sendiri punya elephant_shadow di
+	# kabut utara (7, 0, -36) — itu bukan siluet menu.
+	if root == null:
+		return null
+	for n in root.get_children():
+		if n is Sprite3D:
+			var t := (n as Sprite3D).texture
+			if t != null and "elephant_shadow" in t.resource_path and (n as Sprite3D).position.z > 0.0:
+				return n as Sprite3D
+		var found := _find_menu_silhouette(n)
+		if found != null:
+			return found
+	return null
+
 func _find_label3d(root: Node, text: String) -> Label3D:
 	for n in root.get_children():
 		if n is Label3D and str((n as Label3D).text) == text:
@@ -221,31 +237,36 @@ func _test_book_pages() -> void:
 	if backdrop == null:
 		_fail("backdrop tidak ada")
 		return
-	if _find_sprite_with(backdrop, "menu_book_page_l"):
-		_pass("halaman kiri buku ada")
+	# v24: halaman dari tekstur v24 (teks di-bake). Rig ini jalan
+	# tanpa save, jadi halaman kanan harus varian MATI.
+	if _find_sprite_with(backdrop, "menu_book_page_l_v24"):
+		_pass("halaman kiri buku v24 ada")
 	else:
-		_fail("halaman kiri buku tidak ada")
-	if _find_sprite_with(backdrop, "menu_book_page_r"):
-		_pass("halaman kanan buku ada")
+		_fail("halaman kiri buku v24 tidak ada")
+	if _find_sprite_with(backdrop, "menu_book_page_r_disabled_v24"):
+		_pass("halaman kanan buku v24 (varian mati, tanpa save) ada")
 	else:
-		_fail("halaman kanan buku tidak ada")
+		_fail("halaman kanan buku v24 mati tidak ada")
+	# v24: logo + header bukan lagi node terpisah — mereka di-bake
+	# ke tekstur halaman kiri. Kalau sprite/logo Label3D-nya masih
+	# ada, refactor tidak bersih.
 	if _find_sprite_with(backdrop, "menu_logo_v20"):
-		_pass("logo judul di halaman ada")
+		_fail("sprite menu_logo_v20 masih ada (seharusnya di-bake)")
 	else:
-		_fail("logo judul di halaman tidak ada")
-	var head := _find_label3d(backdrop, "Buku jaga, Pos 07")
-	if head != null:
-		_pass("kepala buku 'Buku jaga, Pos 07' ada di halaman")
-		# Kepala harus di dalam area kertas (x halaman kiri,
-		# z di atas logo): bukan di luar kertas seperti v21.
-		# v25: halaman kiri (judul) ada di x -0,81 (kamera menghadap
-		# selatan, +x = kiri pembaca) — bukan -1,79 seperti dugaan awal.
-		if head.position.x > -1.29 and head.position.x < -0.33:
-			_pass("kepala buku di dalam halaman kiri")
-		else:
-			_fail("kepala buku di luar halaman: x=" + str(head.position.x))
+		_pass("logo judul tidak lagi sprite terpisah (di-bake)")
+	if _find_label3d(backdrop, "Buku jaga, Pos 07") != null:
+		_fail("Label3D 'Buku jaga, Pos 07' masih ada (seharusnya di-bake)")
 	else:
-		_fail("kepala buku 'Buku jaga, Pos 07' tidak ada")
+		_pass("header bukan lagi Label3D (di-bake ke halaman)")
+	# v24 (kritik #1): lentera di sudut kiri meja, DI LUAR kertas
+	# (kertas berakhir x -2,27) — bukan di atas judul lagi.
+	var lantern := backdrop.get_node_or_null("Lantern") as Node3D
+	if lantern == null:
+		_fail("lentera menu tidak ada")
+	elif lantern.position.x < -2.27:
+		_pass("lentera di luar kertas (x %.2f, pojok kiri meja)" % lantern.position.x)
+	else:
+		_fail("lentera masih di atas kertas: x=" + str(lantern.position.x))
 
 func _test_book_rows() -> void:
 	var names: Array[String] = _menu.row_names()
@@ -309,6 +330,20 @@ func _test_giant_window() -> void:
 		_pass("Kaki Giant di luar jendela selatan ada")
 	else:
 		_fail("Kaki Giant di luar jendela selatan tidak ada")
+	# v24 (kritik #4): siluet jauh MENU dicoba dua ronde lalu
+	# DIHAPUS dengan sengaja — dua-duanya tidak terbaca sebagai
+	# gajah di screenshot (irisan bawah 2,4 m lewat jendela rendah
+	# = kaki tipis di kabut, tidak beda dari batang pohon; mode
+	# gagal yang sama dengan v21). Yang membawa poin #4 sekarang:
+	# hutan berkabut yang terbuka lebar + kaki close-up. Hati-hati:
+	# level permainan SENDIRI punya elephant_shadow di kabut utara
+	# (7, 0, -36) — itu bukan siluet menu; yang dicek di sini
+	# hanya siluet di sisi selatan (z > 0, arah jendela).
+	var sil := _find_menu_silhouette(backdrop)
+	if sil != null:
+		_fail("siluet jauh menu masih ada di " + str(sil.position) + " (seharusnya dihapus setelah 2 ronde gagal)")
+	else:
+		_pass("siluet jauh menu tidak ada (dihapus sengaja, hutan berkabut yang membawa poin #4)")
 	# v25 ronde 4: puff kabut di kusen dihapus (menutupi kaki) —
 	# kabut jendela sekarang hanya volumetrik + hutan, dicek lewat
 	# screenshot, bukan lewat node.

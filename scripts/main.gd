@@ -133,16 +133,20 @@ func _setup_menu_backdrop() -> void:
 	var lantern_node := get_node_or_null("Lantern")
 	if lantern_node != null and "dim_factor" in lantern_node:
 		lantern_node.dim_factor = 0.6
-	# v23 (Luci: camera-systems framing, menu saja — permainan
-	# tidak berubah): lentera digeser ke belakang (z 1,64 -> 1,72).
-	# Sprite lentera ada 0,18 m di utara node-nya, jadi alasnya
-	# pindah 1,46 -> 1,54 — di belakang tepi jauh logo (1,48),
-	# sehingga alas tidak lagi menutupi huruf judul. Sebelumnya
-	# alas di z 1,46, DI DALAM jangkauan z logo, dan dari kamera
-	# meja ia terproyeksi tepat di atas huruf judul.
+	# v24 (kritik #1, solusi kritik: lentera ke pojok kiri luar
+	# meja — di luar area kertas, bukan cuma digeser beberapa px):
+	# lentera PINDAH ke sudut kiri meja (-2,32, 1,55). Kertas
+	# berakhir di x -2,27, meja berakhir di x -2,40: lentera
+	# berdiri 5 cm di kiri kertas, DI ATAS meja, cahayanya
+	# menyinari buku dari samping kiri — tidak ada satu pun huruf
+	# yang terhalang badan/glow-nya lagi. v23 hanya menggeser ke
+	# belakang (alas 6 px di atas judul) dan itu TIDAK CUKUP:
+	# dari kamera menu, sprite lentera tetap jatuh tepat di atas
+	# ruang udara judul (terbukti di screenshot v26). z 1,55:
+	# sprite lentera ada 0,18 m di utara node-nya, jadi sprite
+	# di z ~1,37 — sejajar tengah buku, bukan di belakangnya.
 	if lantern_node != null:
-		lantern_node.position = Vector3(
-			lantern_node.position.x, lantern_node.position.y, 1.72)
+		lantern_node.position = Vector3(-2.32, lantern_node.position.y, 1.55)
 	# v22: kamera menu DI DALAM pos, di utara meja menghadap selatan
 	# (yaw 180 = menghadap +z). Buku di bawah frame, jendela selatan
 	# + hutan + Giant di atas frame. Dulu (v17-v21) kamera di luar
@@ -211,6 +215,19 @@ func _setup_menu_backdrop() -> void:
 ## putih. Unshaded (aturan v14: siluet jauh shaded = hitam total).
 func _setup_menu_window_giant() -> void:
 	_billboard(self, "giant_foot_photo_v23", Vector3(2.0, 0.0, 6.0), 4.0 / 640.0, Color(1.5, 1.55, 1.5, 0.95), true)
+	# v24 (kritik #4): siluet Giant jauh DICOBA dua ronde lalu
+	# DIHAPUS — bukan dipaksa. Ronde 1 (x 3,5, z 11, tint pucat):
+	# melebur dengan hutan berkabut. Ronde 2 (x 5,0, z 9, 12 m,
+	# tint gelap 0,45): tetap tidak terbaca sebagai gajah di
+	# screenshot v27 — lewat jendela rendah hanya kelihatan
+	# irisan bawah 2,4 m (kaki-kaki tipis) yang di kabut + di
+	# antara pepohonan tidak bisa dibedakan dari batang pohon.
+	# Itu mode gagal yang sama dengan v21 (siluet 13 m terbaca
+	# bukit). Kritik membolehkan salah satu: "siluet hutan
+	# berkabut ATAU bayangan Giant" — yang membawa poin #4
+	# sekarang adalah hutan berkabut yang TERBUKA LEBAR lewat
+	# jendela (kamera baru) + kaki close-up 6 m sebagai ancaman
+	# Giant-nya. Kaki tetap di bawah ini.
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau

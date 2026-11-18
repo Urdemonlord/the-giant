@@ -68,3 +68,23 @@ saat membangun sprite menu. Jangan hapus tanpa mengganti generatornya.
   ada di permainan. Kaki raksasa + kilau mata dicoba dan DIBUANG (kaki
   dibaca batang pohon/lalu hilang; mata tampil sebagai kotak abu-abu
   melayang seperti glitch).
+
+## Menu v24: halaman buku dengan teks di-bake (2026-11-18)
+- `menu_book_page_l_v24.png`, `menu_book_page_r_v24.png`,
+  `menu_book_page_r_disabled_v24.png` (1024x1024) — dari foto
+  perkamen asli yang SAMA dengan v20/v22 (Vecteezy 57329614, crop
+  (300,250,1324,1274), grade darken 0,88, green 1,02). Semua teks
+  statis di-bake dengan multiply tinta gelap (generator
+  `tools/make_menu_book_v24.py`, seed 24, deterministik): logo
+  "THE GIANT" dari mask alpha `menu_logo_v20` saja (warnanya tidak
+  dipakai, jadi ghost merah/biru VHS v20-nya hilang), header "Buku
+  jaga, Pos 07", garis merah, "Taman Nasional Malayunesia.",
+  baris Start/Continue/Options/Exit; varian mati: Continue tinta
+  redup (56,48,41) + coret + "no record on file". Zona teks
+  diratakan dulu (blur 18, angkat 0,15 ke median lokal, feather 40,
+  zona mengikuti lebar teks) supaya lipatan gelap diagonal tidak
+  menabrak tulisan. Huruf di-stretch HANYA vertikal 1,4545x (kertas
+  di-squash 0,6875 di 3D) — digambar di layer kecil dengan font
+  normal lalu di-stretch vertikal, bukan font lebih besar (itu
+  melebarkan teks dan memotong tepi). Font DejaVu Sans Mono Bold.
+  Nol aset AI, nol gambar generate.

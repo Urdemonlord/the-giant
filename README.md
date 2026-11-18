@@ -792,6 +792,100 @@ memperbaiki yang ada).
   (kaki gajah, bukan batang pohon); kuku crisp butuh pencahayaan yang
   akan merusak grade malam. Sprite tetap kelas PLACEHOLDER.
 
+## Menu utama v24: kritik desain kedua, teks di-bake ke kertas (2026-11-18)
+
+Kritik kedua Arya (ditempel 13:50 WIB) atas menu v23. Langkah pertama
+bukan membangun, tapi VERIFIKASI dari screenshot v26 mana yang masih
+rusak — hasilnya: 1 dari 4 poin ternyata SUDAH beres di v23.
+Skill dari list Luci (`~/workspace/makefun/skills/`, BUKAN adaptasi):
+router awesome-gamedev-agent-skills (Godot 4.3 pinned, disiplin
+game-ui-ux + camera-systems + create-game-assets + game-feel);
+game-ui-ux (kontras teks >= 4,5:1, warna bukan satu-satunya sinyal,
+fokus saat layar dibuka, sweep ukuran desktop + portrait);
+camera-systems (kamera melayani framing, pisah look dari collision);
+create-game-assets (inspect dulu, produksi sebagai family, normalisasi
+deterministik, validasi di konteks ukuran native, provenance, nol aset
+AI); game-feel (pop hanya saat pilihan berpindah, juice kembali tepat
+ke rest); unslop (chrome diam, satu elemen terang, teks di ruang
+tenang, spacing dulu); frontend-design anthropics (tipe membawa
+kepribadian, kritik dari screenshot). canvas-design + webapp-testing
+dibaca dan DILAPORKAN tidak dipakai (canvas-design untuk poster/statis,
+bukan menu Godot; webapp-testing Playwright untuk web, verifikasi Godot
+pakai rig sendiri + Xvfb).
+
+- Poin 1, lentera menutupi judul: SEBAGIAN beres di v23 (judul utuh,
+  alas 6 px di atas judul), TAPI masih rusak — dari kamera menu,
+  sprite lentera jatuh tepat di atas ruang udara judul dan glow-nya
+  menabrak huruf. v24: lentera PINDAH ke sudut kiri meja (-2,32,
+  1,55), 5 cm di kiri kertas (kertas berakhir x -2,27), cahayanya
+  menyinari buku dari samping. Bukan tambah 2-3 px.
+- Poin 2, chromatic aberration: SUDAH BERES di v23, TIDAK DIUTAK-ATIK.
+  `MENU_GRADE_CA = 0,0` di `balance.gd`, shader `off = 0`, HUD (yang
+  membawa `VHS_CA = 0,0016`) tersembunyi di mode menu. Diukur dari
+  screenshot v26: scanline lewat "Buku jaga, Pos 07" R-B seragam
+  +21..+29 (nada hangat kertas), tanpa sign flip dan tanpa spike di
+  tepi — tidak ada chromatic shift yang terukur. Satu-satunya ghost
+  merah yang tersisa adalah bawaan sprite `menu_logo_v20` (treatment
+  VHS v20-nya); ia hilang sebagai efek samping karena logonya
+  sekarang di-bake sebagai mask alpha saja (warnanya tidak dipakai).
+- Poin 3, keterbacaan tombol + teks: MASIH RUSAK, diperbaiki penuh.
+  (a) Lipatan gelap diagonal di halaman kanan TERBUKTI menabrak
+  Continue/Options di zoom v26. (b) Teks Label3D memang terasa
+  seperti UI digital yang ditempel rata. Perbaikan: SEMUA teks statis
+  DI-BAKE ke tekstur halaman (`tools/make_menu_book_v24.py`, seed 24,
+  deterministik) dengan multiply tinta gelap di atas foto perkamen
+  asli yang sama dengan v20/v22; zona teks diratakan dulu (blur 18 +
+  angkat 0,15 ke median lokal, feather 40, zona mengikuti lebar teks
+  — bukan selebar halaman) supaya lipatan tidak menabrak satu pun
+  baris; sorot kuning solid DIGANTI outline tinta merah (4 quad
+  tipis, alpha 0,35 hover / 0,70 pilihan, `render_priority -1` supaya
+  tidak pernah menutupi tulisan). Halaman kanan punya DUA varian:
+  aktif (`menu_book_page_r_v24`) dan mati (`..._r_disabled_v24`,
+  Continue tinta redup 0,22 + coret + "no record on file" di-bake);
+  `_refresh_continue` menukar teksturnya + mengisi sub Label3D
+  dinamis (ringkasan save) hanya kalau ada save. Bug ketemu dari
+  screenshot tekstur: font digambar 1,4545x lebih besar ikut
+  melebarkan teks (header terpotong tepi) — diperbaiki dengan
+  stretch HANYA vertikal per baris; zona rata selebar halaman
+  kelihatan seperti strip tempelan terang — diperbaiki jadi zona
+  mengikuti lebar teks + angkat ringan.
+- Poin 4, jendela + latar: MASIH RUSAK, diperbaiki. Kamera menu
+  digeser ke kanan (+0,50 x) + sedikit mundur/naik, FOV 62 -> 66,
+  pitch -24 -> -25 (`balance.gd`): buku bergeser ke kiri bingkai,
+  jendela selatan TERBUKA LEBAR di tengah-atas, dinding kayu kosong
+  di kanan tidak lagi mendominasi. Siluet Giant jauh DICOBA dua ronde
+  lalu DIHAPUS dengan sengaja: ronde 1 (x 3,5, z 11, tint pucat)
+  melebur dengan kabut; ronde 2 (x 5,0, z 9, 12 m, tint gelap 0,45)
+  tetap tidak terbaca sebagai gajah — lewat jendela rendah hanya
+  kelihatan irisan bawah 2,4 m (kaki tipis di kabut = batang pohon,
+  mode gagal yang sama dengan v21). Kritik membolehkan salah satu
+  ("siluet hutan berkabut ATAU bayangan Giant"): yang membawa poin #4
+  adalah hutan berkabut yang terbuka lebar + kaki close-up foto di
+  6 m. Event kaki 03:30 dalam game TIDAK disentuh (sudah bagus di
+  v24); event lain juga tidak.
+- File yang dihapus: `menu_book_page_l.png`, `menu_book_page_r.png`,
+  `menu_logo_v20.png` (teksnya kini di-bake). Registry 67 nama,
+  missing=0. `menu_btn_v20*` tetap (tombol Kembali di Options),
+  `menu_form_page` tetap.
+- Verifikasi (Xvfb, `--rendering-driver opengl3`; `project.godot`
+  di-backup dan dicek NO-DIFF): rig cepat v24
+  (`scripts/menu_check_v24.gd`, prefix v27) desktop **10/10**,
+  portrait **10/10**, dengan save **10/10**; rig menu penuh
+  (`scripts/menu_shot.gd`, prefix v27) desktop **28 pass, 0 fail,
+  RESULT MENU PASS**, portrait **28 pass, 0 fail**; mode verify DONE
+  (registry 67, missing=0, hitbox meja tumpang=0); mode playtest
+  **PASS fails=0** (5 tugas, Sanity 100, Stability 100);
+  `menu_autostart=1` masuk main (jam 22:00, fog game). Screenshot
+  dibaca sendiri: `v27_menu_no_save.png` (desktop), `v27p_...`
+  (portrait), `v27_menu_with_save.png` (Continue hidup + sub
+  "00:03, Sanity 80"), `v27_menu_options.png`.
+- Batas jujur: menu di portrait masih letterbox 720x405 (sejak v20)
+  jadi kolom buku kecil di layar HP tinggi; sudut kiri-bawah frame
+  agak kosong (permukaan meja); meter getar masih mengintip di tepi
+  atas buku; slider volume + CheckButton di Options dan HUD dalam
+  game masih kontrol/font default Godot. Aset menu tetap kelas
+  PLACEHOLDER.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya
