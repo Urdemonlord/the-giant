@@ -1003,6 +1003,111 @@ Playwright untuk web, verifikasi Godot pakai rig sendiri + Xvfb).
   default Godot. Aset menu tetap kelas PLACEHOLDER. Event dalam
   game (kaki 03:30, mata 04:45, hunter 01:30) TIDAK disentuh.
 
+## Menu utama v26: aturan tidak-pernah-utuh DIHAPUS, kepala gajah UTUH (2026-11-18)
+
+Arya 15:50 WIB: "hilangin aturan giant ga utuh, kan bisa siluet kepala
+gajah raksasa". Aturan lama (Giant tidak pernah utuh, kaki + mata saja)
+DICABUT — berlaku untuk menu dulu; event dalam game (kaki 03:30, mata
+04:45, hunter 01:30) TIDAK disentuh. Yang dulu membatasi kepala di
+menu bukan aturan semata tapi GEOMETRI: jendela lama (lebar 1,4 m,
+top y 2,20) membatasi garis pandang ke y 0..2,4 m di segala jarak,
+jadi kepala utuh tidak bisa masuk frame — v25 hanya bisa belalai +
+gading + rahang. v26 mengubah framing-nya sampai kepala utuh masuk.
+Skill dari list Luci (`~/workspace/makefun/skills/`, BUKAN adaptasi):
+router awesome-gamedev-agent-skills (Godot 4.3 pinned, disiplin
+game-ui-ux + game-feel + camera-systems + create-game-assets);
+camera-systems (diukur dulu dengan probe sebelum mengubah apa pun:
+kusen membatasi y 0..2,4 m; pitch -20 kepala 5,2 m di z 12,5 kubah
+di y -12, pitch -18 kubah di y +16 dengan tepi dekat buku di y ~715;
+pitch -16 buku jatuh dari bawah frame — jadi pitch -18 dipilih
+dari DATA, bukan ditebak); create-game-assets (inspect dulu, kunci
+satu target visual, produksi sebagai family, normalisasi
+deterministik, validasi di konteks ukuran native, provenance,
+grade diukur per zona luminansi); game-ui-ux (cek 6 titik kepala +
+4 sudut papan di dalam viewport, sweep ukuran desktop + portrait);
+game-feel (tidak ada juice baru, menu tetap diam, fokus tidak
+berpindah); unslop (tidak ada elemen baru selain kepala; chrome
+diam); frontend-design anthropics (tipografi + kepribadian tetap
+dari v24/v25, kritik dari screenshot). canvas-design +
+webapp-testing dibaca dan DILAPORKAN tidak dipakai (poster/statis
+dan Playwright web, bukan menu Godot).
+
+- Probe dulu, bangun belakangan: `scripts/menu_window_probe.gd` +
+  `scenes/menu_probe.tscn` (SEMENTARA, dihapus sebelum commit) —
+  kepala dummy 4,5 m dipasang di z 12,5, layar diukur lewat proyeksi
+  tiap sudut; hasil: jendela lama tidak bisa menampung kepala utuh
+  di pitch berapa pun, jadi geometri HARUS berubah.
+- Kepala UTUH: `giant_head_zunisha_v26.png` (350x270, crop lebih
+  lebar dari v25 (0,0,350,270) supaya ujung gading kiri tidak
+  terpotong) dari `elephant_front.png` sheet Arya
+  (`tools/make_menu_head_v26.py`, deterministik). Grade DIBALIK
+  dari v25: v25 menghancurkan pipi ke 0,5 sehingga hanya kolom
+  belalai terang + satu gading yang terbaca; v26 menjaga SELURUH
+  kepala terbaca dengan struktur nilai internal yang DIUKUR per zona
+  (dome/tengkorak L 54 x2,2, telinga 47/42 x2,2, belalai 51 x2,7,
+  gading kiri 75 x2,5, gading kanan 67 x2,6; desat 0,45 + tint dingin,
+  tanpa brighten global) — luminansi akhir aset: kubah 105, muka
+  121, telinga 89/81, belalai 117, gading 150/141. Sampel pertama
+  terkontaminasi piksel transparan RGB-0 dan gading kanan salah
+  lokasi 25 px (di x 175-200, bukan 195-235) — diperbaiki, diukur
+  ulang. Garis gelap di tepi kiri belalai DICOBA lalu DIHAPUS
+  (terbaca retak hitam di tengah muka). Kepala 5,2 m (lebar 6,74 m)
+  di (x 2,0, z 12,5), tint (1,2, 1,25, 1,3, 0,98), unshaded.
+  Gading melengkung meruncing dari kepala, belalai punya kontur +
+  bayangan — bukan kolom kabut lunak.
+- Jendela DILEBARKAN (menu saja): `guard_post.gd`
+  `rebuild_back_wall_for_menu()` — 4 kotak dinding belakang z ~2,0
+  disembunyikan (mesh + collider) lalu dinding dibangun ulang dengan
+  bukaan x -1,7..1,7 (3,4 m, dulu 1,4 m), sill y 1,30 tetap, top y
+  2,75 (lintel 0,2 m ke puncak dinding 2,95), tanpa collider.
+  Dipanggil dari `main.gd _setup_menu_backdrop()` (instans backdrop
+  menu saja; permainan pakai dinding asli).
+- Kamera: `Balance.MENU_DESK_CAM_PITCH_DEG` -25 -> **-18** (posisi
+  + FOV tetap). Koridor pandang jendela selatan dilebarkan
+  x -1..8 -> **x -7..15**, z 2..20, di ketiga penjaga (pohon dekat,
+  puff acak, ground fog) — berbagi seperti koridor v25.
+- Papan "KAWASAN KUBURAN GAJAH" digeser (5,5, 0, 9,0) -> **(-3,5, 0,
+  9,0)** — 4 sudutnya kini di dalam viewport, ~20-30 px lepas dari
+  tepi kusen (dulu terpotong kusen kiri).
+- Registry 77 -> **78** nama (`giant_head_zunisha_v25` tetap di disk
+  + registry, tidak dipakai — preseden sama seperti `giant_foot.png`
+  yang tidak dipakai sejak v24).
+- Verifikasi (Xvfb, `--rendering-driver opengl3`; `project.godot`
+  NO-DIFF): rig cepat v26 (`scripts/menu_check_v26.gd`, prefix
+  v29) desktop **11/11**, portrait **11/11**, dengan save **11/11**
+  (cek #5 kini 6 titik kepala — kubah, belalai, dua gading, dua
+  telinga — di dalam viewport; cek #5b 4 sudut papan di dalam
+  viewport); rig menu penuh (`scripts/menu_shot.gd`, prefix v29)
+  desktop **31 pass, 0 fail**, portrait **31 pass, 0 fail** (satu
+  fail pertama di rig penuh adalah nama aset v25 yang ketinggalan
+  di rig itu sendiri, diperbaiki, run ulang 31/0); mode verify DONE
+  (registry 78, missing=0, hitbox meja tumpang=0); mode playtest
+  **PASS fails=0**; `menu_autostart=1` masuk main (jam 22:00).
+  Probe pasca-perubahan (pitch -18 live): kubah (508, 17), belalai
+  (520, 211), gading kiri (640, 235), gading kanan (421, 225),
+  telinga kiri (655, 95), telinga kanan (372, 95) — semua di dalam
+  viewport 1280x720; papan 4 sudut (889/759, 211) (875/752, 318)
+  di dalam viewport. Screenshot dibaca sendiri:
+  `v29_menu_no_save.png` (desktop), `v29p_menu_no_save.png`
+  (portrait), `v29_menu_with_save.png` (Continue hidup + sub
+  "00:03, Sanity 80"), `v29_menu_options.png`.
+- Batas jujur: kepala utuh langsung terbaca sebagai kepala gajah
+  (kubah, dua telinga, belalai, dua gading, satu mata kelihatan),
+  tapi skala "raksasa" belum sepenuhnya mendarat: kepala 5,2 m
+  tingginya kira-kira sama dengan pohon palem di sekitarnya dan
+  ujung belalainya menyentuh garis tanah, jadi sekilas bisa terbaca
+  gajah biasa di rumpun hutan, bukan Zunisha kolosal. Mockup Arya
+  raksasanya ~2-3x tinggi pohon; kepala sebesar itu tidak bisa
+  masuk utuh di jendela ini (kubah akan lewat atas frame) — kepala
+  yang mengisi jendela adalah pernyataan skalanya untuk sekarang.
+  Kandidat ronde berikut kalau Arya mau: perkecil pohon yang
+  kelihatan lewat jendela, atau terima kubah sedikit terpotong demi
+  kepala lebih besar. Jendela kini meluber keluar atas/kiri frame
+  (sengaja, terbaca bukaan besar); pita ground fog di bawah kepala
+  agak datar/kosong; sudut kiri-bawah meja masih kosong/gelap (sejak
+  v24); portrait masih letterbox 720x405. Aset menu tetap kelas
+  PLACEHOLDER. Event dalam game TIDAK disentuh.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya

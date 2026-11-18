@@ -90,7 +90,10 @@ Bertahan sampai 06:00.
 - Look analog horror / VHS / REC CAM 07: **built** (shader v6,
   `v12_*` + `v11_*`).
 - Giant tidak pernah utuh (kaki + mata saja): **built** (`giant_event.gd`,
-  `v12_playtest_foot` / `v12_playtest_eye`).
+  `v12_playtest_foot` / `v12_playtest_eye`). **ATURAN DIHAPUS Arya
+  2026-11-18 15:50 WIB untuk MENU (kepala gajah utuh boleh sebagai
+  siluet, v26); event dalam game (kaki 03:30, mata 04:45, hunter
+  01:30) tetap seperti sekarang sampai Arya bilang lain.**
 - Semua gambar dari sheet Arya: **built** (registry 42 nama, 0 hilang).
 - First minute (menu, intro skip, tugas generator, koran + surat di
   meja, radio): **built** (`v12_intro.png`, `v12_desk_docs*.png`).

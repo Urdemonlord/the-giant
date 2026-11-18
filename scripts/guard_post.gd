@@ -148,6 +148,31 @@ func _build_walls() -> void:
 	_box(self, Vector3(t, H, D), Vector3(-W * 0.5, wy, 0), _wood)
 	_box(self, Vector3(t, H, D), Vector3(W * 0.5, wy, 0), _wood)
 
+## v26 (menu SAJA — dipanggil main.gd _setup_menu_backdrop): dinding
+## belakang dibangun ulang dengan JENDELA LEBIH BESAR supaya kepala
+## Zunisha yang UTUH masuk frame. Aturan "Giant tidak pernah utuh"
+## DICABUT Arya 2026-11-18, jadi jendela tidak lagi boleh memotong
+## kepala: bukaan lama (lebar 1,4 m, atas y 2,20) membatasi pita
+## pandang ke y 0..2,4 m di segala jarak (diukur probe v26) —
+## kubah kepala 5,2 m tidak akan pernah kelihatan lewat situ.
+## Bukaan baru: lebar 3,4 m (x -1,7..1,7), ambang bawah sama
+## (y 1,30), ambang atas naik ke y 2,75 (kusen atas 0,2 m ke
+## puncak dinding 2,95). Permainan TIDAK berubah: fungsi ini hanya
+## jalan di instance backdrop menu; instance permainan memakai
+## dinding asli _build_walls. Segmen baru tanpa collider (menu
+## tidak pakai fisika).
+func rebuild_back_wall_for_menu() -> void:
+	var back_z := D * 0.5
+	for child in get_children():
+		if child is MeshInstance3D or child is StaticBody3D:
+			if absf((child as Node3D).position.z - back_z) < 0.05:
+				(child as Node).visible = false
+	var wy := FLOOR_Y + H * 0.5
+	_box(self, Vector3(0.8, H, 0.12), Vector3(-2.1, wy, back_z), _wood, false)
+	_box(self, Vector3(0.8, H, 0.12), Vector3(2.1, wy, back_z), _wood, false)
+	_box(self, Vector3(3.4, LevelData.POST_WINDOW_SILL_Y, 0.12), Vector3(0, FLOOR_Y + LevelData.POST_WINDOW_SILL_Y * 0.5, back_z), _wood, false)
+	_box(self, Vector3(3.4, 0.2, 0.12), Vector3(0, FLOOR_Y + 2.40 + 0.1, back_z), _wood, false)
+
 func _build_roof() -> void:
 	_box(self, Vector3(W + 1.0, 0.1, D + 1.0), Vector3(0, FLOOR_Y + H + 0.18, 0), _roof_mat, false)
 	_box(self, Vector3(W + 0.4, 0.14, 0.18), Vector3(0, FLOOR_Y + H + 0.05, 0), _wood_dark, false)

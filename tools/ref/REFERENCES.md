@@ -136,3 +136,26 @@ skala kolosalnya tetap placeholder.
   DIPOTONG dari menu ronde 8 (kepala 20 m menutupi seluruh jendela)
   — aset tetap ada untuk penempatan DALAM permainan nanti.
   PLACEHOLDER (gambar sumber kelihatan AI-generated).
+
+## Menu v26: kepala gajah UTUH (2026-11-18)
+STATUS: PLACEHOLDER — aturan "Giant tidak pernah utuh" DIHAPUS Arya
+15:50 WIB; kepala utuh kini boleh di menu (event dalam game TIDAK
+disentuh). Kepala gajahnya dari sheet Arya (aset asli), tapi grade +
+skala kolosalnya tetap placeholder.
+- `giant_head_zunisha_v26.png` (350x270) — re-crop lebih lebar
+  (0, 0, 350, 270) dari `elephant_front.png` sheet Arya supaya
+  ujung gading kiri tidak terpotong. Grade dibalik dari v25:
+  kubah/muka L 54 x2,2, telinga 47/42 x2,2, belalai 51 x2,7, gading
+  kiri 75 x2,5, gading kanan 67 x2,6; desat 0,45 + tint dingin,
+  tanpa brighten global. Luminansi akhir aset: kubah 105, muka 121,
+  telinga 89/81, belalai 117, gading 150/141. Garis gelap di tepi
+  kiri belalai dicoba lalu dihapus (terbaca retak hitam di tengah
+  muka). Generator `tools/make_menu_head_v26.py` (deterministik).
+  Dipakai di backdrop menu, 5,2 m (lebar 6,74 m) di (x 2,0, z 12,5),
+  tint 1,2/1,25/1,3/0,98, unshaded (`main.gd
+  _setup_menu_window_giant`). Jendela menu dilebarkan x -1,7..1,7,
+  top y 2,75 (`guard_post.gd rebuild_back_wall_for_menu()`, menu
+  saja); pitch kamera menu -18 (`Balance.MENU_DESK_CAM_PITCH_DEG`).
+  Papan `menu_sign_graveyard_v25.png` dipindah ke x -3,5 (utuh,
+  tidak terpotong kusen). `giant_head_zunisha_v25.png` tetap di
+  disk + registry, tidak dipakai. Nol gambar generate baru.

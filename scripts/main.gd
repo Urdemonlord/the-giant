@@ -71,6 +71,13 @@ func _is_rig_run() -> bool:
 ## Reset shift di _on_new_game mengembalikan generator_on=false dan
 ## fuel=100, jadi setelan menu ini tidak bocor ke permainan.
 func _setup_menu_backdrop() -> void:
+	# v26 (aturan tidak-pernah-utuh DICABUT): dinding belakang menu
+	# dibangun ulang dengan jendela lebar (lihat
+	# guard_post.rebuild_back_wall_for_menu) — BUKAAN LAMA tidak
+	# bisa menampilkan kepala utuh. Hanya instance backdrop menu.
+	var post := get_node_or_null("GuardPost")
+	if post != null and post.has_method("rebuild_back_wall_for_menu"):
+		post.rebuild_back_wall_for_menu()
 	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	var moon := get_node_or_null("MoonLight") as DirectionalLight3D
 	if env_node != null and env_node.environment != null and moon != null:
@@ -214,33 +221,32 @@ func _setup_menu_backdrop() -> void:
 ## kuku terangkat dari hutan gelap di belakangnya tanpa jadi pilar
 ## putih. Unshaded (aturan v14: siluet jauh shaded = hitam total).
 func _setup_menu_window_giant() -> void:
-	# v25 (mockup Arya 2026-11-18 + kepala Zunisha): kaki foto
-	# DIGANTI kepala gajah raksasa. Kepala dari elephant_front
-	# sheet Arya (crop kepala + telinga + belalai + gading,
-	# tools/make_menu_head_v25.py), lebar 20 m di z 12 — kubah +
-	# telinga + belalai jatuh di pita pandang jendela, jauh lebih
-	# besar dari pohon. Siluet kera di mockup TIDAK dipakai.
-	# GEOMETRI JUJUR (ronde 1-2): yang kelihatan lewat jendela
-	# HANYA pita bawah kepala — belalai + gading + rahang bawah.
-	# Kubah + telinga TIDAK BISA masuk frame: kusen jendela
-	# (y 1,3..2,2 di dinding z ~2,5) membatasi garis pandang ke
-	# y 0..2,5 m di segala jarak; kubah 12 m tidak akan pernah
-	# terlihat dari kursi meja. Itu konsisten dengan aturan Giant
-	# (tidak pernah utuh): yang terlihat adalah belalai 3 m +
-	# gading putih — skalanya yang bilang Zunisha.
-	# KEGAGALAN RONDE 1-2 (diukur, bukan ditebak): (a) puff kabut
-	# TETAP di (1,5, 0,6, 12,0) tepat di depan belalai — 5,6 m
-	# lebar, alpha 0,34; (b) kepala di z 28 = 75% kabut;
-	# (c) grade GELAP ronde 2 kontras NOL lawan kabut L~50.
-	# Ronde 3: kepala di z 12 (45% kabut, 55% terbaca — batas
-	# jujur v14: billboard di 10-14 m cuma ~40-55% kebaca),
-	# grade PUCAT kembali (terang lawan kabut gelap), koridor
-	# pandang jendela (x -1..8, z 2..20) dikosongkan dari puff
-	# acak + ground fog, puff tetap (1,5, 12) DIHAPUS. Tint
-	# terang di sini (unshaded).
-	# v24 (kritik #4): siluet jauh dicoba 2 ronde lalu dihapus —
-	# v25 membawanya kembali sebagai KEPALA (bukan badan utuh).
-	_billboard(self, "giant_head_zunisha_v25", Vector3(1.0, 0.0, 12.0), 20.0 / 330.0, Color(1.2, 1.25, 1.3, 0.98), true)
+	# v26 (aturan tidak-pernah-utuh DICABUT Arya 2026-11-18 15:50 WIB):
+	# kepala Zunisha UTUH di jendela — kubah, telinga, belalai, dan
+	# gading SEMUANYA masuk frame. Aset baru giant_head_zunisha_v26
+	# (tools/make_menu_head_v26.py): grade dibalik dari v25, seluruh
+	# kepala terbaca (kubah/wajah L~110, telinga ~85, belalai ~120,
+	# gading ~145) bukan satu kolom terang; gading kanan yang di v25
+	# salah letak 25 px kini di x 175-200.
+	# GEOMETRI (diukur probe menu_window_probe.gd, bukan ditebak):
+	# jendela lama (1,4 m, atas 2,20) membatasi pita pandang ke
+	# y 0..2,4 m — kubah tidak akan pernah masuk. Jendela menu kini
+	# 3,4 m lebar, atas 2,75 (guard_post.rebuild_back_wall_for_menu)
+	# + pitch kamera -25 -> -18 (Balance): kepala 5,2 m (lebar
+	# 6,7 m) di z 12,5, tengah x 2,0 — keempat sudutnya di dalam
+	# viewport dengan margin, kubah di y layar ~+16 px. Kepala
+	# mengisi jendela; tepi atas jendela sendiri di luar frame
+	# atas (bukaan tinggi, kamera dekat) — yang kelihatan adalah
+	# kusen kiri/kanan + ambang bawah, seperti mockup Arya yang
+	# jendelanya memenuhi atas frame.
+	# Papan "KAWASAN KUBURAN GAJAH" PINDAH ke x -3,5, z 9 (dulu
+	# x 5,5: terpotong kusen kiri di v28; diukur probe: sudut
+	# papan kini di dalam jendela, tidak menabrak kepala).
+	# Menara pengawas + checkpoint tetap TIDAK dipasang di menu
+	# (ramai; menara sudah ada di level permainan). Aset kelas
+	# PLACEHOLDER (gambar Arya kelihatan AI-generated) — lihat
+	# tools/ref/REFERENCES.md.
+	_billboard(self, "giant_head_zunisha_v26", Vector3(2.0, 0.0, 12.5), 5.2 / 270.0, Color(1.2, 1.25, 1.3, 0.98), true)
 	# Kuburan gajah: PANEL DIHAPUS dari menu (ronde 8) — bukan
 	# karena asetnya jelek (kerangka + gading terbaca jelas di
 	# ronde 4-6), tapi karena kepala 20 m menutupi SELURUH lebar
@@ -253,14 +259,14 @@ func _setup_menu_window_giant() -> void:
 	# untuk penempatan DALAM permainan nanti (pemain berjalan ke
 	# kuburan) — jangan hapus filenya.
 	# _billboard(self, "menu_skeleton_v25", Vector3(5.0, 0.0, 18.0), 6.0 / 390.0, Color(1.0, 1.0, 1.0, 0.95), true)
-	# Papan "KAWASAN KUBURAN GAJAH" di x 5,5, z 9 (tepi kiri
-	# jendela, setengah terpotong kusen seperti ronde 1 — di x 4,0
-	# ronde 3 ia menutupi kerangka). Di-grade malam di aset.
+	# Papan "KAWASAN KUBURAN GAJAH" di x -3,5, z 9 (v26: pindah
+	# dari x 5,5 yang terpotong kusen kiri di v28; diukur probe:
+	# papan kini utuh di dalam jendela, di kanan kepala).
 	# Menara pengawas + checkpoint TIDAK dipasang di menu (ramai;
 	# menara sudah ada di level permainan, terlihat dari jendela
 	# dalam game). Aset kelas PLACEHOLDER (gambar Arya kelihatan
 	# AI-generated) — lihat tools/ref/REFERENCES.md.
-	_billboard(self, "menu_sign_graveyard_v25", Vector3(5.5, 0.0, 9.0), 2.0 / 200.0, Color(0.9, 0.9, 0.9, 1.0), true)
+	_billboard(self, "menu_sign_graveyard_v25", Vector3(-3.5, 0.0, 9.0), 2.0 / 200.0, Color(0.9, 0.9, 0.9, 1.0), true)
 
 ## Kabut diterapkan dari Balance (satu tempat tune), bukan angka di .tscn.
 ## .tscn menyimpan default yang sama supaya scene tetap benar walau
@@ -517,11 +523,14 @@ func _build_forest() -> void:
 		var pos := Vector3(cos(angle) * radius, 0, sin(angle) * radius)
 		if absf(pos.x) < 4.0 and pos.z < 0.0:
 			continue # jangan halangi jalan ke gerbang
-		# v25: koridor pandang jendela selatan (x -1..8, z 2..20)
-		# dikosongkan juga — satu pohon dekat (seed tetap) berdiri
+		# v26: koridor pandang jendela selatan DILEBARKAN ke
+		# (x -7..15, z 2..20) — jendela menu kini 3,4 m lebar,
+		# garis pandang di z 12 mencapai x -6,4..14,9; koridor
+		# v25 (x -1..8) terlalu sempit, pohon di tepinya bisa
+		# menutupi telinga/gading kepala Zunisha. — satu pohon dekat (seed tetap) berdiri
 		# tepat di depan belalai Zunisha (ronde 4: kolom gelap
 		# pohon menutupi belalai, hanya gading yang mengintip).
-		if pos.z > 2.0 and pos.z < 20.0 and pos.x > -1.0 and pos.x < 8.0:
+		if pos.z > 2.0 and pos.z < 20.0 and pos.x > -7.0 and pos.x < 15.0:
 			continue
 		_make_tree(forest, pos, trunk_mat, leaf_mat)
 	# Properti berserakan + decal tanah, semua dari tabel LevelData.
@@ -547,12 +556,15 @@ func _build_forest() -> void:
 		var fp := Vector3(cos(a) * r, 0, sin(a) * r)
 		if absf(fp.x) < 3.5 and fp.z > -16.0 and fp.z < 2.0:
 			continue
-		# v25: koridor pandang jendela selatan (x -1..8, z 2..20)
-		# dikosongkan juga — puff di sini menutupi kepala Zunisha
+		# v26: koridor pandang jendela selatan DILEBARKAN ke
+		# (x -7..15, z 2..20) — jendela menu kini 3,4 m lebar,
+		# garis pandang di z 12 mencapai x -6,4..14,9; koridor
+		# v25 (x -1..8) terlalu sempit, pohon di tepinya bisa
+		# menutupi telinga/gading kepala Zunisha. — puff di sini menutupi kepala Zunisha
 		# + panel kuburan di menu (ronde 1-2: puff tetap di
 		# (1,5, 12) tepat di depan belalai). Koridor gerbang utara
 		# di atas sudah ada sejak lama dengan alasan sama.
-		if fp.z > 2.0 and fp.z < 20.0 and fp.x > -1.0 and fp.x < 8.0:
+		if fp.z > 2.0 and fp.z < 20.0 and fp.x > -7.0 and fp.x < 15.0:
 			continue
 		var depth_k := clampf((r - 9.0) / (26.0 - 9.0), 0.0, 1.0)
 		var puff_alpha := lerpf(0.38, 0.26, depth_k)
@@ -580,9 +592,9 @@ func _build_forest() -> void:
 		var gp := Vector3(cos(ga) * gr, 0, sin(ga) * gr)
 		if absf(gp.x) < 3.5 and gp.z > -16.0 and gp.z < 2.0:
 			continue
-		# v25: koridor pandang jendela selatan dikosongkan juga
-		# (alasan sama seperti puff acak di atas).
-		if gp.z > 2.0 and gp.z < 20.0 and gp.x > -1.0 and gp.x < 8.0:
+		# v26: koridor pandang jendela selatan DILEBARKAN ke
+		# (x -7..15, z 2..20) (alasan sama seperti puff di atas).
+		if gp.z > 2.0 and gp.z < 20.0 and gp.x > -7.0 and gp.x < 15.0:
 			continue
 		var gdepth_k := clampf((gr - 6.0) / (13.0 - 6.0), 0.0, 1.0)
 		var ground_alpha := lerpf(0.42, 0.32, gdepth_k)

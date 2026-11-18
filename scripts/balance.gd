@@ -182,7 +182,10 @@ const VHS_TEAR_SHIFT := 0.02 # seberapa jauh garis tear bergeser
 ## ditebak. Buku tetap utuh di frame (tepi kiri halaman baris
 ## -1,47 m dari sumbu pandang vs setengah lebar pandang 1,73 m).
 const MENU_DESK_CAM_POS := Vector3(-0.80, 2.15, 0.10)
-const MENU_DESK_CAM_PITCH_DEG := -25.0
+const MENU_DESK_CAM_PITCH_DEG := -18.0 # v26: -25 -> -18, supaya
+# kubah kepala Zunisha 5,2 m di z 12,5 masuk frame (diukur probe:
+# kubah di y layar ~+16 px pada -18; pada -20 masih -12 px, pada
+# -16 buku menabrak tepi bawah frame)
 const MENU_DESK_CAM_YAW_DEG := 180.0
 const MENU_DESK_CAM_FOV := 66.0
 ## Pencahayaan menu (kritik #4): ambient lebih gelap dari malam game

@@ -28,10 +28,10 @@ extends Node
 ## (garis besar kasar) saat `_ready` selesai; ambil screenshot
 ## beberapa frame kemudian supaya hasilnya stabil.
 
-## v28: prefix "v28" untuk desktop, "v28p" untuk portrait — supaya
+## v29: prefix "v29" untuk desktop, "v29p" untuk portrait — supaya
 ## screenshot portrait tidak menimpa desktop (keduanya jalan di
 ## rig yang sama, beda --resolution).
-var _prefix := "v28"
+var _prefix := "v29"
 const SHOT_DIR := "/home/hatch/workspace/godot/shots"
 const RES_PATH := "res://scenes/menu.tscn"
 
@@ -60,9 +60,9 @@ func _ready() -> void:
 	# ukuran base stretch (1280x720) di kedua orientasi, jadi run
 	# portrait pertama menimpa file desktop.
 	if get_tree().root.size.y > get_tree().root.size.x:
-		_prefix = "v28p"
+		_prefix = "v29p"
 	_log = FileAccess.open(SHOT_DIR + "/" + _prefix + "_results_menu.txt", FileAccess.WRITE)
-	_log.store_line("[MENU-RIG] " + _prefix + " menu v25 (Luci list)")
+	_log.store_line("[MENU-RIG] " + _prefix + " menu v26 (Luci list)")
 	_log.store_line("mode: menu")
 	_log.store_line("time: " + Time.get_datetime_string_from_system())
 	_log.store_line("start")
@@ -333,9 +333,12 @@ func _test_giant_window() -> void:
 	if backdrop == null:
 		_fail("backdrop tidak ada")
 		return
-	# v25: kepala Zunisha (bukan kaki lagi) di luar jendela selatan.
-	if _find_sprite_with(backdrop, "giant_head_zunisha_v25"):
-		_pass("Kepala Zunisha di luar jendela selatan ada")
+	# v26: kepala Zunisha UTUH (bukan kaki lagi) di luar jendela
+	# selatan — aset baru giant_head_zunisha_v26 (v25 sudah tidak
+	# dipakai lagi). Aturan tidak-pernah-utuh DICABUT, jadi yang
+	# dicek di sini hanya kepalanya ada, bukan "sebagian saja".
+	if _find_sprite_with(backdrop, "giant_head_zunisha_v26"):
+		_pass("Kepala Zunisha UTUH di luar jendela selatan ada")
 	else:
 		_fail("Kepala Zunisha di luar jendela selatan tidak ada")
 	# v25: elemen tempat dari gambar 2 — papan kuburan (panel
