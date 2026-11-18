@@ -12,7 +12,7 @@ func _ready() -> void:
 	_pivot = get_parent() as Node3D
 
 func get_prompt() -> String:
-	return "Pintu - Tekan E untuk %s" % ("tutup" if is_open else "buka")
+	return "Pintu - %s E untuk %s" % [TouchControls.action_word(), ("tutup" if is_open else "buka")]
 
 func interact() -> void:
 	is_open = not is_open

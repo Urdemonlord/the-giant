@@ -1,7 +1,7 @@
 extends Node
 ## Test rig THE GIANT — IKUT ZIP (bagian dari proyek, bukan alat luar).
 ## Jalankan: Godot --path . scenes/test_rig.tscn -- mode=<mode> prefix=<prefix>
-## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | shots18 | shots19 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
+## Mode: shots | shots11 | shots12 | shots13 | shots14 | shots15 | shots16 | shots18 | shots19 | shots20 | shots27 | verify | win | lose | audio | touch | pause | mouselook | save | playtest | story
 ## (mode shots9..shots9e lama masih ada untuk arsip visual v9.)
 ## Log ditulis ke <shot_dir>/<prefix>_results_<mode>.txt dan screenshot
 ## ke <shot_dir>/<prefix>_<nama>.png. shot_dir = ~/workspace/godot/shots/
@@ -115,6 +115,8 @@ func _run() -> void:
 			await _mode_shots19()
 		"shots20":
 			await _mode_shots20()
+		"shots27":
+			await _mode_shots27()
 		"story":
 			await _mode_story()
 		"verify":
@@ -606,6 +608,78 @@ func _mode_shots19() -> void:
 	GameState.show_message("Jaga pos ini. Jangan biarkan mereka kembali.")
 	await _wait_sec(0.5)
 	await _shot("subtitle")
+
+func _mode_shots27() -> void:
+	# v27 (kritik gameplay): bukti visual per poin.
+	# 1. Luar pos jam 02:00 (titik tergelap), generator MATI, senter
+	# MATI: hutan harus nyaris gelap gulita, siluet samar saja.
+	# 2. Sama, senter MENYALA: jalan + pos harus terbaca.
+	# 3. Mode sentuh: prompt "Ketuk E" (bukan "Tekan E"), tombol
+	# SENTER/E berjauhan, blok kontrol sentuh di intro.
+	# 4. Hold generator: bar progres terlihat di tengah hold.
+	# 5. Sanity bergerak di 2 menit pertama (jalan di gelap).
+	GameState.reset_shift()
+	GameState.shift_minutes = 240.0
+	await _wait_sec(3.0) # kurva malam lerp ~2 dtk sampai target
+	await _set_view(Vector3(0, 0.45, -8.0), 180, 2)
+	await _shot("night_dark")
+	var s0 := GameState.sanity
+	_log("shots27: sanity awal=" + str(s0) + " stability=" + str(GameState.stability))
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _frames(5)
+	await _shot("night_flash")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# Bukti senter di JALAN (bukan cuma dinding pos): dari (0,-3.5)
+	# DI LUAR pos, bidik generator (3.6,-1.2). Senter MATI vs
+	# MENYALA — kerucut senter harus membuat tanah + generator
+	# terbaca. (v30 awal: _set_view di (0,-2.0) mendarat di dinding
+	# utara dan fisika mendorong pemain ke DALAM pos — shot-nya
+	# jadi dinding interior, tidak terpakai.)
+	await _set_view(Vector3(0, 0.45, -3.5), 0, 0)
+	await _aim_at(Vector3(3.6, 0.5, -1.2))
+	await _shot("path_dark")
+	_player.flashlight_on = true
+	_player.flashlight.visible = true
+	await _frames(5)
+	await _shot("path_flash")
+	_player.flashlight_on = false
+	_player.flashlight.visible = false
+	# 5. Sanity di gelap: jalan keluar pos tanpa senter 12 detik.
+	await _set_view(Vector3(0, 0.45, -4.5), 0, 0)
+	await _wait_sec(12.0)
+	_log("shots27: sanity setelah 12 dtk di gelap luar pos=" + str(GameState.sanity) + " (harus < " + str(s0) + ")")
+	# 3. Mode sentuh: paksa tampil, bidik generator, screenshot.
+	var touch := get_tree().get_first_node_in_group("touch_controls")
+	if touch != null:
+		touch.force_show()
+	await _set_view(Vector3(2.0, 0.45, -3.0), -90, -6)
+	await _aim_at(Vector3(3.6, 0.5, -1.2))
+	await _frames(5)
+	_log("shots27: prompt sentuh='" + _prompt_text() + "' (harus 'Ketuk', bukan 'Tekan')")
+	await _shot("touch_prompt")
+	# 4. Hold generator: tahan 2,5 dtk (setengah jalan), screenshot bar.
+	var ev := InputEventAction.new()
+	ev.action = "interact"
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await _wait_sec(2.5)
+	await _shot("hold_mid")
+	var ev2 := InputEventAction.new()
+	ev2.action = "interact"
+	ev2.pressed = false
+	Input.parse_input_event(ev2)
+	await _frames(2)
+	_log("shots27: hold batal di tengah, generator nyala=" + str(GameState.generator_on) + " (harus false)")
+	# Intro baru (teks konsisten) + blok kontrol sentuh.
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null and hud.has_method("show_intro"):
+		hud.show_intro()
+		await _frames(5)
+		await _shot("intro_touch")
+		hud.close_intro()
+		await _frames(5)
 
 func _mode_story() -> void:
 	# Brief v7: koran/surat bisa dibaca, ending menang/kalah beneran.
@@ -1144,6 +1218,20 @@ func _press_interact() -> bool:
 	await _frames(2)
 	return true
 
+## v27: tahan tombol E selama N detik (untuk generator/buku jaga).
+## Pencet cepat pada target hold = batal, jadi rig harus menahan.
+func _hold_interact(seconds: float) -> void:
+	var ev := InputEventAction.new()
+	ev.action = "interact"
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await _wait_sec(seconds)
+	var ev2 := InputEventAction.new()
+	ev2.action = "interact"
+	ev2.pressed = false
+	Input.parse_input_event(ev2)
+	await _frames(2)
+
 func _interact_at(target: Vector3, expect_in_prompt: String) -> bool:
 	await _aim_at(target)
 	var prompt := _prompt_text()
@@ -1151,7 +1239,16 @@ func _interact_at(target: Vector3, expect_in_prompt: String) -> bool:
 	if expect_in_prompt != "" and not expect_in_prompt in prompt:
 		_log("playtest: prompt TIDAK mengandung '" + expect_in_prompt + "' (FAIL langkah ini)")
 		return false
-	await _press_interact()
+	# v27: target hold (generator/buku) ditahan selama durasinya
+	# + 0,5 detik, bukan dipencet cepat.
+	var node: Object = _player.get_current_interactable()
+	var hold_d := 0.0
+	if node != null and node.has_method("hold_duration"):
+		hold_d = float(node.hold_duration())
+	if hold_d > 0.0:
+		await _hold_interact(hold_d + 0.5)
+	else:
+		await _press_interact()
 	return true
 
 func _mode_playtest() -> void:

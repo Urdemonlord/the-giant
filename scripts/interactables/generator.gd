@@ -65,7 +65,31 @@ func _add_sprite() -> void:
 func get_prompt() -> String:
 	if GameState.fuel <= 0.0:
 		return "Generator - bahan bakar habis"
-	return "Generator - Tekan E untuk %s" % ("matikan" if GameState.generator_on else "nyalakan")
+	return "Generator - Tahan E untuk %s" % ("matikan" if GameState.generator_on else "nyalakan")
+
+## v27 (kritik #5, Luci: game-feel): generator bukan pencet instan
+## lagi — tarik tuas 4,5 detik. Selama menahan: kamera terkunci
+## menghadap generator (player.gd), mesin menderu (crank audio),
+## getaran halus. Lepas = batal. Matikan generator juga hold (sama
+## tegangnya: mematikan lampu di tengah malam bukan keputusan ringan).
+func hold_duration() -> float:
+	return Balance.HOLD_GENERATOR_SECONDS
+
+func hold_pitch_deg() -> float:
+	return 0.0 # tetap menghadap generator, tidak menunduk
+
+func hold_shake_amount() -> float:
+	return 0.12 # getaran mesin di tangan (game-feel: trauma kecil)
+
+func hold_started() -> void:
+	var audio := get_tree().get_first_node_in_group("audio")
+	if audio != null and audio.has_method("play_crank"):
+		audio.play_crank()
+
+func hold_ended(_cancelled: bool) -> void:
+	var audio := get_tree().get_first_node_in_group("audio")
+	if audio != null and audio.has_method("stop_crank"):
+		audio.stop_crank()
 
 func interact() -> void:
 	if GameState.fuel <= 0.0 and not GameState.generator_on:

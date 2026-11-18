@@ -1108,6 +1108,122 @@ dan Playwright web, bukan menu Godot).
   v24); portrait masih letterbox 720x405. Aset menu tetap kelas
   PLACEHOLDER. Event dalam game TIDAK disentuh.
 
+## v27: kritik gameplay — briefing konsisten, hutan gelap, UI platform, hold-to-interact, bar hidup (2026-11-18)
+
+Arya menempel kritik gameplay (berdasarkan video gameplay v8).
+Triase parent (dicek di kode sebelum dikerjakan): poin 1, 3, 4, 5
+dan sebagian 6 BENAR dan diperbaiki; poin 2 TIDAK BENAR — artefak
+rekaman, bukan bug game (di bawah). Skill dari list Luci
+(`~/workspace/makefun/skills/`, BUKAN adaptasi): router
+awesome-gamedev-agent-skills (Godot 4.3 pinned, disiplin game-feel
++ game-ui-ux + camera-systems + level-design + audio-design);
+game-feel (hold = momen rentan: juice hanya di hook event, kembali
+ke rest saat selesai/batal; getaran trauma kecil 0,12 saat menarik
+tuas, meluruh sendiri); game-ui-ux (UI sesuai platform, sinyal
+bukan cuma warna, kontras teks di atas kertas); camera-systems
+(first-person terkunci, pitch menunduk terukur, tidak ada kamera
+kedua di gameplay); level-design (cahaya sebagai mekanik: gelap =
+bahaya, lampu = aman); audio-design (deru mesin saat hold, ambience
+tetap hidup di bawahnya). canvas-design + webapp-testing dibaca dan
+DILAPORKAN tidak dipakai (poster/statis dan Playwright web, bukan
+game Godot).
+
+- Poin 1 — KONTRADIKSI, diperbaiki: intro lama (`hud.gd`) bilang
+  "jangan buka pintu untuk yang mengetuk dari arah hutan" sementara
+  tugas pertama menyuruh keluar ke generator. Intro DITULIS ULANG:
+  yang dilarang adalah MEMBUKA PINTU untuk yang mengetuk — BUKAN
+  keluar pos. Generator adalah pengecualian yang dijelaskan:
+  "Keluarlah sebelum gelap untuk menyalakannya, lalu cepat kembali
+  ke dalam." Kalimat radio yang sama (`radio.gd`) juga diperbaiki
+  ("Jangan buka pintu kalau ada yang mengetuk dari arah hutan").
+  Teks ending menang juga dibersihkan: klausa "Giant tidak pernah
+  menampakkan dirinya utuh" DIHAPUS (aturan itu dicabut di v26).
+- Poin 2 — THIRD-PERSON TIDAK ADA, artefak video: `player.gd`
+  first-person penuh; tidak ada `make_current` / kamera kedua di
+  kode gameplay mana pun. Satu-satunya kamera yang pindah ke luar
+  adalah `scripts/video_rig.gd` (rig perekam v8, memindahkan
+  pemain first-person ke z=-16 supaya pemburu kelihatan di video).
+  Kamera tetap first-person, yang pindah cuma POSISINYA, dan hanya
+  di rekaman. "Karakter polisi hutan dari belakang" itu sprite
+  `guard_front` (penjaga sebelumnya di samping jalan) atau sprite
+  pemburu — bukan model pemain, karena pemain tidak punya mesh
+  badan. TIDAK ADA perubahan kamera gameplay. Komentar
+  recording-only ditambahkan di header `video_rig.gd`.
+- Poin 3 — HUTAN GELAP, senter jadi penting: `Balance` kurva malam
+  baru (dulu hardcode di `main.gd`): bulan 0,45/0,28/0,55 dan
+  ambient 0,28/0,14/0,35 (awal/tengah/fajar; dulu 0,75/0,55/0,85
+  dan 0,65/0,50/0,70), `FOG_LIGHT_ENERGY` 1,0 -> **0,35**;
+  default `main.tscn` disamakan (ambient 0,28, fog 0,35, bulan
+  0,45) supaya frame pertama tidak terang dulu. Pencahayaan menu
+  TIDAK disentuh (`MENU_AMBIENT` 0,30 terpisah). Diukur dari
+  screenshot (mode `shots27`, jam 02:00): luar pos tanpa senter
+  mean 19,8-21,2 (nyaris gelap, siluet samar); dengan senter,
+  jalan ke generator mean tengah 15,3 -> **28,1** (tanah + dinding
+  pos terbaca di dalam kerucut). Sprite unshaded (generator,
+  chainsaw) tetap samar terlihat di gelap — batas yang diketahui.
+- Poin 4 — UI SESUAI PLATFORM: `TouchControls.is_touch()` statis
+  (dipakai bersama HUD + semua prompt) + `action_word()` ("Ketuk"
+  di sentuh, "Tekan" di keyboard). Semua prompt interaksi
+  (pintu, generator, lentera, radio, koran/surat, buku) dan blok
+  kontrol intro + tombol "Mulai shift"/"Tutup" kini beradaptasi;
+  tombol SENTER dipisah dari E (jarak 60 px -> **140 px**).
+  Temuan dari screenshot: panel intro DIBANGUN SEKALI di `_build`,
+  jadi di HP tetap menampilkan WASD walau touch terdeteksi
+  belakangan — diperbaiki: `show_intro()` membangun ulang blok
+  kontrol + teks tombol kalau platform berubah (sama untuk tombol
+  tutup dokumen di `show_document()`). Screenshot bukti:
+  `v30_intro_touch.png` (blok "Joystick kiri / Geser kanan /
+  Tombol E / SENTER", tombol "Mulai shift" tanpa "(E)"),
+  `v30_touch_prompt.png` (SENTER jauh di atas E).
+- Poin 5 — HOLD-TO-INTERACT: generator hold **4,5 detik** (tarik
+  tuas, deru mesin via `audio.gd play_crank`, getaran trauma 0,12,
+  kamera terkunci menghadap generator); buku jaga hold **3 detik**
+  (menulis, pitch menunduk -32 derajat, pandangan terkunci).
+  Bar progres kuning di HUD saat hold (sinyal
+  `hold_progress_changed`/`hold_ended`, event-driven). Lepas
+  tombol = batal/reset (dibuktikan: hold generator dilepas di
+  2,5 detik, generator tetap mati). Gerak juga terkunci selama
+  hold (menarik tuas sambil jalan tidak masuk akal). Rig
+  (`test_rig.gd` + `video_rig.gd`) menahan tombol selama durasi +
+  0,5 detik, bukan pencet cepat. **Bug nyata ketahuan playtest:**
+  hold buku batal sendiri — pitch menunduk menggeser raycast dari
+  buku ke SURAT di sebelahnya (holdprobe: ray kena Permit di 0,5
+  detik, `lost` 0,52 > 0,5). Perbaikan: cek "bidikan lepas = batal"
+  DIHAPUS dari `_update_hold` (look + gerak sudah terkunci, jadi
+  tidak ada cara lain bidikan lepas; batal hanya lepas tombol) dan
+  pitch buku -35 -> **-32 derajat** (di -35 ray meleset 3 cm di
+  sisi kanan buku). Setelah perbaikan: holdprobe progress 0,4 ->
+  2,53, selesai di 3,0 detik, `log_done=true`.
+- Poin 6 — SANITY/STABILITY HIDUP SEJAK AWAL: Stability turun
+  saat generator mati SUDAH ADA (`DARK_STABILITY_DRAIN` 0,55/dtk
+  di `main.gd`). Sanity di gelap BELUM ADA — ditambahkan
+  `_update_darkness_sanity` di `main.gd`: di luar pos dalam gelap
+  (tanpa senter, di luar jangkauan lampu teras saat generator
+  menyala) Sanity turun **0,5/dtk**; di dalam pos dekat cahaya
+  (lentera/generator menyala) pulih 0,5/dtk; dalam pos gelap
+  netral. Diukur: Sanity 95,2 -> **89,0** setelah 12 detik di gelap
+  luar pos (mode `shots27`). Bar bergerak di 2 menit pertama.
+- Verifikasi (Xvfb, `--rendering-driver opengl3` karena Vulkan
+  hilang pasca-reset sandbox; `project.godot` NO-DIFF): mode
+  `shots27` (prefix v30) selesai penuh — 7 shot dibaca sendiri
+  (`v30_night_dark`, `v30_night_flash`, `v30_path_dark`,
+  `v30_path_flash`, `v30_touch_prompt`, `v30_hold_mid`,
+  `v30_intro_touch`); mode verify DONE (registry 78, missing=0,
+  hitbox meja tumpang=0); mode playtest **PASS fails=0** (5 tugas,
+  Sanity 100, Stability 100); mode story **PASS fails=0**; mode
+  touch jalan (joystick 2,85 m, senter toggle); rig menu v26
+  **31 pass, 0 fail** (menu tidak disentuh v27). Dua run `shots27`
+  pertama terpotong `timeout 180` (llvmpipe lambat, run penuh
+  ~155 detik) dan satu shot `path_*` pertama salah posisi
+  (dinding interior, `_set_view` di z=-2,0 mendarat di dinding
+  utara) — keduanya dibuang, run ketiga yang dipakai.
+- Batas jujur: audio crank generator belum didengar telinga
+  manusia (sandbox tanpa sound card; WAV terverifikasi dari
+  sintesis + status `playing` saja, seperti semua audio game ini).
+  Unshaded sprite tetap samar terlihat di gelap. Menu masih
+  placeholder (v26). Video gameplay v8 masih build lama; rekaman
+  ulang di build baru belum dibuat (rig video sudah hold-aware).
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya

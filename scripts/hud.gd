@@ -22,6 +22,10 @@ extends CanvasLayer
 var _prompt_label: Label
 var _message_label: Label
 var _clock_label: Label
+## v27 (kritik #5): bar progres hold — muncul hanya saat pemain
+## sedang menahan interaksi (generator/buku), hilang saat selesai
+## atau batal. Tanpa bar, hold 4,5 detik terasa seperti game hang.
+var _hold_bar: ProgressBar
 ## v15: tugas bukan satu label lagi — satu label per tugas supaya yang
 ## sudah selesai bisa diredupkan (warna) sementara yang belum tetap
 ## terang. Bentuk [x]/[ ] tetap jadi penanda utama, bukan warna saja.
@@ -35,6 +39,9 @@ var _doc_body: Label
 var _doc_close_btn: Button
 var _intro_panel: PanelContainer
 var _intro_start_btn: Button
+var _intro_box: VBoxContainer
+var _intro_controls: Control
+var _intro_controls_touch := false # platform saat blok kontrol dibuat
 var _end_panel: PanelContainer
 var _end_title: Label
 var _end_body: Label
@@ -79,6 +86,10 @@ func _ready() -> void:
 	_player = player as Node3D
 	if player != null and player.has_signal("prompt_changed"):
 		player.prompt_changed.connect(func(t: String) -> void: _prompt_label.text = t)
+	if player != null and player.has_signal("hold_progress_changed"):
+		player.hold_progress_changed.connect(_on_hold_progress)
+	if player != null and player.has_signal("hold_ended"):
+		player.hold_ended.connect(_on_hold_ended)
 	_refresh_tasks()
 	_on_clock(GameState.shift_minutes)
 
@@ -184,13 +195,23 @@ func _keycap(text: String, size: int) -> PanelContainer:
 ## v15: blok daftar kontrol (2 baris x 3 pasangan keycap + aksi).
 ## Dipakai intro dan menu jeda supaya pemain belajar kontrol sekali
 ## di awal, bukan diomeli label tengah layar tiap Alt-Tab.
+## v27 (kritik #4, Luci: game-ui-ux — UI sesuai platform): di layar
+## sentuh, blok ini BUKAN keycap WASD/Shift/Esc — tapi petunjuk
+## sentuh (joystick, geser, tombol E, SENTER). Satu layar, satu bahasa.
 func _controls_block(size: int) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
-	var rows: Array = [
-		[["WASD", "Jalan"], ["Shift", "Lari"], ["Mouse", "Melihat"]],
-		[["E", "Interaksi"], ["F", "Senter"], ["Esc", "Jeda"]],
-	]
+	var rows: Array
+	if TouchControls.is_touch():
+		rows = [
+			[["Joystick kiri", "Jalan"], ["Geser kanan", "Lihat"]],
+			[["Tombol E", "Interaksi"], ["SENTER", "Senter"]],
+		]
+	else:
+		rows = [
+			[["WASD", "Jalan"], ["Shift", "Lari"], ["Mouse", "Melihat"]],
+			[["E", "Interaksi"], ["F", "Senter"], ["Esc", "Jeda"]],
+		]
 	for row in rows:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 18)
@@ -260,6 +281,16 @@ func _build() -> void:
 	_prompt_label.offset_top = -118
 	_prompt_label.offset_bottom = -88
 	add_child(_prompt_label)
+
+	_hold_bar = _make_bar()
+	_hold_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_hold_bar.offset_left = -120
+	_hold_bar.offset_right = 120
+	_hold_bar.offset_top = -132
+	_hold_bar.offset_bottom = -122
+	_hold_bar.visible = false
+	_style_bar(_hold_bar, Color(0.82, 0.66, 0.3))
+	add_child(_hold_bar)
 
 	_message_label = _label("", 18, Color(0.92, 0.88, 0.74))
 	_message_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -366,13 +397,15 @@ func _build_doc_panel() -> void:
 	_doc_body = _label("", 17)
 	_doc_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_doc_body)
-	_doc_close_btn = _big_button("Tutup (E)")
+	_doc_close_btn = _big_button("Tutup" if TouchControls.is_touch() else "Tutup (E)")
 	_doc_close_btn.pressed.connect(close_document)
 	box.add_child(_doc_close_btn)
 
 func show_document(title: String, body: String) -> void:
 	_doc_title.text = title
 	_doc_body.text = body
+	# v27: tombol tutup ikut platform saat ini (sama seperti intro).
+	_doc_close_btn.text = "Tutup" if TouchControls.is_touch() else "Tutup (E)"
 	_doc_panel.visible = true
 	_doc_open = true
 	get_tree().paused = true
@@ -395,23 +428,47 @@ func close_document() -> void:
 func _build_intro_panel() -> void:
 	_intro_panel = _panel_box(320)
 	var box := _panel_column(_intro_panel)
+	_intro_box = box
 	# v15: sentence case (dulu "POS JAGA 07 — 22:00" kapital + em dash
 	# ber-spasi — dua template tell sekaligus). Judulnya nama pos saja;
 	# jam + tempat sudah ada di badan teks.
 	var title := _label("Pos Jaga 07", 24, Color(0.95, 0.9, 0.78))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	var body := _label("Taman Nasional Malayunesia. Shift malam: 22:00 sampai 06:00.\n\nTugasmu: jaga lampu tetap menyala, tulis laporan, dan jangan buka pintu untuk yang mengetuk dari arah hutan.\n\nPenjaga sebelumnya pergi tanpa pamit. Di atas meja ada koran dan surat yang tidak ia bawa. Bacalah.", 17)
+	# v27 (kritik #1): aturan briefing DITULIS ULANG supaya konsisten
+	# dengan level. Yang dilarang adalah MEMBUKA PINTU untuk yang
+	# mengetuk dari arah hutan — BUKAN keluar pos sama sekali.
+	# Generator memang di luar pos dan tugas pertama memang menyuruh
+	# keluar: itu pengecualian yang dijelaskan (keluar sebelum
+	# gelap, cepat kembali), bukan aturan yang dilanggar sendiri.
+	var body := _label("Taman Nasional Malayunesia. Shift malam: 22:00 sampai 06:00.\n\nTugasmu: jaga lampu tetap menyala dan tulis laporan. Jangan buka pintu untuk yang mengetuk dari arah hutan.\n\nGenerator ada di samping pos. Keluarlah sebelum gelap untuk menyalakannya, lalu cepat kembali ke dalam.\n\nPenjaga sebelumnya pergi tanpa pamit. Di atas meja ada koran dan surat yang tidak ia bawa. Bacalah.", 17)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(body)
 	# v15: kontrol diajarkan sekali di sini (pengganti petunjuk tengah
 	# layar yang dihapus): keycap + aksi, bukan satu baris teks padat.
-	box.add_child(_controls_block(15))
-	_intro_start_btn = _big_button("Mulai shift (E)")
+	_intro_controls = _controls_block(15)
+	_intro_controls_touch = TouchControls.is_touch()
+	box.add_child(_intro_controls)
+	_intro_start_btn = _big_button("Mulai shift" if TouchControls.is_touch() else "Mulai shift (E)")
 	_intro_start_btn.pressed.connect(close_intro)
 	box.add_child(_intro_start_btn)
 
 func show_intro() -> void:
+	# v27: blok kontrol + tombol mulai DIBANGUN SEKALI di _build,
+	# tapi platform bisa berubah sesudahnya (touch_controls
+	# force_show di rig, atau layar sentuh terdeteksi belakangan).
+	# Kalau platform sekarang beda dari saat dibangun, bangun ulang
+	# bloknya — kalau tidak, intro di HP tetap menampilkan WASD.
+	var touch := TouchControls.is_touch()
+	_intro_start_btn.text = "Mulai shift" if touch else "Mulai shift (E)"
+	if _intro_controls_touch != touch:
+		var idx := _intro_controls.get_index()
+		_intro_box.remove_child(_intro_controls)
+		_intro_controls.queue_free()
+		_intro_controls = _controls_block(15)
+		_intro_box.add_child(_intro_controls)
+		_intro_box.move_child(_intro_controls, idx)
+		_intro_controls_touch = touch
 	_intro_panel.visible = true
 	_intro_open = true
 	get_tree().paused = true
@@ -602,6 +659,15 @@ func show_message(text: String) -> void:
 func _on_clock(_minutes: float) -> void:
 	_clock_label.text = GameState.clock_text()
 
+## v27: bar hold mengikuti sinyal player (event-driven, bukan polling).
+func _on_hold_progress(progress: float, duration: float) -> void:
+	_hold_bar.max_value = duration
+	_hold_bar.value = progress
+	_hold_bar.visible = true
+
+func _on_hold_ended(_cancelled: bool) -> void:
+	_hold_bar.visible = false
+
 func _refresh_tasks() -> void:
 	# Urutan label sama dengan urutan kunci tasks (insertion order),
 	# jadi indeks ke-i selalu tugas yang sama di _build dan di sini.
@@ -622,7 +688,10 @@ func _on_shift_ended(success: bool) -> void:
 	var reason := GameState.end_reason
 	if success:
 		_end_title.text = "06:00 — Fajar"
-		_end_body.text = "Kamu masih di sini. Lampu pos masih menyala, laporan sudah tertulis, dan kabut akhirnya menipis. Di luar, hutan diam. Giant tidak pernah menampakkan dirinya utuh, dan pagi ini ia pergi seperti ia datang: tanpa penjelasan.\n\n" + CLOSING_FACT
+		# v27: klausa "Giant tidak pernah menampakkan dirinya utuh"
+		# DIHAPUS — aturan itu dicabut Arya di v26 (kepala utuh
+		# di jendela menu), jadi teks ending lama sudah tidak benar.
+		_end_body.text = "Kamu masih di sini. Lampu pos masih menyala, laporan sudah tertulis, dan kabut akhirnya menipis. Di luar, hutan diam. Pagi ini Giant pergi seperti ia datang: tanpa penjelasan.\n\n" + CLOSING_FACT
 	else:
 		_end_title.text = "Shift Berakhir Sebelum Pagi"
 		if reason == "sanity":

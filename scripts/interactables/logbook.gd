@@ -38,7 +38,19 @@ func _build_visual() -> void:
 	add_child(shape)
 
 func get_prompt() -> String:
-	return "Buku Jaga - sudah tertulis" if _written else "Buku Jaga - Tekan E untuk menulis laporan"
+	return "Buku Jaga - sudah tertulis" if _written else "Buku Jaga - Tahan E untuk menulis laporan"
+
+## v27 (kritik #5): menulis laporan bukan pencet instan — 3 detik
+## menunduk menulis (pitch -32 derajat, pandangan terkunci).
+## Rentan: sambil menulis, pemain tidak bisa menoleh.
+func hold_duration() -> float:
+	return Balance.HOLD_LOGBOOK_SECONDS
+
+func hold_pitch_deg() -> float:
+	# -32 derajat: cukup menunduk untuk terasa menulis, tapi raycast
+	# tetap mengenai buku (di -35 derajat ray meleset 3 cm di sisi
+	# kanan buku dan hold batal sendiri — ketahuan di playtest v27).
+	return -32.0
 
 func interact() -> void:
 	if _written:

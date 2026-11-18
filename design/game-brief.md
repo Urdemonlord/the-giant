@@ -26,14 +26,23 @@ di kaca. Semua gambar dari sprite sheet Arya, bukan geometri primitif.
 
 Menu utama, lalu intro singkat yang bisa di-skip: Pos Jaga 07, Taman
 Nasional Malayunesia, shift 22:00–06:00. Pemain di dalam pos, jam
-22:00, tugas pertama muncul: nyalakan generator. Di atas meja ada koran
+22:00, tugas pertama muncul: nyalakan generator. Aturan briefing
+(v27, sesudah kritik gameplay): yang dilarang adalah MEMBUKA PINTU
+untuk yang mengetuk dari arah hutan, bukan keluar pos — generator
+memang di luar dan tugas pertama memang menyuruh keluar sebelum
+gelap, lalu cepat kembali. Di atas meja ada koran
 dan surat yang ditinggal penjaga sebelumnya. Radio di meja memutar
 potongan siaran.
 
 ## Challenge
 
 Satu shift, satu pos jaga, satu malam. Jaga lampu tetap menyala
-(generator + bahan bakar), tulis laporan, cek radio. Jam 01:30 dua
+(generator + bahan bakar), tulis laporan, cek radio. Generator
+dinyalakan dengan TAHAN tombol 4,5 detik (tarik tuas, kamera
+terkunci menghadap generator); laporan ditulis dengan TAHAN 3 detik
+(menunduk, pandangan terkunci). Gelap di luar pos menguras Sanity
+pelan sejak awal shift; dekat lampu/lentera di dalam pos Sanity
+pulih. Jam 01:30 dua
 pemburu berhenti dan menatap pos (tutup pintu, tunggu di dalam).
 Jam 03:30 kaki Giant lewat di jendela. Jam 04:45 mata Giant menempel
 di kaca. Menatap apa pun yang tidak seharusnya ada menguras Sanity.
@@ -42,8 +51,12 @@ Bertahan sampai 06:00.
 ## Features
 
 1. First-person di pos jaga (WASD + mouse, senter F, interaksi E,
-   kontrol sentuh Android).
+   kontrol sentuh Android). UI menyesuaikan platform (v27): di layar
+   sentuh prompt "Ketuk", blok kontrol sentuh, tombol SENTER jauh
+   dari E.
 2. Shift 22:00–06:00 dengan Sanity, Stability, bahan bakar, 5 tugas.
+   Hutan malam gelap gulita tanpa senter (v27); senter membuat jalan
+   terbaca.
 3. Event pemburu 01:30, kaki Giant 03:30, mata Giant 04:45.
 4. Koran Harian Rimba Post bisa dibaca di meja: "Gajah Liar Masuk
    Kebun Sawit, Petani Rugi Miliaran".
@@ -84,6 +97,12 @@ Bertahan sampai 06:00.
 - v7 QA (2026-11-16, Godot 4.3 Xvfb 1280x720): `story` PASS fails=0,
   `playtest` PASS fails=0, `verify` registry 42 nama 0 hilang, intro
   dicek run langsung `main.tscn` + screenshot, `shots12` 3 shot.
+- v27 (2026-11-18): kritik gameplay — briefing konsisten, hutan
+  gelap + senter penting, UI platform, hold-to-interact (generator
+  4,5 dtk, buku 3 dtk), Sanity di gelap sejak awal; poin
+  third-person ternyata artefak rekaman video, bukan bug game.
+  `shots27` 7 shot dibaca, `playtest` PASS fails=0, `story` PASS,
+  `verify` registry 78 nama 0 hilang, menu 31/31.
 
 ## Cek per baris (v7, dari screenshot + kode)
 

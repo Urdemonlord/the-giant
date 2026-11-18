@@ -10,6 +10,20 @@ extends Node
 ## Suara: sandbox tanpa sound card, Godot pakai dummy audio driver,
 ## jadi video ini BISU. Jangan dub audio palsu di atasnya.
 ## Log: ~/workspace/godot/shots/video_results_video.txt
+##
+## v27 (kritik gameplay #2 — VERIFIKASI, BUKAN BUG): game ini TIDAK
+## PUNYA mode third-person. Satu-satunya kamera gameplay adalah
+## Camera3D di Head pemain (scripts/player.gd); tidak ada
+## make_current / kamera kedua di kode gameplay mana pun. Yang ADA
+## di rig ini adalah _set_view() yang MEMINDAHKAN pemain first-person
+## ke luar pos (z=-16) supaya pemburu kelihatan di video — kamera
+## tetap first-person, yang pindah cuma POSISINYA, dan hanya di
+## rekaman ini. Kalau di video kelihatan "karakter polisi hutan dari
+## belakang", itu sprite guard_front (penjaga sebelumnya di samping
+## jalan) atau sprite pemburu yang kebaca sebagai karakter — bukan
+## model pemain third-person, karena pemain tidak punya mesh badan.
+## Jangan "perbaiki" kamera gameplay berdasarkan kritik itu: tidak
+## ada yang rusak di sana.
 
 var _log_path := "/home/hatch/workspace/godot/shots/video_results_video.txt"
 var _player: Node3D = null
@@ -113,8 +127,29 @@ func _interact_at(target: Vector3, expect_in_prompt: String) -> bool:
 	if expect_in_prompt != "" and not expect_in_prompt in prompt:
 		_log("FAIL prompt tidak mengandung '" + expect_in_prompt + "'")
 		return false
-	await _press_interact()
+	# v27: generator + buku jaga butuh HOLD, bukan pencet (lihat
+	# test_rig.gd _interact_at yang sama). Pencet cepat = batal.
+	var node: Object = _player.get_current_interactable()
+	var hold_d := 0.0
+	if node != null and node.has_method("hold_duration"):
+		hold_d = float(node.hold_duration())
+	if hold_d > 0.0:
+		await _hold_interact(hold_d + 0.5)
+	else:
+		await _press_interact()
 	return true
+
+func _hold_interact(seconds: float) -> void:
+	var ev := InputEventAction.new()
+	ev.action = "interact"
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await _wait_sec(seconds)
+	var ev2 := InputEventAction.new()
+	ev2.action = "interact"
+	ev2.pressed = false
+	Input.parse_input_event(ev2)
+	await _frames(2)
 
 func _run() -> void:
 	await _frames(30)

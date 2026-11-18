@@ -19,6 +19,7 @@ var step_player: AudioStreamPlayer
 var heartbeat: AudioStreamPlayer
 var thud_player: AudioStreamPlayer
 var distant_thud: AudioStreamPlayer
+var crank_player: AudioStreamPlayer
 var voice_players: Array[AudioStreamPlayer] = []
 var _ambience_bus := -1
 var _ducked := false
@@ -45,6 +46,12 @@ func _ready() -> void:
 	distant_thud = _make_player("giant_thud.wav", -20.0, false, "SFX")
 	if distant_thud != null:
 		distant_thud.pitch_scale = 0.8
+	# v27 (kritik #5, audio-design): deru mesin saat MENARIK TUAS
+	# generator (hold 4,5 dtk). Hum yang sama, tapi player sendiri
+	# di bus SFX -8 dB supaya tidak tercampur hum generator yang
+	# menyala sesudahnya (-16 dB, bus Ambience). Mati saat hold
+	# selesai/batal; hum normal mengambil alih kalau generator nyala.
+	crank_player = _make_player("generator_hum.wav", -8.0, true, "SFX")
 	# Suara siaran radio (gTTS id + proses radio rusak). Urutan 1..5
 	# = urutan LINES di scripts/interactables/radio.gd.
 	for i in range(1, 6):
@@ -176,6 +183,14 @@ func radio_voice_playing() -> bool:
 func play_creak() -> void:
 	if creak_player:
 		creak_player.play()
+
+func play_crank() -> void:
+	if crank_player and not crank_player.playing:
+		crank_player.play()
+
+func stop_crank() -> void:
+	if crank_player and crank_player.playing:
+		crank_player.stop()
 
 func play_thud() -> void:
 	if thud_player:

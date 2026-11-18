@@ -47,7 +47,7 @@ func _build_visual() -> void:
 		add_child(spr)
 
 func get_prompt() -> String:
-	return "Lentera - Tekan E untuk %s" % ("matikan" if is_on else "nyalakan")
+	return "Lentera - %s E untuk %s" % [TouchControls.action_word(), ("matikan" if is_on else "nyalakan")]
 
 func interact() -> void:
 	is_on = not is_on

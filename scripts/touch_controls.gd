@@ -1,3 +1,4 @@
+class_name TouchControls
 extends CanvasLayer
 ## Kontrol sentuh Android: joystick virtual (kiri) + geser kanan untuk
 ## melihat + tombol E / SENTER / jeda.
@@ -6,6 +7,21 @@ extends CanvasLayer
 ## dan test rig mode=touch). Joystick mengambang: muncul di titik jari
 ## menyentuh separuh kiri layar. Tombol dibuat dari Button biasa supaya
 ## bisa ditekan jari maupun mouse.
+##
+## v27 (kritik #4, Luci: game-ui-ux — UI sesuai platform): deteksi
+## sentuh dipakai BERSAMA oleh HUD + semua prompt interaksi, jadi
+## teks "Tekan E" / "WASD" tidak muncul di HP. is_touch() statis
+## supaya interactable (yang tidak punya referensi ke node ini)
+## bisa bertanya langsung. force_show() (rig) juga menyalakan flag.
+
+static var _force_touch := false
+
+static func is_touch() -> bool:
+	return _force_touch or DisplayServer.is_touchscreen_available()
+
+## Kata kerja prompt: "Ketuk" di layar sentuh, "Tekan" di keyboard.
+static func action_word() -> String:
+	return "Ketuk" if is_touch() else "Tekan"
 
 const JOY_RADIUS := 85.0
 const LOOK_SENS := 0.0045
@@ -24,11 +40,14 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if str(a) == "touch=1":
 			force = true
+	if force:
+		_force_touch = true
 	if force or DisplayServer.is_touchscreen_available():
 		visible = true
 
 ## Dipakai test rig: paksa tampil walau di desktop tanpa layar sentuh.
 func force_show() -> void:
+	_force_touch = true
 	visible = true
 
 func _panel_circle(size: float, alpha: float) -> Panel:
@@ -75,10 +94,19 @@ func _build() -> void:
 	add_child(hint)
 
 	# Tombol aksi di kanan bawah (E besar, senter di atasnya).
+	# v27 (kritik #4): SENTER DIPISAH dari E — dulu jaraknya cuma
+	# 60 px (440+60=500, E mulai 560), berisiko salah pencet saat
+	# panik. Sekarang 140 px (senter bawah 440, E mulai 560):
+	# jempol harus sengaja pindah, bukan tersenggol.
 	var interact_btn := _touch_button("E", Vector2(1090, 560), Vector2(110, 110))
-	interact_btn.pressed.connect(_on_interact)
+	# v27 (kritik #5): tombol E TAHAN, bukan pencet — button_down
+	# mulai hold, button_up membatalkan (sama seperti keyboard E).
+	# Interaksi instan tetap jalan di button_down (player yang
+	# memutuskan hold vs instan dari targetnya).
+	interact_btn.button_down.connect(_on_interact_down)
+	interact_btn.button_up.connect(_on_interact_up)
 	add_child(interact_btn)
-	var light_btn := _touch_button("SENTER", Vector2(1090, 440), Vector2(110, 60))
+	var light_btn := _touch_button("SENTER", Vector2(1090, 360), Vector2(110, 60))
 	light_btn.pressed.connect(_on_flashlight)
 	add_child(light_btn)
 	# Tombol jeda di kiri atas, di bawah label REC (kanan atas ditempati jam).
@@ -90,7 +118,7 @@ func _build() -> void:
 func _player() -> Node:
 	return get_tree().get_first_node_in_group("player")
 
-func _on_interact() -> void:
+func _on_interact_down() -> void:
 	# Kalau dokumen/intro sedang terbuka, tombol E menutupnya
 	# (bukan memicu interaksi lagi di belakang panel).
 	var hud := get_tree().get_first_node_in_group("hud")
@@ -101,8 +129,13 @@ func _on_interact() -> void:
 			hud.close_intro()
 		return
 	var p := _player()
-	if p != null and p.has_method("try_interact"):
-		p.try_interact()
+	if p != null and p.has_method("begin_hold_interact"):
+		p.begin_hold_interact()
+
+func _on_interact_up() -> void:
+	var p := _player()
+	if p != null and p.has_method("end_hold_interact"):
+		p.end_hold_interact()
 
 func _on_flashlight() -> void:
 	var p := _player()

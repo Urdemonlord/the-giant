@@ -41,6 +41,52 @@ func shake(amount: float) -> void:
 
 signal prompt_changed(text: String)
 signal footstep
+## v27 (kritik #5, Luci: game-feel): hold-to-interact. Progress +
+## selesai/batal dikirim ke HUD (bar progres). Interactable yang
+## punya hold_duration() > 0 (generator, buku jaga) tidak langsung
+## jalan di pencet — baru jalan setelah tombol ditahan penuh.
+## Lepas tombol / bidikan lepas = batal, progres reset.
+signal hold_progress_changed(progress: float, duration: float)
+signal hold_ended(cancelled: bool)
+
+var _hold_target: Object = null
+var _hold_progress := 0.0
+var _hold_duration := 0.0
+var _hold_pitch_target := 0.0 # derajat, 0 = tidak ada perubahan pitch
+
+## Dipakai TouchControls (tombol E: button_down/up) + _unhandled_input
+## (keyboard E: pressed/released). Holdable -> mulai menahan;
+## instan -> langsung interaksi seperti dulu.
+func begin_hold_interact() -> void:
+	var target := get_current_interactable()
+	if target == null:
+		return
+	if target.has_method("hold_duration"):
+		var d := float(target.hold_duration())
+		if d > 0.0:
+			_hold_target = target
+			_hold_duration = d
+			_hold_progress = 0.0
+			_hold_pitch_target = float(target.hold_pitch_deg()) if target.has_method("hold_pitch_deg") else 0.0
+			hold_progress_changed.emit(0.0, d)
+			if target.has_method("hold_started"):
+				target.hold_started()
+			return
+	_try_interact()
+
+func end_hold_interact() -> void:
+	if _hold_target != null:
+		_cancel_hold()
+
+func _cancel_hold() -> void:
+	var t := _hold_target
+	_hold_target = null
+	_hold_progress = 0.0
+	_hold_duration = 0.0
+	_hold_pitch_target = 0.0
+	if t != null and t.has_method("hold_ended"):
+		t.hold_ended(true)
+	hold_ended.emit(true)
 
 func _ready() -> void:
 	add_to_group("player")
@@ -78,19 +124,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		# v18: sensitivitas = bawaan Balance x pengali pilihan pemain
-		# (Settings, diatur di Options menu utama; default 1.0).
-		var s := MOUSE_SENS * Settings.mouse_sens()
-		apply_look(-event.relative.x * s, -event.relative.y * s)
+		# v27: saat menahan interaksi, pandangan TERKUNCI (game-feel:
+		# momen rentan). Pemain tidak bisa menoleh ke belakang
+		# sambil menarik tuas generator / menulis laporan — itu
+		# yang bikin hold tegang, bukan cuma timer.
+		if _hold_target == null:
+			# v18: sensitivitas = bawaan Balance x pengali pilihan pemain
+			# (Settings, diatur di Options menu utama; default 1.0).
+			var s := MOUSE_SENS * Settings.mouse_sens()
+			apply_look(-event.relative.x * s, -event.relative.y * s)
 	if event.is_action_pressed("flashlight"):
 		toggle_flashlight()
 	if event.is_action_pressed("interact"):
-		_try_interact()
+		begin_hold_interact()
+	elif event.is_action_released("interact"):
+		end_hold_interact()
 
 func _physics_process(delta: float) -> void:
-	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	if touch_move.length() > 0.05:
-		input_dir = touch_move
+	# v27: selama menahan interaksi, pemain BERDIAM — menarik tuas
+	# / menulis laporan sambil jalan itu tidak masuk akal, dan
+	# bergerak saat hold bisa menggeser bidikan keluar dari target
+	# (pitch menunduk buku jaga membatalkan hold-nya sendiri).
+	# Look sudah terkunci di _unhandled_input; di sini gerak yang
+	# dikunci. Batal hanya dengan melepas tombol.
+	var input_dir := Vector2.ZERO
+	if _hold_target == null:
+		input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+		if touch_move.length() > 0.05:
+			input_dir = touch_move
 	var speed := SPEED_SPRINT if Input.is_action_pressed("sprint") else SPEED_WALK
 	var dir := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 	if not is_on_floor():
@@ -133,7 +194,41 @@ func _physics_process(delta: float) -> void:
 	camera.position = Vector3(_shake_offset.x, _bob_y + _shake_offset.y, 0.0)
 	camera.rotation.z = _shake_roll
 	_update_fov(delta)
+	_update_hold(delta)
 	_update_prompt()
+
+## v27: denyut hold. Pitch menunduk pelan kalau target memintanya
+## (buku jaga: -32 derajat, menulis sambil menunduk). Selesai =
+## interact() target jalan sekali. Batal HANYA dengan melepas tombol:
+## look terkunci + gerak terkunci selama hold, jadi tidak ada cara
+## lain bidikan lepas — kecuali pitch menunduk itu sendiri, yang
+## menggeser ray dari buku ke surat di sebelahnya (ketahuan di
+## holdprobe v27: ray kena Permit di 0,5 detik, hold batal).
+## Cek "bidikan lepas = batal" sengaja TIDAK ADA di sini.
+func _update_hold(delta: float) -> void:
+	if _hold_target == null:
+		return
+	_hold_progress += delta
+	hold_progress_changed.emit(_hold_progress, _hold_duration)
+	if _hold_pitch_target != 0.0:
+		pitch = lerpf(pitch, deg_to_rad(_hold_pitch_target), 1.0 - exp(-4.0 * delta))
+		head.rotation.x = pitch
+	# Getaran target selama menahan (generator: mesin menderu di
+	# tangan). Trauma dijaga di angka kecil, meluruh sendiri saat
+	# hold selesai — game-feel: kembali ke rest.
+	if _hold_target.has_method("hold_shake_amount"):
+		trauma = maxf(trauma, float(_hold_target.hold_shake_amount()))
+	if _hold_progress >= _hold_duration:
+		var t := _hold_target
+		_hold_target = null
+		_hold_progress = 0.0
+		_hold_duration = 0.0
+		_hold_pitch_target = 0.0
+		if t.has_method("hold_ended"):
+			t.hold_ended(false)
+		hold_ended.emit(false)
+		if t.has_method("interact"):
+			t.interact()
 
 ## v14 (camera-systems): FOV menyempit halus saat Sanity rendah
 ## (terowongan) dan sedikit lagi saat event Giant aktif. Semua di-ease

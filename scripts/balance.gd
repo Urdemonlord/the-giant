@@ -64,7 +64,10 @@ const PLAYER_PITCH_LIMIT_DEG := 82.0
 ## pos ketutup gumpalan kabut dari jarak 8 m.
 const FOG_DENSITY := 0.06
 const FOG_LIGHT_COLOR := Color(0.23, 0.27, 0.22, 1) # abu kehijauan sakit, palet
-const FOG_LIGHT_ENERGY := 1.0
+const FOG_LIGHT_ENERGY := 0.35 # v27: 1.0 -> 0.35. Kabut ikut
+# menyala dari cahaya ambient/bulan; di 1.0 hutan luar jadi abu-abu
+# terang sebelum generator/senter nyala, senter kehilangan guna.
+# Di 0.35 kabut tetap kelihatan tapi tidak lagi menerangi hutan.
 const FOG_SKY_AFFECT := 0.85 # langit ikut berkabut, bukan hitam pekat polos
 const FOG_PUFF_COUNT := 36 # v5: 10
 const FOG_PUFF_ALPHA := 0.34 # v6: 0.42; diturunkan karena volumetric fog menambah haze (0.55 dulu kebablasan jadi dinding)
@@ -110,21 +113,49 @@ static func volumetric_active() -> bool:
 		return false
 	return str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "gl_compatibility")) == "forward_plus"
 
-## --- Kurva malam (v14, suasana) ----------------------------------------------
+## --- Kurva malam (v14, suasana; v27 digelapkan) ---------------------------
 ## Malam makin dalam sampai ~02:00, bertahan gelap sampai ~04:00, lalu
 ## fajar mengintip dari 05:00. Semua lerp KECIL supaya tidak merusak
-## tuning kabut v6/v8 yang sudah susah payah: bulan 0.75 -> 0.55 -> 0.85,
-## ambient 0.65 -> 0.50 -> 0.70, fog volumetrik 0.030 -> 0.036 -> 0.028.
-## Tidak menyentuh gameplay (generator/lampu/tugas tetap seperti semula).
+## tuning kabut v6/v8 yang sudah susah payah.
+## v27 (kritik gameplay #3, Luci: level-design — cahaya sebagai
+## mekanik): kurva LAMA terlalu terang di luar pos (ambient 0.65 ->
+## 0.50, bulan 0.75 -> 0.55): hutan kebaca abu-abu tanpa senter,
+## senter tidak ada gunanya. Sekarang ambient 0.28 -> 0.14, bulan
+## 0.45 -> 0.28: tanpa senter, jalan ke generator nyaris gelap
+## gulita; bulan cuma cukup untuk siluet samar pohon + bayangan
+## Giant dari jauh. Interior pos TIDAK ikut gelap: lentera (energi
+## 2.0) + lampu teras generator yang menerangi dalam. Menu pakai
+## MENU_AMBIENT/MENU_MOON sendiri, tidak tersentuh.
 const NIGHT_DEEP_MINUTE := 240.0 # 02:00, titik tergelap
 const NIGHT_HOLD_MINUTE := 360.0 # 04:00, gelap bertahan sampai sini
 const NIGHT_DAWN_MINUTE := 420.0 # 05:00, fajar mulai mengintip
-const NIGHT_MOON_DEEP := 0.55
-const NIGHT_MOON_DAWN := 0.85
-const NIGHT_AMBIENT_DEEP := 0.50
-const NIGHT_AMBIENT_DAWN := 0.70
+const NIGHT_MOON_START := 0.45
+const NIGHT_MOON_DEEP := 0.28
+const NIGHT_MOON_DAWN := 0.55
+const NIGHT_AMBIENT_START := 0.28
+const NIGHT_AMBIENT_DEEP := 0.14
+const NIGHT_AMBIENT_DAWN := 0.35
 const NIGHT_VOL_DEEP := 0.036
 const NIGHT_VOL_DAWN := 0.028
+
+## --- Hold-to-interact (v27, kritik #5) --------------------------------------
+## Interaksi penting butuh WAKTU, bukan satu pencet instan: generator
+## 4,5 detik tarik tuas (kamera terkunci menghadap generator, suara
+## mesin bising), buku jaga 3 detik menulis (menunduk, rentan).
+## Lepas tombol sebelum selesai = progres batal. Yang lain tetap instan.
+const HOLD_GENERATOR_SECONDS := 4.5
+const HOLD_LOGBOOK_SECONDS := 3.0
+
+## --- Sanity di kegelapan (v27, kritik #6) ------------------------------------
+## Bar Sanity dulu statis di 2 menit pertama karena semua drain baru
+## aktif saat event (pemburu 01:30, kaki 03:30, mata 04:45). Sekarang
+## Sanity hidup sejak awal: di luar pos dalam gelap (tanpa senter,
+## di luar jangkauan lampu teras) ia turun pelan; di dalam pos dekat
+## cahaya (lentera/generator menyala) ia pulih pelan. Laju kecil
+## sengaja: ini tekanan suasana, bukan drain event (5,5/dtk).
+const DARK_SANITY_DRAIN := 0.5 # per detik di gelap di luar pos
+const DARK_SANITY_REGEN := 0.5 # per detik dekat cahaya pos
+const PORCH_LIGHT_PROTECT_RANGE := 7.0 # meter dari lampu teras
 
 ## --- Goyang kamera trauma (v14, game-feel) -----------------------------------
 ## game-feel: trauma^2 + summed sines, meluruh di real time, snap ke rest.

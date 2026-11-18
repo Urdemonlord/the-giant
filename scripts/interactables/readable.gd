@@ -11,12 +11,10 @@ extends StaticBody3D
 const DOCS := {
 	"newspaper": {
 		"title": "HARIAN RIMBA POST",
-		"prompt": "Koran - Tekan E untuk membaca",
 		"body": "Gajah Liar Masuk Kebun Sawit, Petani Rugi Miliaran\n\nTAMAN NASIONAL MALAYUNESIA — Seekor gajah liar masuk ke kebun sawit di pinggir kawasan dan merusak tanaman warga. Kerugian ditaksir miliaran rupiah.\n\nPemerintah daerah meminta warga tetap tenang dan tidak mendekati hewan tersebut.\n\nYang tidak ditulis koran ini: kebun itu dulunya hutan tempat gajah-gajah itu hidup dan mati.\n\n— Koran ini dipakai sebagai alas makan di pos. Tintanya luntur kena hujan.",
 	},
 	"permit": {
 		"title": "SURAT KEPUTUSAN — PELEPASAN KAWASAN HUTAN",
-		"prompt": "Surat Izin - Tekan E untuk membaca",
 		"body": "Dengan ini, kawasan hutan seluas 12.400 hektar dilepas untuk perkebunan sawit.\n\nPemegang izin wajib menjaga satwa dilindungi di dalam kawasan.\n\nStempel basah di pojok kertas. Di pinggirnya, tulisan tangan:\n\"gajah sudah tidak ada di sini\"\n\nPadahal kuburan gajah ada di belakang pos ini.",
 	},
 }
@@ -75,7 +73,11 @@ func _build_visual() -> void:
 	add_child(shape)
 
 func get_prompt() -> String:
-	return str(DOCS[doc_id]["prompt"]) if DOCS.has(doc_id) else "Dokumen - Tekan E untuk membaca"
+	if doc_id == "newspaper":
+		return "Koran - %s E untuk membaca" % TouchControls.action_word()
+	if doc_id == "permit":
+		return "Surat Izin - %s E untuk membaca" % TouchControls.action_word()
+	return "Dokumen - %s E untuk membaca" % TouchControls.action_word()
 
 func interact() -> void:
 	var hud := get_tree().get_first_node_in_group("hud")

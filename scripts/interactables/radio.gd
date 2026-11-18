@@ -39,7 +39,7 @@ func _build_visual() -> void:
 		add_child(spr)
 
 func get_prompt() -> String:
-	return "Radio - Tekan E untuk dengarkan"
+	return "Radio - %s E untuk dengarkan" % TouchControls.action_word()
 
 func interact() -> void:
 	_index = (_index + 1) % LINES.size()

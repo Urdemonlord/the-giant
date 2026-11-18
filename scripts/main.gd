@@ -310,12 +310,44 @@ func _process(delta: float) -> void:
 		GameState.restore_stability(Balance.LIGHT_STABILITY_REGEN * delta)
 	else:
 		GameState.damage_stability(Balance.DARK_STABILITY_DRAIN * delta)
+	_update_darkness_sanity(delta)
 	_apply_night_curve(delta)
+
+## v27 (kritik #6, Luci: level-design — cahaya sebagai mekanik):
+## Sanity hidup sejak menit pertama, bukan baru saat event. Di luar
+## pos dalam gelap (tanpa senter, di luar jangkauan lampu teras)
+## Sanity turun pelan; di dalam pos dekat cahaya (lentera menyala
+## atau generator menyala) ia pulih pelan. Di dalam pos yang gelap
+## (lentera mati, generator mati) netral — pos adalah markas, bukan
+## jebakan. Stability sudah hidup sejak awal lewat drain generator
+## mati di _process (0.55/dtk), jadi kedua bar bergerak di 2 menit
+## pertama. Batas pos dari LevelData: x -2.5..2.5, z -2..2 (+0.5
+## toleransi ambang pintu).
+func _update_darkness_sanity(delta: float) -> void:
+	var player := get_node_or_null("Player") as Node3D
+	if player == null:
+		return
+	var pos := player.global_position
+	var outside := absf(pos.x) > LevelData.POST_WIDTH * 0.5 + 0.5 or pos.z < -LevelData.POST_DEPTH * 0.5 - 0.5 or pos.z > LevelData.POST_DEPTH * 0.5 + 0.5
+	if not outside:
+		var lantern := get_node_or_null("Lantern")
+		var lit_inside := GameState.generator_on or (lantern != null and bool(lantern.get("is_on")))
+		if lit_inside:
+			GameState.restore_sanity(Balance.DARK_SANITY_REGEN * delta)
+		return
+	var flash_on := bool(player.get("flashlight_on"))
+	var porch_lit := GameState.generator_on and pos.distance_to(LevelData.POST_PORCH_LIGHT_POS) < Balance.PORCH_LIGHT_PROTECT_RANGE
+	if flash_on or porch_lit:
+		return
+	GameState.damage_sanity(Balance.DARK_SANITY_DRAIN * delta)
 
 ## v14 (tension pacing): malam makin dalam sampai ~02:00, bertahan
 ## gelap sampai ~04:00, lalu fajar mengintip dari 05:00. Bulan, ambient,
 ## dan fog volumetrik di-lerp pelan (konstanta ~2 detik) supaya tidak
 ## ada lompatan yang kelihatan; semua angka di Balance, semua kecil.
+## v27: titik START/DEEP/DAWN kini konstanta Balance sendiri (dulu
+## hardcode 0.75/0.65 di rumus) supaya kurva bisa di-tune tanpa baca
+## rumus — dan nilainya digelapkan (lihat Balance).
 func _apply_night_curve(delta: float) -> void:
 	var env_node := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	var moon := get_node_or_null("MoonLight") as DirectionalLight3D
@@ -336,10 +368,14 @@ func _apply_night_curve(delta: float) -> void:
 		dawn = clampf((m - Balance.NIGHT_DAWN_MINUTE) / (Balance.SHIFT_LENGTH_MINUTES - Balance.NIGHT_DAWN_MINUTE), 0.0, 1.0)
 	var env := env_node.environment
 	var k := 1.0 - exp(-0.5 * delta)
-	moon.light_energy = lerpf(moon.light_energy,
-		0.75 - 0.20 * dark + 0.10 * dawn, k)
-	env.ambient_light_energy = lerpf(env.ambient_light_energy,
-		0.65 - 0.15 * dark + 0.05 * dawn, k)
+	# Kurva tiga titik: START (22:00) -> DEEP (02:00-04:00) -> DAWN (06:00).
+	# dark=0 di awal, 1 di titik tergelap, 0.5 di akhir; dawn=0 sampai
+	# 05:00 lalu naik ke 1. Rumus lama (0.75 - 0.20*dark + 0.10*dawn)
+	# setara dengan START 0.75 / DEEP 0.55 / DAWN 0.65 untuk bulan.
+	var moon_target := lerpf(Balance.NIGHT_MOON_START, Balance.NIGHT_MOON_DEEP, dark) + (Balance.NIGHT_MOON_DAWN - Balance.NIGHT_MOON_DEEP) * dawn * 0.5
+	var amb_target := lerpf(Balance.NIGHT_AMBIENT_START, Balance.NIGHT_AMBIENT_DEEP, dark) + (Balance.NIGHT_AMBIENT_DAWN - Balance.NIGHT_AMBIENT_DEEP) * dawn * 0.5
+	moon.light_energy = lerpf(moon.light_energy, moon_target, k)
+	env.ambient_light_energy = lerpf(env.ambient_light_energy, amb_target, k)
 	if Balance.volumetric_active():
 		env.volumetric_fog_density = lerpf(env.volumetric_fog_density,
 			Balance.VOL_FOG_DENSITY + (Balance.NIGHT_VOL_DEEP - Balance.VOL_FOG_DENSITY) * dark
