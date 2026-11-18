@@ -79,7 +79,19 @@ const PLAYER_PITCH_LIMIT_DEG := 82.0
 ## generator 3-5 m dari pemain 0.55-0.70, tetap kebaca. Kalau
 ## langkah ini menelan pos/generator, mundur ke 0.10.
 const FOG_DENSITY := 0.12
-const FOG_LIGHT_COLOR := Color(0.27, 0.32, 0.26, 1) # v30 langkah C: (0.32, 0.38, 0.30) -> turun setengah jalan ke v29.
+const FOG_LIGHT_COLOR := Color(0.45, 0.53, 0.43, 1) # v31 (kabut PUCAT ala Silent Hill, Arya 19:42 WIB):
+	# (0.27, 0.32, 0.26) -> (0.45, 0.53, 0.43). Luminance Rec709
+	# 0.305 -> 0.506; HUE hijau-sakit DIPERTAHANKAN (G/R 1.185 ->
+	# 1.178, B/R 0.963 -> 0.956) — yang naik cuma terangnya, bukan
+	# jadi putih polos. Prinsip Silent Hill: kabut TERANG, dunia
+	# GELAP; kabut harus jadi hal paling terang di frame kecuali
+	# lampu. Energi diturunkan 0.42 -> 0.32 supaya produk
+	# (warna x energi) 0.128 -> 0.162: di antara langkah C v30
+	# (0.128, aman) dan langkah B v30 yang GAGAL (0.199, veil
+	# lebih terang dari pos, senter mati). Density v30 TIDAK
+	# diubah (game 0.12, menu 0.10) — ini ronde WARNA, bukan density.
+	# Kalau veil menelan kepala (delta kubah-kabut < 4) atau senter
+	# mati, mundur energi ke 0.28 dulu, jangan sentuh density.
 	# Langkah B terlalu MENYALA: veil lebih terang dari pohon DAN
 	# dari pos (center night_dark L22.5 > pohon L19.8), pos jadi
 	# kotak kabut bercahaya, bukan massa gelap; senter nyaris
@@ -87,7 +99,7 @@ const FOG_LIGHT_COLOR := Color(0.27, 0.32, 0.26, 1) # v30 langkah C: (0.32, 0.38
 	# LEBIH TERANG dari pohon jauh (supaya terbaca sebagai kabut,
 	# bukan kegelapan) tapi LEBIH GELAP dari pos dekat (supaya pos
 	# tetap massa gelap di dalam kabut). Tetap abu kehijauan sakit.
-const FOG_LIGHT_ENERGY := 0.42 # v30 langkah C: 0.55 -> 0.42 (di antara v29 0.35 dan langkah B 0.55).
+const FOG_LIGHT_ENERGY := 0.29 # v31 langkah D (mundur setengah): 0.32 -> 0.29. Kandidat A (produk 0.162) menelan malam game — pos 25.2 (cuma +2.6 di atas veil), delta senter +1.9, jalan tidak kebaca. Produk kini 0.147, setengah jalan kembali ke langkah C v30 (0.128). Warna pucat TETAP (0.45,0.53,0.43).
 	# Density 0.12 TETAP — yang melarutkan pohon adalah density,
 	# bukan kecerahan; yang meratakan kontras adalah kecerahan.
 const FOG_SKY_AFFECT := 0.85 # langit ikut berkabut, bukan hitam pekat polos
@@ -118,7 +130,7 @@ const GRADE_FAR_TINT := Color(0.95, 0.98, 1.0, 1.0) # siluet jauh unshaded: kepa
 const GRADE_TREE_TINT := Color(0.8, 0.85, 0.85, 1.0) # pohon (dulu literal sama di _make_tree)
 const GRADE_PROP_TINT := Color(0.85, 0.85, 0.85, 0.95) # props + decal tanah (dulu literal di _scatter_prop/_ground_decal)
 const GRADE_SIGN_TINT := Color(0.55, 0.58, 0.55, 1.0) # wajah papan tanda (dulu literal di _make_sign)
-const GRADE_FOG_TINT := Color(0.62, 0.68, 0.58, 1.0) # gumpalan + ground fog (dulu literal 0.62/0.68/0.58)
+const GRADE_FOG_TINT := Color(0.70, 0.76, 0.66, 1.0) # gumpalan + ground fog (v31: 0.62/0.68/0.58 -> 0.70/0.76/0.66, luminance 0.65 -> 0.73; hue sama, puff tetap sedikit lebih terang dari veil supaya teksturnya kebaca di atas kabut pucat)
 
 ## --- Kabut volumetrik (Forward+ saja) ---------------------------------------
 ## Godot 4.3: volumetric fog HANYA jalan di renderer Forward+; di
@@ -144,7 +156,7 @@ const GRADE_FOG_TINT := Color(0.62, 0.68, 0.58, 1.0) # gumpalan + ground fog (du
 ## Windows (selisih total < 5%).
 const VOL_FOG_ENABLED := true
 const VOL_FOG_DENSITY := 0.048
-const VOL_FOG_ALBEDO := Color(0.35, 0.42, 0.34, 1) # hamburan cahaya bulan, hijau sakit
+const VOL_FOG_ALBEDO := Color(0.45, 0.53, 0.43, 1) # hamburan cahaya bulan, hijau sakit (v31: 0.35/0.42/0.34 -> sama dengan FOG_LIGHT_COLOR baru, supaya Forward+ dan Compatibility satu keluarga)
 const VOL_FOG_EMISSION := Color(0.10, 0.12, 0.09, 1) # pijar kabut sendiri, redup
 const VOL_FOG_EMISSION_ENERGY := 0.10 # v13 ronde 1: 0.25, veil pijar terlalu terang
 const VOL_FOG_ANISOTROPY := -0.15 # v13 ronde 2: +0.35 (forward scatter) melemahkan beam yang dilihat dari belakang lampu; beam senter + halo lampu teras butuh BACKscatter, jadi negatif ringan. Ronde 3: -0.15.

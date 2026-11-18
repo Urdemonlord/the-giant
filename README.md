@@ -1419,6 +1419,102 @@ terang); sekarang energi 0.35, kabutnya murk gelap.
   `v32_night_dark.png`, `v32_night_flash.png`,
   `v32_path_dark.png`, `v32_path_flash.png`.
 
+## v31: kabut PUCAT ala Silent Hill — kabut terang, dunia gelap (2026-11-18)
+
+Arya (19:42 WIB, memilih opsi "kabut pucat" atas "tetap warna
+sekarang"): di game lain warna kabutnya apa biar gelap tapi
+berkabut. Jawabannya: Silent Hill pakai kabut PUTIH-ABU tebal
+sebagai tirai (awalnya trik nutupin draw distance PS1), pohon dan
+kota hampir hitam di baliknya. Alan Wake / RE2 remake pakai
+biru-abu dingin, The Forest abu-hijau pucat. Polanya sama: kabut
+2-3x lebih terang dari pohon/tanah gelap — kabut jadi hal paling
+terang di frame kecuali lampu. Luci: router (Godot 4.3 pinned) →
+level-design (kabut sebagai framing/sightline) + camera-systems
+(keterbacaan via proyeksi + luminance zona). create-game-assets:
+tidak dipakai (tidak ada aset baru).
+
+### Angka lama vs baru (ronde WARNA, density v30 TIDAK diubah)
+
+| Nilai | v30 | v31 kandidat A | v31 langkah D (final) |
+|---|---|---|---|
+| FOG_LIGHT_COLOR | (0.27, 0.32, 0.26) | **(0.45, 0.53, 0.43)** | (0.45, 0.53, 0.43) |
+| FOG_LIGHT_COLOR luminance Rec709 | 0.305 | 0.506 | 0.506 |
+| FOG_LIGHT_ENERGY | 0.42 | 0.32 | **0.29** |
+| Produk warna x energi | 0.128 | 0.162 | **0.147** |
+| VOL_FOG_ALBEDO | (0.35, 0.42, 0.34) | **(0.45, 0.53, 0.43)** | (0.45, 0.53, 0.43) |
+| GRADE_FOG_TINT | (0.62, 0.68, 0.58) | **(0.70, 0.76, 0.66)** | (0.70, 0.76, 0.66) |
+| FOG_DENSITY / MENU_FOG_DENSITY | 0.12 / 0.10 | tidak diubah | tidak diubah |
+
+Hue hijau-sakit DIPERTAHANKAN (G/R 1.185 -> 1.178, B/R 0.963 ->
+0.956) — yang naik cuma terangnya, bukan jadi putih polos.
+Satu warna untuk game + menu + ground fog + puff (menu tidak
+override warna, cuma density). `.tscn` ikut disamakan (default
+lama 0.23/0.27/0.22 sudah ketinggalan sejak v29). VOL_FOG_EMISSION
+tidak diubah (pijar sendiri tetap redup).
+
+### Kenapa kandidat A GAGAL dan harus mundur setengah langkah
+
+Kandidat A (produk 0.162) menelan malam game — mode gagal langkah
+B v30 lagi, cuma dengan hue lebih pucat: pos 25.2 (cuma +2.6 di
+atas veil, bukan lagi massa gelap), delta senter +1.9 (dulu
++2.3), jalan tidak kebaca, papan kuburan tercuci. Menu-nya
+sendiri bagus (veil pucat, lentera tetap hangat), tapi game-nya
+jadi cucian abu-abu rata. Pelajaran yang terukur: respons veil
+terhadap produk CURAM — produk +27% (0.128 -> 0.162) menaikkan
+veil +50% (menu 14.9 -> 22.3) dan whole malam +44% (11.7 ->
+16.8). Karena itu mundur setengah jalan ke produk 0.147
+(energi 0.29), bukan ke 0.128: warna pucat TETAP, veil turun
+cukup untuk mengembalikan fungsi senter.
+
+### Diukur (zona sama, skala L 0-100, v33 vs v35 final)
+
+- Menu: veil 14.9 -> **20.4**, pohon dekat 8.5 -> 12.3
+  (rasio veil/pohon 1.66x — target 2x TIDAK tercapai, lihat
+  catatan), kubah 18.6 -> **25.1**, delta kubah-veil 3.7 ->
+  **4.7** (guardrail >= 4 TERPENUHI, kepala tetap kebaca
+  gajah), kabut jendela 22.2 -> 30.5, pita kabut tanah 21.2 ->
+  30.2, papan 16.3 -> 24.0, lentera 22.9 -> 25.0 (RGB hangat
+  terjaga, R>G>B, tidak tercuci putih), buku 38.7 -> 41.5.
+- Malam tanpa senter: whole 11.7 -> **14.8**, pos 15.8 ->
+  **22.0** (masih +2.2 di atas veil — pos abu-abu, bukan lagi
+  massa HITAM seperti v33; itu harga kabut pucat), veil kiri
+  14.4 -> 19.8, pohon dekat 14.0 -> 19.3, langit tetap 4.2.
+- Malam dengan senter: pos 18.1 -> **26.6**, delta senter
+  **+4.6** (v33 +2.3, kandidat A +1.9) — senter justru LEBIH
+  berguna dari v33, pintu + anak tangga jelas menyala.
+- Jalan: gelap whole 10.7 -> 15.5, senter tengah 18.3 ->
+  23.6 (delta +5.2, v33 +5.8, kandidat A +2.4).
+
+CATATAN target 2x: rasio veil/pohon dekat tidak pernah bisa
+2x dengan kabut seragam — pohon dekat ikut tercampur kabut
+(fog factor tinggi di 8-15 m), jadi menaikkan veil ikut
+menaikkan pohon. Yang tercapai: veil JELAS lebih terang dari
+pohon paling gelap (20.4 vs 12.3), langit tetap hitam (4.2),
+kepala tetap kebaca. Kalau Arya mau rasio 2x beneran, jalannya
+bukan menaikkan kabut lagi tapi MENGELAPKAN pohon dekat
+(grade pohon) — itu ronde lain, bukan ronde warna kabut.
+
+### Verifikasi
+
+Quick rig v31: desktop 14/0, portrait 14/0, with-save 14/0
+(cek baru: warna pucat + energi 0.29, density v30 tetap).
+Rig menu penuh: desktop 32/32, portrait 32/32. Mode verify
+DONE (registry 81, missing 0, hitbox meja tumpang 0); mode
+playtest PASS fails=0 (5 tugas, Sanity 100, Stability 100);
+mode shots27 selesai (prefix v35); menu_autostart masuk main
+(22:00, fog_density=0.12). `project.godot` NO-DIFF.
+Screenshot baru: `v35_menu_no_save`, `v35p_menu_no_save`,
+`v35_night_dark`, `v35_night_flash`, `v35_path_dark`,
+`v35_path_flash` (semua dibaca sendiri; v34 kandidat A
+disimpan sebagai arsip langkah yang ditolak).
+
+Sisa: garis pelangi diagonal tipis shader VHS di shot malam
+(makin kentara karena kabut lebih terang, belum diselidiki);
+`ERR_CANT_OPEN` di awal rig menu (settings.json, sejak v20);
+pos malam kini abu-abu, bukan massa hitam — kalau Arya mau
+hitamnya balik sambil kabut tetap pucat, itu butuh grade pos
+atau cahaya terpisah, bukan angka kabut.
+
 ## v30: kabut HARUS kelihatan bedanya (2026-11-18)
 
 Arya (18:15 WIB, setelah v29): "gada bedanya". Dia benar: di
