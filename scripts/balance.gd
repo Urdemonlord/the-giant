@@ -283,13 +283,13 @@ const DISTANT_THUD_MIN_GAP := 90.0 # detik antar dentum
 const DISTANT_THUD_MAX_GAP := 180.0
 
 ## --- VHS ikut Sanity (v14) ----------------------------------------------------
-const VHS_GRAIN_LOW_SANITY := 0.16 # dulu 0.13
+const VHS_GRAIN_LOW_SANITY := 0.12 # v33: dulu 0.16 (grain dilembutkan, tetap naik saat Sanity rendah)
 const VHS_DESAT_LOW_SANITY := 0.52 # dulu 0.45
 const VHS_VIGNETTE_LOW_SANITY := 0.45 # dulu 0.38
 
 ## --- Grafik creepy (overlay analog horror, hud.gd) ---------------------------
 ## Semua angka di sini supaya intensitas bisa di-tune tanpa baca shader.
-const VHS_GRAIN := 0.13 # v5: 0.055
+const VHS_GRAIN := 0.09 # v33: dulu 0.13 (grain dilembutkan ~30%, scanline tetap; analog tetap hidup)
 const VHS_SCANLINE := 0.10 # kekuatan garis scanline
 const VHS_CA := 0.0016 # chromatic aberration, offset UV merah/biru
 const VHS_DESATURATE := 0.45 # 0 = warna asli, 1 = abu-abu sakit
@@ -351,7 +351,7 @@ const MENU_VOL_DENSITY := 0.04
 const MENU_FOG_DENSITY := 0.10
 ## Grade menu: grain halus saja, BUKAN bingkai CCTV (kritik #3).
 ## Scanline/tear/flicker dimatikan; desat + vignette tipis, CA 0.
-const MENU_GRADE_GRAIN := 0.05
+const MENU_GRADE_GRAIN := 0.04 # v33: dulu 0.05
 const MENU_GRADE_SCANLINE := 0.0
 const MENU_GRADE_CA := 0.0 # v23 (Luci: game-ui-ux + unslop):
 	# CA MATI di menu. Dulu 0.003 (v25: 0.008) — shader VHS

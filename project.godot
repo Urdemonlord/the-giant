@@ -79,5 +79,14 @@ pause={
 
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"
+; v33 (Luci: camera-systems + unslop): MSAA 4x untuk tepi geometri
+; (kusen jendela, atap pos, meja). 0=mati, 1=2x, 2=4x, 3=8x.
+; CATATAN: di Godot 4.3 MSAA 3D hanya jalan di Forward+/Mobile;
+; sandbox (--rendering-driver opengl3, Compatibility) TIDAK bisa
+; membuktikan efeknya; yang dibuktikan di sandbox adalah feather
+; sprite + grain. MSAA baru terasa di exe Windows (Forward+).
+; Sprite alpha TIDAK ikut MSAA (quad bertekstur); itulah kenapa
+; tepi sprite dihaluskan lewat feather di PNG, bukan lewat MSAA.
+anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.01, 0.012, 0.016, 1)
 textures/vram_compression/import_etc2_astc=true

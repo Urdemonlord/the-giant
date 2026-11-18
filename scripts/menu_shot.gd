@@ -31,7 +31,7 @@ extends Node
 ## v35: prefix "v35" untuk desktop, "v35p" untuk portrait — supaya
 ## screenshot portrait tidak menimpa desktop (keduanya jalan di
 ## rig yang sama, beda --resolution).
-var _prefix := "v35"
+var _prefix := "v37"
 const SHOT_DIR := "/home/hatch/workspace/godot/shots"
 const RES_PATH := "res://scenes/menu.tscn"
 
@@ -60,9 +60,9 @@ func _ready() -> void:
 	# ukuran base stretch (1280x720) di kedua orientasi, jadi run
 	# portrait pertama menimpa file desktop.
 	if get_tree().root.size.y > get_tree().root.size.x:
-		_prefix = "v35p"
+		_prefix = "v37p"
 	_log = FileAccess.open(SHOT_DIR + "/" + _prefix + "_results_menu.txt", FileAccess.WRITE)
-	_log.store_line("[MENU-RIG] " + _prefix + " menu v31 (Luci list)")
+	_log.store_line("[MENU-RIG] " + _prefix + " menu v33 (Luci list)")
 	_log.store_line("mode: menu")
 	_log.store_line("time: " + Time.get_datetime_string_from_system())
 	_log.store_line("start")

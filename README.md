@@ -1515,6 +1515,142 @@ pos malam kini abu-abu, bukan massa hitam — kalau Arya mau
 hitamnya balik sambil kabut tetap pucat, itu butuh grade pos
 atau cahaya terpisah, bukan angka kabut.
 
+## v33: grafik dihalusin (2026-11-18)
+
+Arya (20:44 WIB, memilih opsi "Gas halusin" atas "Biarin, itu
+estetikanya"): screenshot v36 terasa kasar. Tiga penyebab sudah
+dikonfirmasi ke Arya: (1) sprite dari sheet 1536x1024, tiap sel
+kecil (kepala gajah cuma 366x398) — tidak ada sumber lebih tajem,
+ini batas keras; (2) tepi sprite keras + tanpa anti-aliasing;
+(3) grain VHS + scanline sengaja ber-noise (estetik analog).
+Luci: router (Godot 4.3 pinned) → camera-systems (kehalusan
+diukur lewat lebar transisi tepi + energi frekuensi tinggi di
+zona datar, bukan eyeballing) + create-game-assets (re-grade
+sprite sebagai keluarga, normalisasi deterministik, provenance)
++ unslop (polish checklist: chrome tenang, satu momen kaya —
+di sini lentera hangat + kepala hantu).
+
+### 1. MSAA 4x — `project.godot`: `anti_aliasing/quality/msaa_3d=2`
+
+Untuk tepi geometri (kusen jendela, atap pos, meja). 0=mati,
+1=2x, 2=4x, 3=8x. Dipilih 4x (8x tidak dicoba: biaya naik,
+manfaat di tepi 720p sudah jenuh).
+
+**Yang TIDAK bisa dibuktikan di sandbox:** di Godot 4.3 MSAA 3D
+hanya jalan di Forward+/Mobile. Sandbox jalan
+`--rendering-driver opengl3` (Compatibility). Eksperimen
+terkendali (grain dimatikan, dua run): MSAA 4x vs 0 selisih
+rata-rata 0,73 level abu (skala 0-255), sementara kontrol
+run-ulang setting SAMA selisih 0,48 — bedanya di dalam noise
+antar-run (rolling band VHS). Jadi MSAA tidak terukur di
+sandbox; efeknya baru terasa di exe Windows (Forward+).
+Untuk Web/Android (Compatibility) setting ini diabaikan, tidak
+merusak. Sprite alpha TIDAK ikut MSAA (quad bertekstur) —
+itulah kenapa tepi sprite dihaluskan lewat feather di PNG.
+
+Insiden: komentar `##` di `project.godot` sempat merusak parse
+file (Godot pakai `;` untuk komentar, bukan `##` seperti
+GDScript) — import crash SIGSEGV exit 134 dengan
+"Unexpected identifier: 'mati'". Perbaiki ke `;`, import
+kembali bersih exit 0. Pelajaran: JANGAN tulis `##` di
+project.godot; komentar di sana selalu `;`.
+
+### 2. Feather tepi sprite — `tools/feather_edges_v33.py`
+
+v28 dulu cuma feather kepala, papan, 4 pohon + 6 prop.
+v33 memperpanjang ke **61 sprite** (semua nama terdaftar yang
+masih dipakai): FAR radius 2.0 (gajah, menara, gerbang, pagar,
+gubuk), MID 1.5 (pemburu, penjaga, mata, kaki foto, semak,
+bukti logging), NEAR 1.0 (lentera, radio, logbook, meter,
+pintu — RGB ikut blur tipis = baked minification), TEXT
+alpha-only 1.0 (buku, papan, bar — RGB TIDAK disentuh supaya
+huruf tidak blur). `feather_alpha` = blur alpha + bleed warna
+tepi (anti-halo di atas latar kontras), sama seperti v28.
+
+Di-skip: file v28 (sudah feather — jangan double-proses),
+fog_puff + contact_shadow (sudah radial lembut), elephant_front
+(sel MASTER untuk make_head, supaya rebuild kepala tidak
+mewarisi blur), file tak terpakai (giant_foot, kepala v25/v26,
+menu_giant_v21, menu_skeleton_v25).
+
+Metrik transisi alpha (persen piksel 8..247, sebelum -> sesudah):
+elephant_side 18,9% -> 38,2%, watchtower 23,0% -> 61,0%,
+guard_front 13,6% -> 38,4%, hunter 20,6% -> 33,1%,
+giant_foot_photo_v23 6,5% -> 16,6%, door 13,0% -> 31,4%,
+lantern 22,9% -> 36,5%. Pengecualian: giant_eye 0% -> 0%
+(teksturnya opaque penuh, tanpa alpha — feather tidak bisa
+apa-apa) dan menu_bar_* 0% (kotak opaque, memang begitu).
+
+**Kenapa mipmap tidak dipakai:** file `.import` TIDAK masuk git
+(0 file `.import` ter-track), jadi setting mipmap tidak bisa
+dikirim lewat repo — CI re-import pakai default (tanpa mipmap).
+Blur RGB yang di-bake ke PNG inilah pengganti yang awet.
+Filter tekstur sudah linear (default proyek, tidak ada nearest
+di mana pun — dicek via grep).
+
+### 3. Grain dilembutkan — `scripts/balance.gd`
+
+VHS_GRAIN 0.13 -> **0.09** (-31%), VHS_GRAIN_LOW_SANITY 0.16 ->
+**0.12**, MENU_GRADE_GRAIN 0.05 -> **0.04**. Scanline 0.10,
+desat, vignette, CA, flicker, tear TIDAK berubah — analog tetap
+hidup, cuma tidak sekeras dulu.
+
+### Diukur (screenshot v37 vs v36, zona sama, 1280x720)
+
+Alat baru `tools/measure_edges_v33.py`: lebar transisi tepi
+10-90% (profil dirata-rata 9 scanline supaya grain tidak
+menentukan hasil) + energi frekuensi tinggi (std dari
+img - blur 1.5px) sebagai proksi grain + crop zoom 3x NEAREST.
+
+- Grain (HF): langit malam 8,49 -> **6,06** (-29%), kabut menu
+  4,01 -> 3,43 (-15%), kabut malam 9,70 -> **7,06** (-27%).
+  Sesuai dengan penurunan grain -31%.
+- Lebar transisi tepi: kubah menu 6 -> 6 px, atap malam 12 ->
+  11 px, palm/pohon/senter 1 px (tetap). Jujur: feather 2 px
+  di sumber HILANG saat sprite di-minify (pohon 300 px sumber
+  jadi ~100 px di layar) — tanpa mipmap, tepi siluet jauh tetap
+  1 px di layar. Yang benar-benar kelihatan di crop zoom adalah
+  grain yang berkurang + tepi yang sedikit kurang crunchy, bukan
+  tepi yang jadi lembut 2-3 px.
+
+### Guardrail akhir (final v37)
+
+- Kepala Zunisha tetap kebaca utuh (kubah+belalai+2 gading+2
+  telinga di viewport), kabut tetap abu netral v32, density v30
+  tetap, beam senter 7.0 tetap, scanline tetap.
+- Quick rig v33: desktop **16 pass, 0 fail**, portrait 16/0,
+  with-save 16/0 (cek baru: MSAA 4x + grain v33). Rig menu
+  penuh: desktop **32 pass, 0 fail**, portrait 32/0. Verify
+  DONE (registry 81, missing 0, hitbox meja tumpang 0).
+  Playtest PASS fails=0 (5 tugas, Sanity 100, Stability 100).
+  Shots27 DONE. menu_autostart masuk main 22:00.
+  `project.godot` NO-DIFF setelah perbaikan komentar (selain
+  blok MSAA yang disengaja).
+- Screenshot dibaca sendiri: `v37_menu_no_save.png` (desktop),
+  `v37p_menu_no_save.png` (portrait), `v37_night_dark.png`,
+  `v37_night_flash.png`, `v37_path_dark.png`,
+  `v37_path_flash.png` + crop zoom `v37_*_crop.png`.
+
+### Penilaian jujur
+
+Yang paling terasa adalah grain yang berkurang — frame malam
+dan menu kini lebih tenang, tidak lagi bersalju. Tepi siluet
+jauh (pohon, gajah) HANYA sedikit lebih lembut, bukan halus
+total: batasnya adalah sumber 366x398 tanpa mipmap. MSAA baru
+terbukti di exe Windows; di sandbox tidak terukur. Yang TETAP
+kasar: (1) pohon/gajah jauh — sumber kecil + minify tanpa
+mipmap; (2) fringing merah/biru CA di tepi kontras tinggi
+(VHS_CA 0.0016, di luar scope v33 — kandidat ronde berikut
+kalau Arya mau); (3) garis pelangi diagonal tipis shader VHS
+di shot malam (sejak v28, belum diselidiki); (4) kepala gajah
+tetap soft karena sumber 350 px (bukan detail baru, cuma tepi
+halus). Kalau mau lompatan besar, jalannya bukan feather lagi
+melainkan aset baru beresolusi lebih tinggi — itu di luar
+janji v33.
+
+Sisa: `ERR_CANT_OPEN` di awal rig menu (settings.json, sejak
+v20); portrait menu tetap letterbox 720x405.
+
 ## v32: kabut NETRAL abu-abu ala Silent Hill (2026-11-18)
 
 Arya (20:05 WIB, memilih opsi "netralin ke abu-abu" atas "tetap
