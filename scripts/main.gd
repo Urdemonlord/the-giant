@@ -199,9 +199,9 @@ func _setup_menu_backdrop() -> void:
 ## tidak ada kuku, lebar seragam dari atas ke bawah. Di jendela ia
 ## memang batang pohon. Foto ini punya yang tidak dimiliki sprite
 ## itu: telapak melebar + DUA KUKU bulat di depan bawah + lumpur di
-## telapak. Dipakai HANYA di backdrop menu; event kaki 03:30 di
-## permainan tetap pakai giant_foot.png (di luar scope v23, dicatat
-## sebagai follow-up: aset yang sama, masalah yang sama).
+## telapak. v24: foto yang sama dipakai juga untuk event kaki 03:30
+## di permainan (giant_event.gd) — follow-up v23 selesai,
+## giant_foot.png kini tidak dipakai lagi.
 ## Penempatan sama (2,0, 0, 6,0; 4 m): telapak (seperempat bawah
 ## tekstur, y 0..1 m) masuk band jendela (garis pandang lewat
 ## ambang bawah jendela menyentuh tanah di y ~0,1 pada 6 m), kaki

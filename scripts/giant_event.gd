@@ -2,8 +2,9 @@ extends Node
 ## Event THE GIANT: ia tidak pernah tampil utuh (sesuai storyboard).
 ## Panel 04 - kaki raksasa lewat di jendela belakang (~03:30).
 ## Panel 07 - mata raksasa menempel di kaca jendela (~04:45).
-## Keduanya sprite dari sheet Arya (giant_foot / giant_eye), di kabut,
-## gelap, hanya sebagian yang terlihat lewat celah jendela.
+## Kaki: foto asli giant_foot_photo_v23 (v24, sama seperti menu v23);
+## mata: sprite dari sheet Arya (giant_eye), di kabut, gelap, hanya
+## sebagian yang terlihat lewat celah jendela.
 ## (elephant_front dipakai terpisah sebagai siluet jauh di main.gd.)
 
 const TRIGGER_FOOT_MINUTE := Balance.GIANT_FOOT_TRIGGER_MINUTE
@@ -82,7 +83,21 @@ func _start_foot() -> void:
 	active_event = "foot"
 	_elapsed = 0.0
 	_thud_done = false
-	_spawn("giant_foot", LevelData.GIANT_FOOT_START, LevelData.GIANT_FOOT_HEIGHT_M, Color(0.85, 0.85, 0.9, 1.0))
+	# v24 (Luci: create-game-assets — pakai target visual yang sudah
+	# disetujui, sebagai family): kaki event DIGANTI dari giant_foot.png
+	# ke giant_foot_photo_v23.png, foto asli yang sama dengan kaki menu
+	# v23. giant_foot.png dicek zoom 3x: kolom berkerut seragam, tanpa
+	# telapak dan tanpa kuku — di jendela ia memang batang pohon.
+	# Foto ini: telapak melebar + dua kuku bulat + lumpur di telapak.
+	# Pemetaan vertikal: sprite berpusat di y 2,8, tinggi 3,4 m
+	# (bentang 1,1-4,5); telapak = seperempat bawah tekstur, jadi
+	# jatuh di y 1,1-1,95, tepat di band jendela. Unshaded + tint 1,5
+	# sama seperti menu v23: foto sudah di-grade malam 0,62, shaded
+	# membuatnya pilar hitam (aturan v14). Perilaku TIDAK berubah:
+	# waktu, durasi, thud, getar, debu, drain semua sama.
+	_spawn("giant_foot_photo_v23", LevelData.GIANT_FOOT_START, LevelData.GIANT_FOOT_HEIGHT_M, Color(1.5, 1.55, 1.5, 0.95))
+	if _spr != null:
+		_spr.shaded = false
 	_play_thud()
 	GameState.show_message("Tanah bergetar. Sesuatu yang sangat besar lewat di belakang pos.")
 	GameState.damage_sanity(Balance.GIANT_FOOT_START_DRAIN)

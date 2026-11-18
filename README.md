@@ -689,8 +689,8 @@ Xvfb sendiri).
   `tools/make_menu_foot_v23.py`, deterministik, tanpa random; alpha dari
   luminance, grade malam; provenance di `tools/ref/REFERENCES.md`):
   telapak melebar + dua kuku bulat + lumpur di dasar. Penempatan sama
-  (2.0, 0, 6.0), 4 m. Event kaki 03:30 dalam game masih pakai
-  `giant_foot.png` lama (masalah sama, follow-up di luar v23).
+  (2.0, 0, 6.0), 4 m. Event kaki 03:30 dalam game dulu masih pakai
+  `giant_foot.png` lama — diganti di v24 (di bawah).
 - 2) CA bikin semua teks berpinggiran merah/biru -> `MENU_GRADE_CA`
   0.003 -> **0.0** (`scripts/balance.gd`); grain 0.05 + desat 0.15 +
   vignette 0.32 tetap sebagai grade foto. HUD dalam game TIDAK berubah
@@ -742,8 +742,55 @@ Xvfb sendiri).
   "tidak pernah utuh", sengaja); alas lentera cuma 6 px di atas judul
   (tipis tapi terukur dan terbukti di screenshot); portrait tetap
   letterbox 720x405 di layar 720x1280 (stretch aspect=keep, sudah
-  sejak v20); event kaki 03:30 dalam game masih aset batang-pohon lama.
-  Sprite menu tetap kelas PLACEHOLDER.
+  sejak v20); event kaki 03:30 dalam game sudah diganti ke aset foto
+  di v24 (di bawah). Sprite menu tetap kelas PLACEHOLDER.
+
+## Event kaki Giant 03:30 dalam game: ganti ke aset foto v23 (2026-11-18, v24)
+
+Follow-up v23, atas perintah Arya 12:51 WIB. Skill dari list Luci
+(`~/workspace/makefun/skills/`, BUKAN adaptasi): router
+awesome-gamedev-agent-skills (Godot 4.3 pinned, disiplin
+create-game-assets + game-feel + camera-systems); create-game-assets
+(inspect dulu, target visual yang disetujui dipertahankan, produksi
+sebagai family, validasi di konteks ukuran native, provenance, nol
+aset AI); game-feel (event hook kaki: thud + getar + debu, juice
+kembali ke rest — perilaku event TIDAK diubah); camera-systems
+(framing kaki lewat jendela, pisah look dari collision);
+unslop (chrome diam, satu elemen terang, teks di ruang tenang —
+dipakai sebagai ceklis: tidak ada elemen baru yang ditambahkan, hanya
+memperbaiki yang ada).
+- Aset: `giant_event.gd _start_foot` kini spawn
+  `giant_foot_photo_v23` (foto asli yang sama dengan kaki menu v23,
+  family yang sama, tanpa crop baru) menggantikan `giant_foot.png`
+  (120x218, kolom berkerut seragam tanpa telapak/kuku — di jendela
+  memang batang pohon). `giant_foot.png` masih ada di disk + registry
+  (cek file test_rig masih lolos) tapi tidak dipakai lagi.
+- Pemetaan vertikal (camera-systems, dihitung bukan kira-kira):
+  sprite berpusat di y 2,8, tinggi 3,4 m (bentang 1,1-4,5); telapak =
+  seperempat bawah tekstur, jatuh di y 1,1-1,95, tepat di band jendela.
+  Lebar kaki 2,5 m (470x640) vs 1,87 m sebelumnya.
+- Pencahayaan: unshaded + tint (1.5, 1.55, 1.5, 0.95), SAMA seperti
+  kaki menu v23 — foto sudah di-grade malam 0,62, shaded membuatnya
+  pilar hitam (aturan v14, pola yang sama dengan mata 04:45).
+- Perilaku TIDAK berubah: trigger 03:30, durasi stride 9 dtk, thud,
+  getar kamera, dust puff, drain Sanity semua sama. Menu v23 tidak
+  disentuh. Event lain (mata 04:45, hunter 01:30) tidak disentuh.
+- Verifikasi (Xvfb, `--rendering-driver opengl3` karena Vulkan hilang
+  sesudah sandbox reset; `project.godot` di-backup dan dicek tidak
+  berubah): rig `mode=shots` prefix v27 — event kaki ke-trigger,
+  screenshot `v27_foot.png` dibaca sendiri + zoom crop jendela.
+  Sebelum (v14): kolom lurus bergaris seragam = batang pohon.
+  Sesudah (v27): massa berkerut lebar, lebar tidak seragam, tepi bawah
+  berlumpur, tonjolan membulat — terbaca kaki gajah, bukan batang
+  pohon. Screenshot playtest `v27_playtest_foot.png` konsisten (kaki
+  sedikit lebih maju dalam stride). Mode verify DONE (registry 67 nama
+  missing=0, hitbox meja tumpang=0); mode playtest **PASS fails=0**
+  (5 tugas, Sanity 100, Stability 100).
+- Batas jujur: di dalam game, malam + kabut + grade VHS, kuku tidak
+  se-crisp di menu — yang terbaca "massa kaki berkerut raksasa",
+  bukan "kaki dengan dua kuku". Itu sudah cukup untuk tujuan
+  (kaki gajah, bukan batang pohon); kuku crisp butuh pencahayaan yang
+  akan merusak grade malam. Sprite tetap kelas PLACEHOLDER.
 
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 

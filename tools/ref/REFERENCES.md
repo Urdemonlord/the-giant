@@ -48,10 +48,11 @@ saat membangun sprite menu. Jangan hapus tanpa mengganti generatornya.
   dicek zoom 3x — kolom berkerut seragam, tanpa telapak dan tanpa
   kuku, jadi di jendela memang batang pohon. Foto ini punya
   telapak melebar + dua kuku bulat + lumpur di telapak.
-  Dipakai HANYA di backdrop menu (`main.gd
-  _setup_menu_window_giant`); event kaki 03:30 di permainan tetap
-  pakai `giant_foot.png` (aset yang sama, masalah yang sama —
-  follow-up, bukan scope v23). Nol aset AI, nol gambar generate.
+  Dipakai di backdrop menu (`main.gd _setup_menu_window_giant`) DAN,
+  sejak v24, di event kaki 03:30 dalam game (`giant_event.gd
+  _start_foot`, unshaded + tint 1,5 yang sama — follow-up v23 selesai;
+  `giant_foot.png` kini tidak dipakai lagi). Nol aset AI, nol gambar
+  generate.
 
 ## Menu v21: Giant di kabut + kertas sobek (2026-11-18)
 - `menu_giant_v21.png` — siluet Giant di backdrop menu: `elephant_shadow`
