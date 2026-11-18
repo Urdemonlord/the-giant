@@ -1419,6 +1419,135 @@ terang); sekarang energi 0.35, kabutnya murk gelap.
   `v32_night_dark.png`, `v32_night_flash.png`,
   `v32_path_dark.png`, `v32_path_flash.png`.
 
+## v30: kabut HARUS kelihatan bedanya (2026-11-18)
+
+Arya (18:15 WIB, setelah v29): "gada bedanya". Dia benar: di
+screenshot sandbox, v32 vs v31 hampir tidak berubah. Luci:
+router (Godot 4.3 pinned) → level-design (kabut sebagai alat
+framing/sightline, ukur dari angka transmittance, bukan kira-kira)
++ camera-systems (keterbacaan diukur lewat proyeksi + luminance
+zona, bukan eyeballing). create-game-assets: tidak dipakai
+(tidak ada aset baru; puff tambahan pakai fog_puff yang sama).
+
+### Kenapa v29 tidak kelihatan — bug deteksi renderer (akar masalah)
+
+`Balance.volumetric_active()` dulu cuma cek setting proyek
+(`rendering_method == forward_plus`) + platform. Sandbox jalan
+dengan `--rendering-driver opengl3` sementara setting tetap
+`forward_plus`, jadi fungsi ini mengembalikan TRUE padahal
+renderer Compatibility MENGABAIKAN volumetric. Akibatnya di
+sandbox: density eksponensial stuck di FOG_DENSITY_VOLUMETRIC
+(0.056), bump malam tidak pernah jalan (cabang else
+`_apply_night_curve` tidak tersentuh), dan menu tidak pernah
+memakai MENU_FOG_DENSITY (cabang else `_setup_menu_backdrop`
+tidak tersentuh). Kenaikan v29 (+40%) praktis tidak sampai ke
+gambar. Perbaikan v30: `volumetric_active()` kini juga mensyaratkan
+`RenderingServer.get_rendering_device() != null` — null di
+Compatibility (OpenGL, tanpa RenderingDevice), non-null di
+Forward+/Mobile (RD). Diverifikasi langsung: Xvfb + opengl3 ->
+null; Xvfb + Vulkan (Forward+) -> non-null; `get_current_rendering_method()`
+memang TIDAK ADA di Godot 4.3 (dicek lewat ClassDB). Log membuktikan:
+`[Main] fog: volumetric=false fog_density=0.12` di sandbox.
+Perilaku di device TIDAK berubah: Windows Forward+ tetap cabang
+volumetric, Android/Web tetap cabang Compatibility.
+
+### Angka lama vs baru, PER LANGKAH
+
+| Nilai | v29 | Langkah A (deteksi saja) | Langkah B | Langkah C (final) |
+|---|---|---|---|---|
+| FOG_DENSITY (Compatibility) | 0.084 | 0.084 (kini BENAR me-render) | **0.12** | 0.12 |
+| FOG_DENSITY_VOLUMETRIC (exp Forward+) | 0.056 | 0.056 | **0.078** | 0.078 |
+| VOL_FOG_DENSITY | 0.042 | 0.042 | **0.048** | 0.048 |
+| NIGHT_VOL_DEEP | 0.050 | 0.050 | **0.058** | 0.058 |
+| Bump malam Compatibility | 0.014 | 0.014 | **0.022** | 0.022 |
+| MENU_VOL_DENSITY | 0.032 | 0.032 | **0.04** | 0.04 |
+| MENU_FOG_DENSITY | 0.065 | 0.065 (kini BENAR me-render) | **0.10** | 0.10 |
+| FOG_LIGHT_COLOR | (0.23, 0.27, 0.22) | sama | (0.32, 0.38, 0.30) | **(0.27, 0.32, 0.26)** |
+| FOG_LIGHT_ENERGY | 0.35 | 0.35 | 0.55 | **0.42** |
+| FOG_PUFF_COUNT / alpha dekat-jauh | 36 / 0.44-0.30 | sama | **48 / 0.52-0.36** | 48 / 0.52-0.36 |
+| GROUND_FOG_COUNT / alpha dekat-jauh | 24 / 0.48-0.38 | sama | **32 / 0.58-0.46** | 32 / 0.58-0.46 |
+| Puff tetap / deterministik / pangkal kepala | 0.40 / 0.46 / 0.44 | sama | **0.50 / 0.56 / 0.52** | 0.50 / 0.56 / 0.52 |
+
+Total extinction disamakan antar renderer (prinsip v30):
+Compatibility 0.12 awal / 0.142 malam dalam; Forward+ 0.126 awal
+(0.078 + 0.048) / 0.136 malam dalam; menu Compatibility 0.10,
+Forward+ 0.118 (0.078 + 0.04). Screenshot sandbox kini mewakili
+Windows (selisih total < 5% game, ~15% menu — sandbox sedikit di
+bawah, jadi screenshot TIDAK melebih-lebihkan kabut).
+
+- Langkah A (hanya perbaikan deteksi): menu 0.056 -> 0.065,
+  game 0.056 -> 0.084 (+0.098 malam). Terukur tapi KECIL: menu
+  fog_win 7.8 -> 8.5, night_dark whole 8.0 -> 8.9 — membuktikan
+  bugnya nyata tapi bukan seluruh jawaban.
+- Langkah B (density + veil terang): bedanya DRAMATIS tapi
+  KELEBIHAN — veil lebih terang dari pos (center night_dark
+  L22.5 > pohon L19.8), pos jadi kotak kabut bercahaya, kepala
+  menu hampir hilang jadi hantu pucat, senter nyaris mati
+  (delta malam +1.6, dulu +4.6). Ini mode gagal v6/v13
+  (kabut MENYALA jadi dinding). DITOLAK, bukan di-push.
+- Langkah C (kecerahan turun setengah jalan, density TETAP):
+  FOG_LIGHT_COLOR (0.27, 0.32, 0.26), energi 0.42. Yang
+  melarutkan pohon adalah density, bukan kecerahan; yang
+  meratakan kontras adalah kecerahan. Ini yang di-ship.
+
+### Diukur (zona sama, skala L 0-100, v32 vs v33 final)
+
+- Menu: kubah 16.8 -> **18.1**, kabut jendela 7.8 -> **12.3**
+  (+4.5), pohon kiri 9.1 -> 12.1, pita kabut tanah 13.6 ->
+  **18.1** (+4.5), papan 19.1 -> 22.9. Delta kubah-kabut 9.0 ->
+  5.8 (kepala tetap kebaca gajah, lebih terang dari kabutnya).
+  Kabut jendela kini seterang pohon (12.3 vs 12.1) — pohon
+  larut KE DALAM kabut, bukan berdiri di depan kegelapan.
+- Malam tanpa senter: whole 8.0 -> **11.5** (+3.5), pita kabut
+  tanah 10.4 -> **16.6** (+6.2), pohon 10.1 -> 13.8. Pos kembali
+  massa gelap (center 15.4) di dalam kabut yang terbaca, langit
+  di atas tetap hitam (4.7) — kontras langit-kabut yang bikin
+  lapisan kabut kebaca sebagai lapisan.
+- Malam dengan senter: center 12.1 -> **17.8**, delta senter
+  +2.4 (dulu +4.6) — beam masih jelas menyalakan pintu +
+  anak tangga, tapi kontrasnya MENYUSUT karena kabut lebih
+  terang (trade-off jujur: kabut yang kelihatan vs senter yang
+  kontras; beam tetap berguna, bukan mati).
+- Jalan: gelap whole 6.0 -> **10.5**, senter center 15.0 ->
+  **18.3** (delta +5.8, dulu +8.9); langit jalan 4.4 -> 7.8
+  (langit ikut berkabut).
+- Sanity di gelap tetap jalan: 95.2 -> 88.5 dalam 12 detik
+  (shots27, sama seperti v29).
+
+### Batas jujur v30
+
+- Kepala menu lebih lembut dari v32 (v32 tajam-terang, v33
+  larut di kabut) — itu harga yang dibayar supaya kabut
+  kelihatan; kubah/telinga/belalai/gading tetap utuh dan kebaca.
+- Beam senter masih lembut, bukan cone tegas (sisa lama v27);
+  kontras beam menyusut vs v32 (lihat angka di atas).
+- Garis pelangi diagonal tipis dari shader VHS di shot malam
+  MASIH ADA (sudah sejak v28, belum diselidiki — makin kentara
+  di shot jalan karena kabut lebih terang).
+- `ERR_CANT_OPEN` di awal rig menu masih muncul (settings.json,
+  sejak v20, belum diselidiki).
+
+### Verifikasi (Xvfb, `--rendering-driver opengl3`; `project.godot` NO-DIFF)
+
+- Quick rig v30 (`scripts/menu_check_v30.gd`, cek baru nilai
+  fog v30 + perbaikan deteksi): desktop **14 pass, 0 fail**;
+  portrait **14/0**; with-save **14/0**.
+- Rig menu penuh (`scripts/menu_shot.gd`, prefix v33): desktop
+  **32 pass, 0 fail**, portrait **32/0**.
+- Mode verify DONE (registry 81, missing 0, hitbox meja tumpang
+  0); mode playtest **PASS fails=0** (5 tugas, Sanity 100,
+  Stability 100); mode shots27 (prefix v33) selesai;
+  `menu_autostart=1` masuk main (22:00, fog_density=0.12 di log).
+- Screenshot dibaca sendiri: `v33_menu_no_save.png` (desktop),
+  `v33p_menu_no_save.png` (portrait), `v33_menu_with_save.png`,
+  `v33_night_dark.png`, `v33_night_flash.png`,
+  `v33_path_dark.png`, `v33_path_flash.png`.
+- Side-by-side v32 vs v33 di posisi kamera yang sama (zona di
+  atas + dibaca mata): bedanya KELIHATAN — jendela menu penuh
+  veil hijau-abu + pohon jadi siluet pucat + pita kabut tanah
+  sebagai lapisan; malam luar pos bukan lagi hitam polos tapi
+  kabut berlapis dengan pos sebagai massa gelap di dalamnya.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya

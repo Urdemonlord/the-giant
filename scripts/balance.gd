@@ -70,22 +70,36 @@ const PLAYER_PITCH_LIMIT_DEG := 82.0
 ## buta: v6 gagal di 0.085/m TOTAL dengan fog_light_energy 1.0 +
 ## puff alpha 0.55 (kabut MENYALA jadi dinding); sekarang energi
 ## 0.35 + puff 0.44, kabutnya murk gelap, bukan dinding terang.
-const FOG_DENSITY := 0.084
-const FOG_LIGHT_COLOR := Color(0.23, 0.27, 0.22, 1) # abu kehijauan sakit, palet
-const FOG_LIGHT_ENERGY := 0.35 # v27: 1.0 -> 0.35. Kabut ikut
-# menyala dari cahaya ambient/bulan; di 1.0 hutan luar jadi abu-abu
-# terang sebelum generator/senter nyala, senter kehilangan guna.
-# Di 0.35 kabut tetap kelihatan tapi tidak lagi menerangi hutan.
+## v30 (Arya: "gada bedanya" setelah v29): 0.084 -> 0.12. Total
+## disamakan antar renderer (prinsip v30): Compatibility 0.12,
+## Forward+ 0.078 + 0.048 = 0.126 — jadi screenshot sandbox
+## mewakili Windows. 0.12: 5 m -> 0.55, 10 m -> 0.30, 15 m -> 0.17,
+## 20 m -> 0.09 (jarak larut ~20 m), 30 m -> 0.03. Pos dari
+## gerbang (15,7 m) tinggal 0.15 — massa gelap + lampu teras saja;
+## generator 3-5 m dari pemain 0.55-0.70, tetap kebaca. Kalau
+## langkah ini menelan pos/generator, mundur ke 0.10.
+const FOG_DENSITY := 0.12
+const FOG_LIGHT_COLOR := Color(0.27, 0.32, 0.26, 1) # v30 langkah C: (0.32, 0.38, 0.30) -> turun setengah jalan ke v29.
+	# Langkah B terlalu MENYALA: veil lebih terang dari pohon DAN
+	# dari pos (center night_dark L22.5 > pohon L19.8), pos jadi
+	# kotak kabut bercahaya, bukan massa gelap; senter nyaris
+	# tidak menambah apa-apa (delta +1.6, dulu +4.6). Kabut harus
+	# LEBIH TERANG dari pohon jauh (supaya terbaca sebagai kabut,
+	# bukan kegelapan) tapi LEBIH GELAP dari pos dekat (supaya pos
+	# tetap massa gelap di dalam kabut). Tetap abu kehijauan sakit.
+const FOG_LIGHT_ENERGY := 0.42 # v30 langkah C: 0.55 -> 0.42 (di antara v29 0.35 dan langkah B 0.55).
+	# Density 0.12 TETAP — yang melarutkan pohon adalah density,
+	# bukan kecerahan; yang meratakan kontras adalah kecerahan.
 const FOG_SKY_AFFECT := 0.85 # langit ikut berkabut, bukan hitam pekat polos
-const FOG_PUFF_COUNT := 36 # v5: 10
-const FOG_PUFF_ALPHA := 0.40 # v29: 0.34 -> 0.40 (kabut lebih pekat;
+const FOG_PUFF_COUNT := 48 # v30: 36 -> 48 (kabut punya tekstur yang terlihat)
+const FOG_PUFF_ALPHA := 0.50 # v30: 0.40 -> 0.50 (gumpalan tetap + pangkal kepala menu;
 	# 0.55 dulu kebablasan jadi dinding). Dipakai gumpalan tetap (4x)
 	# + pangkal kepala menu; gumpalan acak di-grade menurut jarak
-	# (dekat 0.44, jauh 0.30) di main.gd, ground fog 0.48 -> 0.38.
-const GROUND_FOG_COUNT := 24 # v29: 18 -> 24 (kabut tanah lebih tebal)
-const GROUND_FOG_ALPHA := 0.44 # v29: 0.38 -> 0.44. Dipakai sebagai
-	# acuan; ground fog acak di-grade menurut jarak (dekat 0.48,
-	# jauh 0.38) di main.gd, puff deterministik 0.46.
+	# (dekat 0.52, jauh 0.36) di main.gd, ground fog 0.58 -> 0.46.
+const GROUND_FOG_COUNT := 32 # v30: 24 -> 32 (pita kabut tanah lebih tebal + jelas)
+const GROUND_FOG_ALPHA := 0.55 # v30: 0.44 -> 0.55. Dipakai sebagai
+	# acuan; ground fog acak di-grade menurut jarak (dekat 0.58,
+	# jauh 0.46) di main.gd, puff deterministik 0.56.
 
 ## --- Grade keluarga sprite (v28) -------------------------------------------
 ## SATU grade untuk semua sprite — dulu tint tersebar sebagai literal
@@ -124,11 +138,12 @@ const GRADE_FOG_TINT := Color(0.62, 0.68, 0.58, 1.0) # gumpalan + ground fog (du
 ## 15 m -> 0.20, 20 m -> 0.12, 30 m -> 0.04 — jarak larut
 ## (transmittance 0.10) maju dari ~30 m ke ~22 m. Pohon dekat
 ## (9-15 m) tinggal siluet 0.20-0.39, pos dari gerbang 0.19.
-## Alasan bukan dobel buta: angka diukur dari v31 + transmittance,
-## dan v6/v13 gagal karena kabut MENYALA (energi 1.0, puff 0.55),
-## bukan karena density-nya saja — sekarang energi 0.35.
+## v30: total disamakan antar renderer — Forward+ 0.078 + 0.048 =
+## 0.126/m (awal), malam dalam 0.078 + 0.058 = 0.136/m; Compatibility
+## 0.12 awal, 0.142 malam dalam. Screenshot sandbox kini mewakili
+## Windows (selisih total < 5%).
 const VOL_FOG_ENABLED := true
-const VOL_FOG_DENSITY := 0.042
+const VOL_FOG_DENSITY := 0.048
 const VOL_FOG_ALBEDO := Color(0.35, 0.42, 0.34, 1) # hamburan cahaya bulan, hijau sakit
 const VOL_FOG_EMISSION := Color(0.10, 0.12, 0.09, 1) # pijar kabut sendiri, redup
 const VOL_FOG_EMISSION_ENERGY := 0.10 # v13 ronde 1: 0.25, veil pijar terlalu terang
@@ -142,20 +157,41 @@ const VOL_FOG_LENGTH := 40.0 # jangkauan froxel: cukup untuk hutan 19-34 m
 ## extinction tidak kebablasan (dulu 0.06, lihat percobaan 0.085).
 ## v29: 0.04 -> 0.056 (+40%, seiring VOL_FOG 0.030 -> 0.042):
 ## total Forward+ awal 0.056 + 0.042 = 0.098/m (dulu 0.070/m).
-## Di sandbox (opengl3) volumetric diabaikan renderer, jadi angka
-## inilah SATU-SATUNYA kabut yang kelihatan di screenshot — dan
-## inilah juga kabut exp menu (menu hanya menimpa volumetric).
-const FOG_DENSITY_VOLUMETRIC := 0.056
+## v30: 0.056 -> 0.078. BERSAMA volumetric 0.048, total Forward+
+## 0.126/m — sama dengan Compatibility 0.12/m. CATATAN v30: klaim
+## lama di sini ("angka inilah SATU-SATUNYA kabut yang kelihatan
+## di screenshot") SUDAH TIDAK BENAR sejak perbaikan
+## volumetric_active(): sandbox kini mengambil cabang Compatibility
+## (FOG_DENSITY 0.12), bukan angka ini. Angka ini hanya komponen
+## eksponensial DI DALAM Forward+ (Windows).
+const FOG_DENSITY_VOLUMETRIC := 0.078
 
 ## Volumetric fog hanya bisa aktif di renderer Forward+ (desktop).
 ## Godot 4.3 TIDAK punya RenderingServer.get_current_rendering_method(),
 ## jadi deteksi pakai setting proyek + platform: Web/Android/iOS
 ## selalu pakai renderer mobile/Compatibility (volumetric diabaikan),
 ## desktop pakai rendering_method dari project.godot.
+## v30 (Arya: "gada bedanya" setelah v29): setting proyek SAJA tidak
+## cukup — sandbox jalan dengan --rendering-driver opengl3 sementara
+## setting tetap forward_plus, jadi fungsi ini mengembalikan TRUE
+## padahal renderer Compatibility MENGABAIKAN volumetric. Akibatnya
+## di sandbox: density eksponensial stuck di FOG_DENSITY_VOLUMETRIC
+## (0.056), bump malam tidak pernah jalan (cabang else tidak
+## tersentuh), dan menu tidak pernah memakai MENU_FOG_DENSITY
+## (cabang else _setup_menu_backdrop tidak tersentuh). Kenaikan v29
+## (+40%) praktis tidak sampai ke gambar sandbox — itulah kenapa
+## Arya benar: tidak ada bedanya. Pembeda yang TERBUKTI jalan di
+## Godot 4.3: RenderingServer.get_rendering_device() — null di
+## Compatibility (OpenGL, tanpa RenderingDevice), non-null di
+## Forward+/Mobile (RD). Diverifikasi langsung: Xvfb + opengl3 ->
+## null; Xvfb + Vulkan (Forward+) -> non-null. Di --headless juga
+## null, tapi headless tidak pernah me-render screenshot.
 static func volumetric_active() -> bool:
 	if not VOL_FOG_ENABLED:
 		return false
 	if OS.has_feature("web") or OS.has_feature("mobile"):
+		return false
+	if RenderingServer.get_rendering_device() == null:
 		return false
 	return str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "gl_compatibility")) == "forward_plus"
 
@@ -181,7 +217,7 @@ const NIGHT_MOON_DAWN := 0.55
 const NIGHT_AMBIENT_START := 0.28
 const NIGHT_AMBIENT_DEEP := 0.14
 const NIGHT_AMBIENT_DAWN := 0.35
-const NIGHT_VOL_DEEP := 0.050 # v29: 0.036 -> 0.050 (+40%)
+const NIGHT_VOL_DEEP := 0.058 # v30: 0.050 -> 0.058 (Forward+ malam dalam 0.078 + 0.058 = 0.136/m)
 const NIGHT_VOL_DAWN := 0.039 # v29: 0.028 -> 0.039 (+40%)
 
 ## --- Hold-to-interact (v27, kritik #5) --------------------------------------
@@ -284,8 +320,18 @@ const MENU_MOON_ENERGY := 0.80
 ## tapi pangkal belalai + kaki pohon larut, sesuai permintaan.
 ## Kalau vol ikut +40% (0.035), total 0.091/m, kubah ~2 poin:
 ## terlalu tipis, jangan.
-const MENU_VOL_DENSITY := 0.032
-const MENU_FOG_DENSITY := 0.065
+## v30 (Arya: "gada bedanya"): MENU_FOG 0.065 -> 0.10, MENU_VOL
+## 0.032 -> 0.04. Total menu: Compatibility 0.10/m, Forward+
+## 0.078 + 0.04 = 0.118/m — sandbox sedikit di bawah Windows,
+## jadi screenshot TIDAK melebih-lebihkan kabut. Kepala di 12 m:
+## transmittance 0.30 (sandbox) / 0.24 (Windows). Guardrail:
+## |kubah - kabut| >= 4 poin diukur, kalau di bawah itu mundur
+## MENU_FOG ke 0.09. CATATAN v30: kenaikan MENU_FOG v29 (0.05 ->
+## 0.065) TIDAK PERNAH kelihatan di sandbox — cabang else
+## _setup_menu_backdrop tidak tersentuh karena volumetric_active()
+## salah mengembalikan true di opengl3 (lihat perbaikan fungsi itu).
+const MENU_VOL_DENSITY := 0.04
+const MENU_FOG_DENSITY := 0.10
 ## Grade menu: grain halus saja, BUKAN bingkai CCTV (kritik #3).
 ## Scanline/tear/flicker dimatikan; desat + vignette tipis, CA 0.
 const MENU_GRADE_GRAIN := 0.05

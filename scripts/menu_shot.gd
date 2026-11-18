@@ -28,10 +28,10 @@ extends Node
 ## (garis besar kasar) saat `_ready` selesai; ambil screenshot
 ## beberapa frame kemudian supaya hasilnya stabil.
 
-## v32: prefix "v32" untuk desktop, "v32p" untuk portrait — supaya
+## v33: prefix "v33" untuk desktop, "v33p" untuk portrait — supaya
 ## screenshot portrait tidak menimpa desktop (keduanya jalan di
 ## rig yang sama, beda --resolution).
-var _prefix := "v32"
+var _prefix := "v33"
 const SHOT_DIR := "/home/hatch/workspace/godot/shots"
 const RES_PATH := "res://scenes/menu.tscn"
 
@@ -60,9 +60,9 @@ func _ready() -> void:
 	# ukuran base stretch (1280x720) di kedua orientasi, jadi run
 	# portrait pertama menimpa file desktop.
 	if get_tree().root.size.y > get_tree().root.size.x:
-		_prefix = "v32p"
+		_prefix = "v33p"
 	_log = FileAccess.open(SHOT_DIR + "/" + _prefix + "_results_menu.txt", FileAccess.WRITE)
-	_log.store_line("[MENU-RIG] " + _prefix + " menu v29 (Luci list)")
+	_log.store_line("[MENU-RIG] " + _prefix + " menu v30 (Luci list)")
 	_log.store_line("mode: menu")
 	_log.store_line("time: " + Time.get_datetime_string_from_system())
 	_log.store_line("start")
