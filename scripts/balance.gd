@@ -62,7 +62,15 @@ const PLAYER_PITCH_LIMIT_DEG := 82.0
 ## cincin hutan (19-34 m) tertelan kabut. v5: 0.032 (kabut tidak terasa).
 ## Percobaan pertama 0.085 kebablasan: jendela jadi dinding kabut polos,
 ## pos ketutup gumpalan kabut dari jarak 8 m.
-const FOG_DENSITY := 0.06
+## v29 (Arya: "kabutnya belum pekat", 2026-11-18): +40% dari 0.06.
+## 0.084: 5 m -> 0.66, 10 m -> 0.43, 20 m -> 0.19, 30 m -> 0.08 —
+## cincin hutan 19-34 m kini tertelan (dulu 0.17-0.30 di 20-30 m),
+## pos dari gerbang (15,7 m) tinggal 0.27 tapi tetap massa gelap +
+## lampu teras, generator 3-5 m dari pemain 0.66-0.73. Bukan dobel
+## buta: v6 gagal di 0.085/m TOTAL dengan fog_light_energy 1.0 +
+## puff alpha 0.55 (kabut MENYALA jadi dinding); sekarang energi
+## 0.35 + puff 0.44, kabutnya murk gelap, bukan dinding terang.
+const FOG_DENSITY := 0.084
 const FOG_LIGHT_COLOR := Color(0.23, 0.27, 0.22, 1) # abu kehijauan sakit, palet
 const FOG_LIGHT_ENERGY := 0.35 # v27: 1.0 -> 0.35. Kabut ikut
 # menyala dari cahaya ambient/bulan; di 1.0 hutan luar jadi abu-abu
@@ -70,9 +78,14 @@ const FOG_LIGHT_ENERGY := 0.35 # v27: 1.0 -> 0.35. Kabut ikut
 # Di 0.35 kabut tetap kelihatan tapi tidak lagi menerangi hutan.
 const FOG_SKY_AFFECT := 0.85 # langit ikut berkabut, bukan hitam pekat polos
 const FOG_PUFF_COUNT := 36 # v5: 10
-const FOG_PUFF_ALPHA := 0.34 # v6: 0.42; diturunkan karena volumetric fog menambah haze (0.55 dulu kebablasan jadi dinding)
-const GROUND_FOG_COUNT := 18 # lapisan kabut rendah di permukaan tanah
-const GROUND_FOG_ALPHA := 0.38 # v6: 0.45, alasan sama seperti FOG_PUFF_ALPHA
+const FOG_PUFF_ALPHA := 0.40 # v29: 0.34 -> 0.40 (kabut lebih pekat;
+	# 0.55 dulu kebablasan jadi dinding). Dipakai gumpalan tetap (4x)
+	# + pangkal kepala menu; gumpalan acak di-grade menurut jarak
+	# (dekat 0.44, jauh 0.30) di main.gd, ground fog 0.48 -> 0.38.
+const GROUND_FOG_COUNT := 24 # v29: 18 -> 24 (kabut tanah lebih tebal)
+const GROUND_FOG_ALPHA := 0.44 # v29: 0.38 -> 0.44. Dipakai sebagai
+	# acuan; ground fog acak di-grade menurut jarak (dekat 0.48,
+	# jauh 0.38) di main.gd, puff deterministik 0.46.
 
 ## --- Grade keluarga sprite (v28) -------------------------------------------
 ## SATU grade untuk semua sprite — dulu tint tersebar sebagai literal
@@ -105,8 +118,17 @@ const GRADE_FOG_TINT := Color(0.62, 0.68, 0.58, 1.0) # gumpalan + ground fog (du
 ## total, pos dari 19 m tinggal bayangan samar. Ronde 2: 0.030 + 0.04
 ## = 0.07/m: 5 m -> 0.70, 10 m -> 0.50, 20 m -> 0.25 (pohon dekat
 ## samar), 30 m -> 0.12 (cincin jauh tertelan).
+## v29: +40% semua komponen (total Forward+ awal 0.070 -> 0.098/m,
+## malam dalam 0.076 -> 0.106/m; Compatibility 0.06 -> 0.084 awal,
+## 0.07 -> 0.098 malam). 0.106/m: 5 m -> 0.59, 10 m -> 0.35,
+## 15 m -> 0.20, 20 m -> 0.12, 30 m -> 0.04 — jarak larut
+## (transmittance 0.10) maju dari ~30 m ke ~22 m. Pohon dekat
+## (9-15 m) tinggal siluet 0.20-0.39, pos dari gerbang 0.19.
+## Alasan bukan dobel buta: angka diukur dari v31 + transmittance,
+## dan v6/v13 gagal karena kabut MENYALA (energi 1.0, puff 0.55),
+## bukan karena density-nya saja — sekarang energi 0.35.
 const VOL_FOG_ENABLED := true
-const VOL_FOG_DENSITY := 0.030
+const VOL_FOG_DENSITY := 0.042
 const VOL_FOG_ALBEDO := Color(0.35, 0.42, 0.34, 1) # hamburan cahaya bulan, hijau sakit
 const VOL_FOG_EMISSION := Color(0.10, 0.12, 0.09, 1) # pijar kabut sendiri, redup
 const VOL_FOG_EMISSION_ENERGY := 0.10 # v13 ronde 1: 0.25, veil pijar terlalu terang
@@ -118,7 +140,12 @@ const VOL_FOG_LENGTH := 40.0 # jangkauan froxel: cukup untuk hutan 19-34 m
 ## Jangkauan froxel diatur cuma lewat VOL_FOG_LENGTH.
 ## Saat volumetric aktif, fog eksponensial diturunkan supaya total
 ## extinction tidak kebablasan (dulu 0.06, lihat percobaan 0.085).
-const FOG_DENSITY_VOLUMETRIC := 0.04
+## v29: 0.04 -> 0.056 (+40%, seiring VOL_FOG 0.030 -> 0.042):
+## total Forward+ awal 0.056 + 0.042 = 0.098/m (dulu 0.070/m).
+## Di sandbox (opengl3) volumetric diabaikan renderer, jadi angka
+## inilah SATU-SATUNYA kabut yang kelihatan di screenshot — dan
+## inilah juga kabut exp menu (menu hanya menimpa volumetric).
+const FOG_DENSITY_VOLUMETRIC := 0.056
 
 ## Volumetric fog hanya bisa aktif di renderer Forward+ (desktop).
 ## Godot 4.3 TIDAK punya RenderingServer.get_current_rendering_method(),
@@ -154,8 +181,8 @@ const NIGHT_MOON_DAWN := 0.55
 const NIGHT_AMBIENT_START := 0.28
 const NIGHT_AMBIENT_DEEP := 0.14
 const NIGHT_AMBIENT_DAWN := 0.35
-const NIGHT_VOL_DEEP := 0.036
-const NIGHT_VOL_DAWN := 0.028
+const NIGHT_VOL_DEEP := 0.050 # v29: 0.036 -> 0.050 (+40%)
+const NIGHT_VOL_DAWN := 0.039 # v29: 0.028 -> 0.039 (+40%)
 
 ## --- Hold-to-interact (v27, kritik #5) --------------------------------------
 ## Interaksi penting butuh WAKTU, bukan satu pencet instan: generator
@@ -249,8 +276,16 @@ const MENU_MOON_ENERGY := 0.80
 ## lewat jendela; di 0.025 ia berdiri dari kabut sementara hutan
 ## tetap berkabut. Mood gelap menu datang dari ambient + lentera,
 ## bukan dari kabut maksimal.
-const MENU_VOL_DENSITY := 0.025
-const MENU_FOG_DENSITY := 0.05
+## v29: MENU_VOL 0.025 -> 0.032 (+28%), MENU_FOG 0.05 -> 0.065
+## (+30%) — SENGAJA lebih kecil dari +40% game: kepala di z 12,5
+## (total Windows 0.056 + 0.032 = 0.088/m, dulu 0.065/m) tinggal
+## transmittance 0.35; delta kubah-kabut (v31: 9 poin di sandbox
+## 0.04/m) menyusut ke ~3 poin di Windows — kubah tetap kebaca,
+## tapi pangkal belalai + kaki pohon larut, sesuai permintaan.
+## Kalau vol ikut +40% (0.035), total 0.091/m, kubah ~2 poin:
+## terlalu tipis, jangan.
+const MENU_VOL_DENSITY := 0.032
+const MENU_FOG_DENSITY := 0.065
 ## Grade menu: grain halus saja, BUKAN bingkai CCTV (kritik #3).
 ## Scanline/tear/flicker dimatikan; desat + vignette tipis, CA 0.
 const MENU_GRADE_GRAIN := 0.05

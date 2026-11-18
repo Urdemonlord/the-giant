@@ -262,10 +262,19 @@ func _setup_menu_window_giant() -> void:
 	# Puff eksplisit di sini (bukan _build_forest): koridor jendela
 	# di sana memang dikosongkan supaya puff acak tidak menutupi
 	# kepala; yang ini ditempatkan dengan sengaja di pangkalnya.
+	# v29: alpha 0.38 -> 0.44 (kabut lebih pekat) + 2 puff RENDAH
+	# di kaki pohon koridor jendela (x -4,5 dan x 5,5, y 0,4-0,5)
+	# supaya kaki pohon di balik jendela larut ke kabut. Keduanya
+	# di LUAR lebar kepala (x -0,9..4,9) dan RENDAH (y < 0,6),
+	# jadi tidak menutupi kubah/telinga/gading — hanya kaki pohon.
 	for fp in [Vector3(0.5, 0.6, 10.5), Vector3(2.0, 0.8, 11.0),
 			Vector3(3.5, 0.5, 10.5)]:
 		var fc := Balance.GRADE_FOG_TINT
-		fc.a = 0.38
+		fc.a = 0.44
+		_billboard(self, "fog_puff", fp, 0.022, fc)
+	for fp in [Vector3(-4.5, 0.4, 11.5), Vector3(5.5, 0.5, 12.5)]:
+		var fc := Balance.GRADE_FOG_TINT
+		fc.a = 0.44
 		_billboard(self, "fog_puff", fp, 0.022, fc)
 	# Kuburan gajah: PANEL DIHAPUS dari menu (ronde 8) — bukan
 	# karena asetnya jelek (kerangka + gading terbaca jelas di
@@ -403,7 +412,7 @@ func _apply_night_curve(delta: float) -> void:
 			+ (Balance.NIGHT_VOL_DAWN - Balance.VOL_FOG_DENSITY) * dawn, k)
 	else:
 		env.fog_density = lerpf(env.fog_density,
-			Balance.FOG_DENSITY + 0.01 * dark - 0.005 * dawn, k)
+			Balance.FOG_DENSITY + 0.014 * dark - 0.005 * dawn, k) # v29: bump malam 0.01 -> 0.014 (+40%, seiring FOG_DENSITY 0.06 -> 0.084); malam dalam Compatibility 0.098/m
 
 ## Posisi spawn + benda interaktif diambil dari LevelData, supaya
 ## main.tscn bukan satu-satunya sumber kebenaran. Dipanggil sebelum
@@ -623,7 +632,7 @@ func _build_forest() -> void:
 		if fp.z > 2.0 and fp.z < 20.0 and fp.x > -7.0 and fp.x < 15.0:
 			continue
 		var depth_k := clampf((r - 9.0) / (26.0 - 9.0), 0.0, 1.0)
-		var puff_alpha := lerpf(0.38, 0.26, depth_k)
+		var puff_alpha := lerpf(0.44, 0.30, depth_k) # v29: 0.38 -> 0.44 dekat, 0.26 -> 0.30 jauh (kabut lebih pekat)
 		# v28: tint literal -> GRADE_FOG_TINT (satu keluarga).
 		var fc := Balance.GRADE_FOG_TINT
 		fc.a = puff_alpha
@@ -643,8 +652,9 @@ func _build_forest() -> void:
 	for fp in [Vector3(-5.0, 0.8, 11.0), Vector3(6.0, 0.9, 10.0),
 			Vector3(-7.0, 0.8, -11.0), Vector3(8.0, 1.0, -12.0)]:
 		# v28: tint literal -> GRADE_FOG_TINT (satu keluarga).
+		# v29: alpha 0.34 -> 0.40 (FOG_PUFF_ALPHA).
 		var fc2 := Balance.GRADE_FOG_TINT
-		fc2.a = 0.34
+		fc2.a = 0.40
 		_billboard(forest, "fog_puff", fp, 0.022, fc2)
 	# Ground fog: lapisan kabut rendah merayap di permukaan tanah,
 	# rapat di sekitar pos + jalan + gerbang, supaya tanah tidak bersih.
@@ -659,7 +669,7 @@ func _build_forest() -> void:
 		if gp.z > 2.0 and gp.z < 20.0 and gp.x > -7.0 and gp.x < 15.0:
 			continue
 		var gdepth_k := clampf((gr - 6.0) / (13.0 - 6.0), 0.0, 1.0)
-		var ground_alpha := lerpf(0.42, 0.32, gdepth_k)
+		var ground_alpha := lerpf(0.48, 0.38, gdepth_k) # v29: 0.42 -> 0.48 dekat, 0.32 -> 0.38 jauh (kabut tanah lebih tebal)
 		# v28: tint literal -> GRADE_FOG_TINT (satu keluarga).
 		var gc := Balance.GRADE_FOG_TINT
 		gc.a = ground_alpha
@@ -676,7 +686,7 @@ func _build_forest() -> void:
 			Vector3(0.0, 0.3, -15.7), Vector3(1.0, 0.35, -9.0),
 			Vector3(-1.0, 0.35, -12.0)]:
 		var dc := Balance.GRADE_FOG_TINT
-		dc.a = 0.4
+		dc.a = 0.46 # v29: 0.40 -> 0.46 (kabut tanah lebih tebal)
 		_billboard(forest, "fog_puff", fp, 0.02, dc)
 	# Bayangan kontak di bawah generator + papan + gerbang: elips
 	# gelap datar (contact_shadow.png) supaya benda tidak melayang

@@ -1339,6 +1339,86 @@ web, bukan game Godot).
   (kemungkinan settings.json hilang, belum diselidiki, sudah ada
   sejak v20).
 
+## v29: kabut lebih PEKAT (2026-11-18)
+
+Arya (18:01 WIB, setelah v28): "tapi kabutnya belum pekat". Ronde
+fog density, BUKAN grade ulang (grade v28 + CA menu 0.0 tidak
+disentuh). Luci: router (Godot 4.3 pinned) → level-design (kabut
+sebagai alat framing/sightline, ukur jangan kira-kira) +
+camera-systems (keterbacaan diukur lewat proyeksi + luminance zona,
+bukan eyeballing). create-game-assets: tidak ada aset baru (2 puff
+tambahan pakai fog_puff yang sama), jadi provenance tidak berubah.
+
+### Angka lama vs baru (+40% game, menu sengaja lebih kecil)
+
+| Nilai | Lama | Baru | Alasan |
+|---|---|---|---|
+| FOG_DENSITY (Compatibility/Web/Android) | 0.06 | **0.084** | +40%; 10 m -> 0.43, 20 m -> 0.19, 30 m -> 0.08 |
+| FOG_DENSITY_VOLUMETRIC (exp saat Forward+) | 0.04 | **0.056** | +40%; total Forward+ awal 0.070 -> 0.098/m |
+| VOL_FOG_DENSITY | 0.030 | **0.042** | +40% |
+| NIGHT_VOL_DEEP / DAWN | 0.036 / 0.028 | **0.050 / 0.039** | +40%; malam dalam Forward+ 0.076 -> 0.106/m |
+| Bump malam Compatibility (+x·dark) | 0.01 | **0.014** | +40%; malam dalam Compatibility 0.07 -> 0.098/m |
+| MENU_VOL_DENSITY | 0.025 | **0.032** | +28% SAJA: total Windows menu 0.065 -> 0.088/m, kepala di 12 m tinggal transmittance 0.35; kalau ikut +40% (0.035), delta kubah-kabut tinggal ~2 poin, kubah hilang |
+| MENU_FOG_DENSITY | 0.05 | **0.065** | +30%, alasan sama |
+| FOG_PUFF_ALPHA / ground | 0.34 / 0.38 | **0.40 / 0.44** | puff acak dekat 0.38 -> 0.44, jauh 0.26 -> 0.30; ground fog dekat 0.42 -> 0.48, jauh 0.32 -> 0.38 |
+| GROUND_FOG_COUNT | 18 | **24** | kabut tanah lebih tebal |
+| Puff deterministik (kaki elemen) | 0.40 | **0.46** | menempelkan elemen ke tanah |
+| Puff pangkal kepala menu | 0.38 | **0.44** | + 2 puff RENDAH baru di kaki pohon koridor jendela (x -4,5 dan x 5,5, y 0,4-0,5, z 11,5-12,5): di luar lebar kepala (x -0,9..4,9) dan rendah, jadi tidak menutupi kubah/telinga/gading |
+
+Transmittance (total extinction): jarak larut (T=0.10) maju dari
+~30 m ke ~22 m (Forward+ malam dalam). Pohon dekat (9-15 m) tinggal
+siluet T 0.20-0.39, pos dari gerbang (15,7 m) T 0.19 tapi tetap
+massa gelap + lampu teras, generator 3-5 m dari pemain T 0.59-0.70.
+Bukan dobel buta: v6/v13 gagal di 0.085/m TOTAL karena kabut
+MENYALA (fog_light_energy 1.0 + puff alpha 0.55, jadi dinding
+terang); sekarang energi 0.35, kabutnya murk gelap.
+
+### Diukur (screenshot v32 vs v31, zona sama, 1280x720)
+
+- Menu: kubah L40.1 -> **39.0**, kabut kanan L31.2 -> 31.3,
+  pohon kiri L23.2 -> 24.5 — delta kubah-kabut menyusut 8.9 ->
+  7.7 poin, pohon-kabut -8.0 -> -6.8: larut, bukan gelap. Pita
+  kabut tanah di bawah kepala kini satu lapisan horizontal yang
+  terbaca; ujung belalai larut, kubah/telinga/gading tetap kebaca.
+- Malam tanpa senter: whole L18.9 -> 19.7, pohon kiri 22.4 ->
+  23.8, tengah (siluet pos) 16.5 -> 19.2 — kabut lebih pekat
+  TIDAK berarti lebih gelap: objek gelap TERANGKAT ke warna
+  kabut (veil abu kehijauan), kontrasnya yang menyusut. Pita
+  kabut tanah di kaki pos/pohon kini terbaca jelas.
+- Senter tetap tembus: malam senter tengah L30.2 -> 29.6
+  (gelap 19.2), jalan senter tengah L36.3 -> 35.6 (gelap 14.9).
+  Beam masih lembut seperti v27, bukan cone tegas (sisa lama).
+- Sanity di gelap tetap jalan: 95.2 -> 88.5 dalam 12 detik
+  (shots27).
+
+### Batas jujur v29
+
+- Screenshot sandbox (opengl3) HANYA menunjukkan komponen
+  eksponensial (0.04 -> 0.056): volumetric diabaikan renderer
+  Compatibility walau `volumetric_active()` true (cek setting
+  proyek, bukan driver). Efek penuh (+40% vol) baru kelihatan di
+  Windows Forward+ dan Android (exp 0.084). Jadi perubahan di
+  screenshot kelihatan moderat; di device lebih pekat.
+- Garis pelangi diagonal tipis dari shader VHS di shot malam
+  MASIH ADA (sudah sejak v28, belum diselidiki).
+- `ERR_CANT_OPEN` di awal rig menu masih muncul (settings.json,
+  sejak v20, belum diselidiki).
+
+### Verifikasi (Xvfb, `--rendering-driver opengl3`; `project.godot` NO-DIFF)
+
+- Quick rig v29 (`scripts/menu_check_v29.gd`, cek baru nilai fog):
+  desktop **14 pass, 0 fail**; portrait **14/0**; with-save **14/0**.
+- Rig menu penuh (`scripts/menu_shot.gd`, prefix v32): desktop
+  **32 pass, 0 fail**, portrait **32/0**.
+- Mode verify DONE (registry 81, missing 0, hitbox meja tumpang
+  0); mode playtest **PASS fails=0** (5 tugas, Sanity 100,
+  Stability 100); mode shots27 (prefix v32) selesai;
+  `menu_autostart=1` masuk main (22:00).
+- Screenshot dibaca sendiri: `v32_menu_no_save.png` (desktop),
+  `v32p_menu_no_save.png` (portrait), `v32_menu_with_save.png`,
+  `v32_night_dark.png`, `v32_night_flash.png`,
+  `v32_path_dark.png`, `v32_path_flash.png`.
+
 ## v6 (2026-11-16): kabut tebal + grafik creepy analog horror
 
 Keluhan Arya: kabut tidak terasa, grafik creepy-nya tipis. Dua-duanya
